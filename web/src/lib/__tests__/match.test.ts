@@ -4,6 +4,7 @@ import {
   advantageSide,
   applyEvent,
   changeEndsAfterThisGame,
+  changeEndsAfterThisPoint,
   currentGameNumber,
   deriveState,
   hasGamePoint,
@@ -332,5 +333,14 @@ describe("display helpers", () => {
     expect(changeEndsAfterThisGame(state)).toBe(true); // game 1
     state = deriveState(game("top"), FORMAT, "top");
     expect(changeEndsAfterThisGame(state)).toBe(false); // game 2
+  });
+
+  it("flags a change of ends after every six tiebreak points", () => {
+    let state = deriveState([...set("top", 6, 6), ...points("top", 3), ...points("bottom", 2)], FORMAT, "top");
+    expect(changeEndsAfterThisPoint(state)).toBe(true); // point 6 is next
+
+    state = applyEvent(state, point("bottom"), FORMAT);
+    expect(changeEndsAfterThisPoint(state)).toBe(false);
+    expect(changeEndsAfterThisPoint(deriveState(points("top", 5), FORMAT, "top"))).toBe(false);
   });
 });

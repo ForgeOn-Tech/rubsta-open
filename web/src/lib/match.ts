@@ -291,6 +291,14 @@ export function changeEndsAfterThisGame(state: MatchState): boolean {
   return currentGameNumber(state) % 2 === 1;
 }
 
+const TIEBREAK_POINTS_PER_END = 6;
+
+/** Inside a tiebreak, ends change after every six points. */
+export function changeEndsAfterThisPoint(state: MatchState): boolean {
+  const nextPoint = state.points.top + state.points.bottom + 1;
+  return state.tiebreak && nextPoint % TIEBREAK_POINTS_PER_END === 0;
+}
+
 /** One side's cell for a completed set: games, "6(5)" for a tiebreak loser, points for a match tiebreak. */
 function setCell(set: CompletedSet, side: Side): string {
   if (set.tiebreak === null) return String(set.games[side]);
