@@ -100,6 +100,12 @@ an `action` URL, it tells visitors that the list is not open yet.
 5. In `index.html`, add the URL to the form tag as
    `action="https://script.google.com/macros/s/…/exec"`.
 
+If **Extensions > Apps Script** shows “Sorry, unable to open the file at present”,
+create the project at https://script.google.com with **New project** instead. Paste
+the script, set `SPREADSHEET_ID` to the sheet's ID (the part of its URL between `/d/`
+and `/edit`), save, and continue from step 3. If script.google.com shows the same
+error, a Google Workspace admin has likely turned Apps Script off for the domain.
+
 The script creates an “Interest” tab on the first submission and keeps one row per
 email address. A second submission from the same address updates that row, so a
 retry never adds a duplicate. The script checks every field again, stores text that

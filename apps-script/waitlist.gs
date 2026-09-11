@@ -161,8 +161,15 @@ function safeCell_(value) {
   return FORMULA_START.test(value) ? "'" + value : value;
 }
 
+// Leave empty when the script is opened from the sheet (Extensions > Apps Script).
+// For a standalone project made at script.google.com, paste the sheet's ID: the
+// part of the sheet's URL between /d/ and /edit.
+const SPREADSHEET_ID = '';
+
 function getSheet_() {
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const spreadsheet = SPREADSHEET_ID
+    ? SpreadsheetApp.openById(SPREADSHEET_ID)
+    : SpreadsheetApp.getActiveSpreadsheet();
   const existing = spreadsheet.getSheetByName(SHEET_NAME);
   if (existing) return existing;
   const sheet = spreadsheet.insertSheet(SHEET_NAME);
