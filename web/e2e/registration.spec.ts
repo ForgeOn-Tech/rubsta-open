@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import { addConfirmedEntrants } from "./fixtures";
+import { addConfirmedEntrants, addDoublesInvitation } from "./fixtures";
 
 async function signInAsDemo(page: Page) {
   await page.goto("/signin");
@@ -302,5 +302,35 @@ test.describe.serial("registration", () => {
     await page.goto(matchUrl);
     await expect(score).toContainText("40");
     await expect(page.getByRole("status")).toHaveText("Saved");
+  });
+
+  test("a player accepts a doubles invitation, then waits on a partner of their own", async ({ page }) => {
+    // The demo account is the only browser identity, so another player invites it.
+    addDoublesInvitation("MD", "Riya Singh", "demo@rubstaopen.local");
+    await signInAsDemo(page);
+
+    await page.getByRole("region", { name: "Partner invitations" }).getByRole("link", { name: /Men's doubles/ }).click();
+    await expect(page).toHaveURL(/\/partner\/[^/]+$/);
+    await expect(
+      page.getByRole("heading", { name: "Riya Singh wants you as their Men's doubles partner" }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Accept" }).click();
+    await expect(page.getByText("You are playing Men's doubles with Riya Singh.")).toBeVisible();
+
+    await page.getByRole("link", { name: "Back to home" }).click();
+    await expect(page.getByRole("region", { name: "Partner invitations" })).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "Your entries" })).toContainText(
+      "With Riya Singh · You joined as partner",
+    );
+
+    // The accepted event is taken; a new doubles entry waits for its own partner.
+    await page.goto("/register");
+    await expect(page.getByRole("radio", { name: "Men's doubles", exact: true })).toBeDisabled();
+    await page.getByRole("radio", { name: "Women's doubles", exact: true }).check();
+    await page.getByLabel("Partner name").fill("Asha Rao");
+    await page.getByLabel("Partner email").fill("asha@example.com");
+    await page.getByRole("button", { name: "Submit entry" }).click();
+    await expect(page.getByRole("heading", { name: "Your partner needs to accept" })).toBeVisible();
+    await expect(page.getByLabel("Link for your partner")).toHaveValue(/\/partner\/[^/]+$/);
   });
 });
