@@ -148,6 +148,73 @@ test.describe.serial("registration", () => {
     );
   });
 
+  test("an admin builds, publishes and prints the order of play", async ({ page }) => {
+    // The tournament runs 25–27 Sept (set above), so the page opens on its first day.
+    await signInAsDemo(page);
+    await page.goto("/admin/settings");
+    const courts = page.getByRole("region", { name: "Courts" });
+    await courts.getByLabel("Name").last().fill("Centre");
+    await courts.getByLabel("Surface").last().fill("Hard");
+    await courts.getByRole("button", { name: "Add court" }).click();
+    await expect(courts.getByRole("group", { name: "Court 1" })).toBeVisible();
+    await courts.getByLabel("Name").last().fill("Show court");
+    await courts.getByRole("button", { name: "Add court" }).click();
+    await expect(courts.getByRole("group", { name: "Court 2" })).toBeVisible();
+
+    await page.getByRole("navigation", { name: "Admin" }).getByRole("link", { name: "Order of play" }).click();
+    await expect(page).toHaveURL(/\/admin\/order-of-play$/);
+    await expect(page.getByText(/Rubsta Open 2026 · Fri 25 Sept?/)).toBeVisible();
+
+    const addMatch = page.getByRole("region", { name: /Add a match/ });
+    await addMatch.getByLabel("Match").selectOption({ index: 1 });
+    await addMatch.getByLabel("Court").selectOption("1");
+    await addMatch.getByLabel("Umpire").selectOption("demo@rubstaopen.local");
+    await addMatch.getByLabel("Time").fill("11:00");
+    await addMatch.getByRole("button", { name: "Add match" }).click();
+    const courtOne = page.getByRole("region", { name: "Court 1", exact: true });
+    await expect(courtOne).toContainText("11:00");
+    await expect(courtOne).toContainText("Umpire: Demo Player");
+
+    const addSession = page.getByRole("region", { name: /Add a session/ });
+    await addSession.getByLabel("Court").selectOption("2");
+    await addSession.getByLabel("Title").fill("Serve Speed Challenge");
+    await addSession.getByLabel("Starts").fill("12:00");
+    await addSession.getByLabel("Ends").fill("14:00");
+    await addSession.getByRole("button", { name: "Add session" }).click();
+    await expect(page.getByRole("region", { name: "Court 2", exact: true })).toContainText("12:00–14:00");
+
+    await expect(page.getByText("Not published")).toBeVisible();
+    await page.getByRole("button", { name: "Publish schedule" }).click();
+    await expect(page.getByRole("button", { name: "Published" })).toBeDisabled();
+
+    // A later edit waits for the next publish.
+    await courtOne.locator("summary", { hasText: "Edit" }).click();
+    await courtOne.getByLabel("When").selectOption("notBefore");
+    await courtOne.getByLabel("Time").fill("15:30");
+    await courtOne.getByRole("button", { name: "Save" }).click();
+    await expect(courtOne).toContainText("Not before 15:30");
+    await expect(page.getByText("Unpublished changes")).toBeVisible();
+    await page.getByRole("button", { name: "Publish changes" }).click();
+    await expect(page.getByRole("button", { name: "Published" })).toBeDisabled();
+
+    await page.getByRole("link", { name: "Print sheet" }).click();
+    await expect(page).toHaveURL(/\/admin\/order-of-play\/print\?day=2026-09-25$/);
+    await expect(page.getByRole("heading", { name: /Order of play · Fri 25 Sept?/ })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Admin" })).toHaveCount(0);
+    const sheetCourt = page.getByRole("region", { name: /Court 1/ });
+    await expect(sheetCourt).toContainText("Not before 15:30");
+    await expect(sheetCourt).toContainText("Demo Player");
+
+    // The umpire sees the match first on the scoring list, and the published day.
+    await page.goto("/score");
+    const yours = page.getByRole("region", { name: /Your matches/ });
+    await expect(yours).toContainText(/Fri 25 Sept? · Court 1 · Not before 15:30/);
+    await page.getByRole("link", { name: "Order of play" }).click();
+    await expect(page).toHaveURL(/\/score\/schedule\/2026-09-25$/);
+    await expect(page.getByRole("region", { name: "Court 1" })).toContainText("Umpire: You");
+    await expect(page.getByRole("region", { name: "Court 2" })).toContainText("Serve Speed Challenge");
+  });
+
   test("an umpire keeps scoring through a dropped connection", async ({ page, context }) => {
     // Scores a match from the draw published above. The demo account is an admin, so it can score.
     await signInAsDemo(page);
@@ -157,7 +224,8 @@ test.describe.serial("registration", () => {
     await page.getByRole("region", { name: /Ready to start/ }).getByRole("link").first().click();
     await expect(page).toHaveURL(/\/score\/[^/]+$/);
     await page.getByRole("radio").first().check();
-    await page.getByLabel("Court").fill("2");
+    // The courts added above make the court a choice.
+    await page.getByRole("combobox", { name: /^Court/ }).selectOption("2");
     await page.getByRole("button", { name: "Start match" }).click();
     const sync = page.getByRole("status");
     await expect(sync).toHaveText("Saved");
