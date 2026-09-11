@@ -147,4 +147,36 @@ test.describe.serial("registration", () => {
       "In the published draw",
     );
   });
+
+  test("an umpire keeps scoring through a dropped connection", async ({ page, context }) => {
+    // Scores a match from the draw published above. The demo account is an admin, so it can score.
+    await signInAsDemo(page);
+    await page.getByRole("link", { name: "Scoring", exact: true }).click();
+    await expect(page).toHaveURL(/\/score$/);
+
+    await page.getByRole("region", { name: /Ready to start/ }).getByRole("link").first().click();
+    await expect(page).toHaveURL(/\/score\/[^/]+$/);
+    await page.getByRole("radio").first().check();
+    await page.getByLabel("Court").fill("2");
+    await page.getByRole("button", { name: "Start match" }).click();
+    const sync = page.getByRole("status");
+    await expect(sync).toHaveText("Saved");
+
+    const score = page.getByRole("table", { name: "Score" });
+    const topPoint = page.getByRole("button", { name: /^Point — / }).first();
+    await context.setOffline(true);
+    await topPoint.click();
+    await topPoint.click();
+    await expect(score).toContainText("30");
+    await expect(sync).toContainText("Offline");
+
+    await context.setOffline(false);
+    await expect(sync).toHaveText("Saved");
+
+    // The server kept both points: they survive a reload and show on the list.
+    await page.reload();
+    await expect(score).toContainText("30");
+    await page.getByRole("link", { name: "All matches" }).click();
+    await expect(page.getByRole("region", { name: /In progress/ })).toContainText("Court 2");
+  });
 });
