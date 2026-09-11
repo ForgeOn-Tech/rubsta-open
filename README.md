@@ -267,10 +267,24 @@ labelled. Nothing in this update connects production services.
 
 ### Public hosting
 
-GitHub Pages publishes the root of `main` at https://forgeon-tech.github.io/rubsta-open/.
-Every push to `main` redeploys the site, so the waitlist becomes the public page with
-the next push. `_config.yml` keeps `web/`, `apps-script/` and `tests/` out of the Pages
-build. After a push, check the “pages build and deployment” run in GitHub Actions.
+GitHub Pages publishes the root of `main`. The `CNAME` file sets the custom domain to
+https://www.rubstaopen.com. GitHub redirects the bare domain and the old
+https://forgeon-tech.github.io/rubsta-open/ address to it. Every push to `main`
+redeploys the site. `_config.yml` keeps `web/`, `apps-script/` and `tests/` out of the
+Pages build. After a push, check the “pages build and deployment” run in GitHub Actions.
+
+The rubstaopen.com DNS records live at GoDaddy and point to GitHub Pages:
+
+| Type | Name | Value |
+| --- | --- | --- |
+| A | @ | 185.199.108.153 |
+| A | @ | 185.199.109.153 |
+| A | @ | 185.199.110.153 |
+| A | @ | 185.199.111.153 |
+| CNAME | www | forgeon-tech.github.io |
+
+GitHub issues the HTTPS certificate after DNS points to it. Then turn on **Enforce
+HTTPS** in the repository's Pages settings.
 
 `python3 scripts/build-site.py` assembles the public files, including `preview/`, into
 `dist/` for other static hosts. It leaves out the original large PNG and repository files.
