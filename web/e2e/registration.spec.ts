@@ -342,7 +342,21 @@ test.describe.serial("registration", () => {
     await expect(next).toContainText("Men's singles · Semi-finals · M5");
     await expect(next).toContainText("v Winner of M2");
     await expect(next).toContainText("Time to be announced");
-    await expect(page.getByRole("region", { name: "Your record" })).toContainText(/FL-\d{4}-0001/);
+    const card = page.getByRole("region", { name: "Your record" });
+    await expect(card).toContainText(/FL-\d{4}-0001/);
+    await expect(card).toContainText("Certificates appear here after your first match.");
+
+    // Headless Chromium has no share sheet here; without one the card saves as a file.
+    await page.evaluate(() => Object.defineProperty(navigator, "canShare", { value: undefined }));
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      card.getByRole("button", { name: "Share card" }).click(),
+    ]);
+    expect(download.suggestedFilename()).toBe("rubsta-open-player-card.png");
+    const image = await page.request.get("/home/card-image");
+    expect(image.headers()["content-type"]).toBe("image/png");
+    // A certificate the player has not earned is not there.
+    expect((await page.request.get("/home/certificates/not-an-entry/participation")).status()).toBe(404);
 
     await next.getByRole("link", { name: /See the draw/ }).click();
     await expect(page).toHaveURL(/\/draws\/MS$/);
