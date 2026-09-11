@@ -28,6 +28,7 @@ import {
   toDrawEntrant,
 } from "@/lib/draws";
 import { CATEGORY_LABELS } from "@/lib/entries";
+import { countLabel } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -63,8 +64,8 @@ export default async function AdminDrawPage({
   const stats = [
     `${entrants.length} accepted`,
     size === null ? `Needs ${MIN_DRAW_ENTRANTS} accepted` : `${size}-line draw`,
-    `${entrants.filter((entrant) => entrant.seed !== null).length} seeds`,
-    size === null ? null : `${size - entrants.length} byes`,
+    countLabel(entrants.filter((entrant) => entrant.seed !== null).length, "seed", "seeds"),
+    size === null ? null : countLabel(size - entrants.length, "bye", "byes"),
     existing ? DRAW_STATUS_LABELS[existing.draw.status] : "Not generated",
   ].filter((stat): stat is string => stat !== null);
 

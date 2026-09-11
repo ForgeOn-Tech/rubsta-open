@@ -12,7 +12,7 @@ import { ADMIN_DRAWS_PATH } from "@/lib/draws";
 import { ENTRY_STATUS_LABELS } from "@/db/schema";
 import { ADMIN_ENTRIES_PATH, entriesHref, playerName } from "@/lib/admin-entries";
 import { CATEGORY_LABELS, STATUS_ORDER, countByStatus } from "@/lib/entries";
-import { formatEntryTime, formatFee } from "@/lib/format";
+import { countLabel, formatEntryTime, formatFee } from "@/lib/format";
 import { summariseByEvent, timeToCloseLabel } from "@/lib/overview";
 
 export const dynamic = "force-dynamic";
@@ -39,7 +39,7 @@ export default async function AdminOverviewPage() {
         eyebrow={`${tournament.name} · Overview`}
         title="Overview"
         stats={[
-          `${rows.length} entries`,
+          countLabel(rows.length, "entry", "entries"),
           timeToCloseLabel(tournament.entryClosesAt, new Date()),
           `Fee ${formatFee(tournament.feeCents, tournament.currency)}`,
         ]}

@@ -34,6 +34,11 @@ export function formatEntryTime(epochMs: number): string {
   }).format(new Date(epochMs));
 }
 
+/** A count with the right noun form, e.g. "1 entry", "3 entries". */
+export function countLabel(count: number, singular: string, plural: string): string {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
 const DAY_MONTH_YEAR = new Intl.DateTimeFormat("en-GB", {
   day: "numeric",
   month: "short",

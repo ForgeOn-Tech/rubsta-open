@@ -24,7 +24,7 @@ import {
   countByStatus,
   parseStatusFilter,
 } from "@/lib/entries";
-import { formatEntryCloses, formatEntryTime, formatFee } from "@/lib/format";
+import { countLabel, formatEntryCloses, formatEntryTime, formatFee } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -67,7 +67,7 @@ export default async function AdminEntriesPage({
         eyebrow={`${tournament.name} · Entries`}
         title="Entries"
         stats={[
-          `${rows.length} entries`,
+          countLabel(rows.length, "entry", "entries"),
           `Fee ${formatFee(tournament.feeCents, tournament.currency)}`,
           `Closes ${formatEntryCloses(tournament.entryClosesAt)} IST`,
         ]}

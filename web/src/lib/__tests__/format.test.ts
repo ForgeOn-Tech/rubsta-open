@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { formatTournamentDates } from "@/lib/format";
+import { countLabel, formatTournamentDates } from "@/lib/format";
+
+describe("countLabel", () => {
+  it("uses the singular for exactly one and the plural otherwise", () => {
+    expect(countLabel(1, "entry", "entries")).toBe("1 entry");
+    expect(countLabel(0, "entry", "entries")).toBe("0 entries");
+    expect(countLabel(3, "bye", "byes")).toBe("3 byes");
+  });
+});
 
 // Month abbreviations come from the runtime's en-GB locale data.
 const SEPT = new Intl.DateTimeFormat("en-GB", { month: "short", timeZone: "UTC" }).format(

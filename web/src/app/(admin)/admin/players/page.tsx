@@ -8,6 +8,7 @@ import { getCurrentTournament, listEntrySummaries, listPlayerAccounts } from "@/
 import { ADMIN_ENTRIES_PATH, playerName } from "@/lib/admin-entries";
 import { ageFromDob } from "@/lib/age";
 import { CATEGORY_LABELS } from "@/lib/entries";
+import { countLabel } from "@/lib/format";
 import {
   ADMIN_PLAYERS_PATH,
   buildPlayerRows,
@@ -41,7 +42,7 @@ export default async function AdminPlayersPage({
       <AdminPageHeader
         eyebrow={`${tournament.name} · Players`}
         title="Players"
-        stats={[`${players.length} players`, `${withEntries} with entries`]}
+        stats={[countLabel(players.length, "player", "players"), `${withEntries} with entries`]}
       />
 
       <div className="flex flex-col gap-4 p-6">
