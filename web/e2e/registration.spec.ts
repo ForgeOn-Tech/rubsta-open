@@ -179,4 +179,52 @@ test.describe.serial("registration", () => {
     await page.getByRole("link", { name: "All matches" }).click();
     await expect(page.getByRole("region", { name: /In progress/ })).toContainText("Court 2");
   });
+
+  test("a scoring page opened once still loads with no signal", async ({ page, context }) => {
+    test.skip(
+      process.env.E2E_TARGET !== "production",
+      "Under next dev a page reopened with no signal never hydrates. Run npm run test:e2e:production.",
+    );
+    // Opens the match scored above through a link, in a browser that has never run the worker.
+    await signInAsDemo(page);
+    await page.goto("/score");
+    await page.getByRole("region", { name: /In progress/ }).getByRole("link").first().click();
+    await expect(page).toHaveURL(/\/score\/[^/]+$/);
+    const matchUrl = page.url();
+    const score = page.getByRole("table", { name: "Score" });
+    await expect(score).toContainText("30");
+
+    // Wait for the worker to keep both pages before the signal goes.
+    const kept = (url: string) =>
+      page.evaluate(
+        (key) => caches.match(key, { ignoreVary: true }).then((response) => response !== undefined),
+        url,
+      );
+    await expect.poll(() => kept(new URL("/score", matchUrl).toString())).toBe(true);
+    await expect.poll(() => kept(matchUrl)).toBe(true);
+
+    // No online reload first: the page must come from what the worker kept.
+    await context.setOffline(true);
+    await page.reload();
+    await expect(score).toContainText("30");
+    await page.getByRole("button", { name: /^Point — / }).first().click();
+    await expect(score).toContainText("40");
+    await expect(page.getByRole("status")).toContainText("Offline");
+
+    // Links between the list and the match still work.
+    await page.getByRole("link", { name: "All matches" }).click();
+    await expect(page.getByText(/^No connection/)).toBeVisible();
+    await page.getByRole("region", { name: /In progress/ }).getByRole("link").first().click();
+    await expect(score).toContainText("40");
+
+    // A page never opened on this phone says why it cannot load.
+    await page.goto(new URL("/score/never-opened", matchUrl).toString());
+    await expect(page.getByRole("heading", { name: "No connection" })).toBeVisible();
+
+    // Back online, the point scored offline reaches the server.
+    await context.setOffline(false);
+    await page.goto(matchUrl);
+    await expect(score).toContainText("40");
+    await expect(page.getByRole("status")).toHaveText("Saved");
+  });
 });
