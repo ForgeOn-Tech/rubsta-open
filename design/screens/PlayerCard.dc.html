@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    :root{
+      --bg0:#f6f8fb; --bg1:#ffffff; --bg2:#eef2f6; --line:#dce2e8;
+      --ink:#0b1620; --muted:#46586a; --dim:#5e7082;
+      --accent:#2f698e; --accent-fg:#ffffff; --accent-deep:#1c587c;
+      --good:#2e7d55; --warn:#8a6200; --bad:#b23a3a;
+      --sans:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+      --mono:'JetBrains Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
+    }
+    *,*::before,*::after{box-sizing:border-box;border-radius:0;}
+    body{margin:0;font-family:var(--sans);background:var(--bg0);color:var(--ink);-webkit-font-smoothing:antialiased;}
+    a{color:var(--accent);text-decoration:none;} a:hover{color:var(--accent-deep);}
+    .eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);}
+    .caps{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);}
+    .thead{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);}
+    .mono{font-family:var(--mono);font-variant-numeric:tabular-nums;}
+
+  </style>
+</helmet>
+<div style="width:390px;height:844px;background:var(--bg0);display:flex;flex-direction:column;overflow:hidden;">
+  <div style="background:var(--bg1);border-bottom:1px solid var(--line);padding:18px 20px 16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <div style="display:flex;align-items:center;gap:10px;color:var(--muted);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          <span class="eyebrow">Autumn Open 2026 · Player</span></div><span class="mono" style="font-size:10px;color:var(--dim);">FL-2026-0117</span>
+      </div>
+      <div style="font-size:20px;font-weight:600;letter-spacing:-.01em;margin-top:12px;">Player card</div>
+    </div>
+  <div style="flex:1;min-height:0;overflow:hidden;">
+    <div style="background:var(--bg1);border-bottom:1px solid var(--line);padding:20px;display:flex;gap:16px;align-items:center;">
+      <div style="width:72px;height:72px;flex:none;background:var(--bg2);border:1px solid var(--line);
+           display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:22px;
+           font-weight:600;color:var(--dim);">GP</div>
+      <div style="min-width:0;">
+        <div style="font-size:20px;font-weight:600;letter-spacing:-.01em;">Gaurav Pillai</div>
+        <div class="mono" style="font-size:11px;color:var(--muted);margin-top:5px;">19 YRS · RIGHT-HANDED</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:9px;">
+          <span style="width:6px;height:6px;background:var(--accent);"></span>
+          <span class="mono" style="font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);">On court now · R16</span>
+        </div>
+      </div>
+    </div>
+    <div style="padding:18px 20px 0;display:flex;flex-direction:column;gap:18px;">
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;">
+        <div><div class="caps" style="font-size:10px;">Best ranking</div><div style="display:flex;align-items:baseline;gap:3px;margin-top:6px;"><span class="mono" style="font-size:22px;font-weight:600;">24</span><span class="mono" style="font-size:11px;color:var(--dim);">state</span></div></div>
+        <div><div class="caps" style="font-size:10px;">Matches</div><div style="display:flex;align-items:baseline;gap:3px;margin-top:6px;"><span class="mono" style="font-size:22px;font-weight:600;">31</span><span class="mono" style="font-size:11px;color:var(--dim);"></span></div></div>
+        <div><div class="caps" style="font-size:10px;">Win–loss</div><div style="display:flex;align-items:baseline;gap:3px;margin-top:6px;"><span class="mono" style="font-size:22px;font-weight:600;">21–10</span><span class="mono" style="font-size:11px;color:var(--dim);"></span></div></div>
+      </div>
+      <div style="border-top:1px solid var(--line);"></div>
+      <div>
+        <div class="caps">Contact</div>
+        <div style="font-size:13px;margin-top:7px;">gaurav.pillai@example.com</div>
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div class="caps">Previous tournaments</div>
+          <span class="mono" style="font-size:10px;color:var(--dim);">3 ENTERED</span>
+        </div>
+        <div style="margin-top:4px;"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);"><div style="min-width:0;"><div style="font-size:12.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Monsoon Hardcourt Open</div><div class="mono" style="font-size:10px;color:var(--dim);margin-top:3px;">2026</div></div><div class="mono" style="font-size:12px;font-weight:600;color:var(--muted);">SF</div></div><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);"><div style="min-width:0;"><div style="font-size:12.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">State Ranking Series 3</div><div class="mono" style="font-size:10px;color:var(--dim);margin-top:3px;">2025</div></div><div class="mono" style="font-size:12px;font-weight:600;color:var(--muted);">R16</div></div><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);"><div style="min-width:0;"><div style="font-size:12.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">City Championship</div><div class="mono" style="font-size:10px;color:var(--dim);margin-top:3px;">2025</div></div><div class="mono" style="font-size:12px;font-weight:600;color:var(--muted);">W</div></div></div>
+      </div>
+    </div>
+  </div>
+  <div style="padding:16px 20px 22px;background:var(--bg1);border-top:1px solid var(--line);
+       display:flex;flex-direction:column;gap:10px;">
+    <div style="height:48px;border:1px solid var(--line);background:var(--bg1);color:var(--ink);display:flex;align-items:center;justify-content:center;gap:8px;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>Participation certificate</div>
+    <div style="height:48px;border:1px solid var(--line);background:var(--bg1);color:var(--ink);display:flex;align-items:center;justify-content:center;gap:8px;font-size:13.5px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M12 15V3"/><path d="M8 7l4-4 4 4"/></svg>Share card</div>
+  </div></div>
+</x-dc>
+</body>
+</html>
