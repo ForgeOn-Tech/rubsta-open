@@ -146,3 +146,11 @@ The technology section now covers Tournament OS, LiveScore, Player Card, Capture
 Highlights, Challenge Kit and Fan Zone, followed by the planned AI capabilities.
 Available product previews open the existing artboards, with sample data clearly
 labelled. Nothing in this update connects production services.
+
+### Public hosting
+
+Production uses Sites; the original GitHub repository stays private. GitHub Pages
+was unavailable for this account's private-repository plan. `.openai/hosting.json`
+records the Sites project. `python3 scripts/build-site.py` assembles only public
+website assets into `dist/`, excluding the original large PNG and repository files.
+Publish a saved version from the exact source commit pushed to the Sites repository.
