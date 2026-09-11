@@ -1,6 +1,10 @@
 import type { Match } from "@/db/schema";
 import { scoreRecordOf } from "@/lib/score-record";
 
+/** The signed-in player's card as a PNG (src/app/(player)/home/card-image/route.tsx). */
+export const PLAYER_CARD_IMAGE_PATH = "/home/card-image";
+export const PLAYER_CARD_FILE_NAME = "rubsta-open-player-card.png";
+
 const PLAYER_ID_PREFIX = "FL";
 const PLAYER_NUMBER_DIGITS = 4;
 

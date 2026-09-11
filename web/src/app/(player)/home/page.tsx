@@ -20,6 +20,7 @@ import {
 import { UPCOMING_FEATURES, greetingName, nextStep } from "@/lib/home";
 import { partnerInvitationPath } from "@/lib/partners";
 import { other } from "@/lib/match";
+import { certificateLabel, certificatePath, earnedCertificates } from "@/lib/certificates";
 import { formatPlayerId, matchRecord } from "@/lib/player-card";
 import {
   PLAYER_DRAWS_PATH,
@@ -239,6 +240,10 @@ export default async function HomePage() {
             }
             entryCount={myEntries.length + partnered.length}
             record={record}
+            certificates={earnedCertificates(tournamentMatches, teamEntryIds).map((certificate) => ({
+              href: certificatePath(certificate),
+              label: certificateLabel(certificate),
+            }))}
           />
         ) : (
           <p className="mt-6 border-t border-club-line pt-5 text-[13px] text-club-muted">

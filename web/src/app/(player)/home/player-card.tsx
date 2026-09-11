@@ -1,11 +1,16 @@
+import { ShareCardButton } from "./share-card-button";
 import { HAND_LABELS, type Profile } from "@/db/schema";
 import { ageFromDob } from "@/lib/age";
 import { initials } from "@/lib/home";
-import type { MatchRecord } from "@/lib/player-card";
+import { PLAYER_CARD_FILE_NAME, PLAYER_CARD_IMAGE_PATH, type MatchRecord } from "@/lib/player-card";
 
 const NOT_ADDED = "Not added";
 const NOT_ASSIGNED = "Not assigned";
-const CARD_ACTIONS = ["Participation certificate", "Share card"] as const;
+
+export interface CertificateLink {
+  href: string;
+  label: string;
+}
 
 interface Stat {
   label: string;
@@ -21,9 +26,11 @@ export interface PlayerCardProps {
   playerId: string | null;
   entryCount: number;
   record: MatchRecord;
+  /** Certificate downloads the player has earned. */
+  certificates: readonly CertificateLink[];
 }
 
-export function PlayerCard({ profile, playerId, entryCount, record }: PlayerCardProps) {
+export function PlayerCard({ profile, playerId, entryCount, record, certificates }: PlayerCardProps) {
   const age = ageFromDob(profile.dateOfBirth);
   const hand = profile.plays === null ? null : HAND_LABELS[profile.plays];
   const facts = [age === null ? null : `Age ${age}`, hand, profile.club].filter(Boolean);
@@ -73,13 +80,23 @@ export function PlayerCard({ profile, playerId, entryCount, record }: PlayerCard
           ))}
         </dl>
 
-        <div className="mt-5 flex flex-wrap gap-3">
-          {CARD_ACTIONS.map((label) => (
-            <button key={label} type="button" className="pill pill-outline" disabled>
-              {label} · Coming soon
-            </button>
+        <div className="mt-5 flex flex-wrap items-start gap-3">
+          {certificates.map((certificate) => (
+            <a key={certificate.href} href={certificate.href} className="pill pill-outline" download>
+              {certificate.label} <span aria-hidden="true">↓</span>
+            </a>
           ))}
+          <ShareCardButton
+            imagePath={PLAYER_CARD_IMAGE_PATH}
+            fileName={PLAYER_CARD_FILE_NAME}
+            title={`${profile.fullName} · Player card`}
+          />
         </div>
+        {certificates.length === 0 ? (
+          <p className="mt-3 text-[12px] text-club-muted">
+            Certificates appear here after your first match.
+          </p>
+        ) : null}
       </div>
 
       <div>
