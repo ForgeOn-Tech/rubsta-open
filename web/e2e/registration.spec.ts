@@ -333,4 +333,25 @@ test.describe.serial("registration", () => {
     await expect(page.getByRole("heading", { name: "Your partner needs to accept" })).toBeVisible();
     await expect(page.getByLabel("Link for your partner")).toHaveValue(/\/partner\/[^/]+$/);
   });
+
+  test("a player sees their next match, their draw and the order of play", async ({ page }) => {
+    await signInAsDemo(page);
+
+    // Seed 1 had a bye, so their semi-final waits on match 2, which has no time yet.
+    const next = page.getByRole("region", { name: "Your next match" });
+    await expect(next).toContainText("Men's singles · Semi-finals · M5");
+    await expect(next).toContainText("v Winner of M2");
+    await expect(next).toContainText("Time to be announced");
+    await expect(page.getByRole("region", { name: "Your record" })).toContainText(/FL-\d{4}-0001/);
+
+    await next.getByRole("link", { name: /See the draw/ }).click();
+    await expect(page).toHaveURL(/\/draws\/MS$/);
+    await expect(page.getByRole("heading", { name: "Men's singles" })).toBeVisible();
+    await expect(page.getByRole("article", { name: "Match 5", exact: true })).toContainText("You");
+    await expect(page.getByRole("article", { name: "Match 1", exact: true })).toContainText("Bye");
+
+    await page.goto("/order-of-play");
+    await expect(page.getByRole("region", { name: "Court 1" })).toContainText("Not before 15:30");
+    await expect(page.getByRole("region", { name: "Court 2" })).toContainText("Serve Speed Challenge");
+  });
 });
