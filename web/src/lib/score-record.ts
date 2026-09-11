@@ -124,14 +124,29 @@ function sameEvent(a: MatchEvent, b: MatchEvent): boolean {
   return a.type === b.type;
 }
 
-/** True when two records share their start details and every event. Court is not compared. */
-export function sameScore(a: ScoreRecord, b: ScoreRecord): boolean {
+function sameStart(a: ScoreRecord, b: ScoreRecord): boolean {
   return (
     a.firstServer === b.firstServer &&
     a.decidingSet === b.decidingSet &&
-    a.startedAt === b.startedAt &&
+    a.startedAt === b.startedAt
+  );
+}
+
+/** True when two records share their start details and every event. Court is not compared. */
+export function sameScore(a: ScoreRecord, b: ScoreRecord): boolean {
+  return (
+    sameStart(a, b) &&
     a.events.length === b.events.length &&
     a.events.every((event, index) => sameEvent(event, b.events[index]))
+  );
+}
+
+/** True when `longer` starts like `shorter`, keeps all its events in order, and adds more. */
+export function extendsScore(longer: ScoreRecord, shorter: ScoreRecord): boolean {
+  return (
+    sameStart(longer, shorter) &&
+    longer.events.length > shorter.events.length &&
+    shorter.events.every((event, index) => sameEvent(event, longer.events[index]))
   );
 }
 

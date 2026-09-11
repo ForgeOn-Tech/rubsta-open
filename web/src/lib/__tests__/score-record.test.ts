@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { MatchEvent } from "@/lib/match";
 import {
   MAX_EVENTS,
+  extendsScore,
   parseDeviceScore,
   parseScoreRecord,
   reconcileScore,
@@ -86,6 +87,25 @@ describe("sameScore", () => {
     expect(sameScore(record(events), record([{ type: "point", side: "bottom" }]))).toBe(false);
     expect(sameScore(record(events), record([...events, { type: "let" }]))).toBe(false);
     expect(sameScore(record([{ type: "fault" }]), record([{ type: "let" }]))).toBe(false);
+  });
+});
+
+describe("extendsScore", () => {
+  const top: MatchEvent = { type: "point", side: "top" };
+  const bottom: MatchEvent = { type: "point", side: "bottom" };
+
+  it("accepts a record that only adds events after the shorter one's", () => {
+    expect(extendsScore(record([top, bottom]), record([top]))).toBe(true);
+    expect(extendsScore(record([top]), record([]))).toBe(true);
+  });
+
+  it("rejects an equal, shorter, diverging or differently started record", () => {
+    expect(extendsScore(record([top]), record([top]))).toBe(false);
+    expect(extendsScore(record([top]), record([top, bottom]))).toBe(false);
+    expect(extendsScore(record([bottom, top]), record([top]))).toBe(false);
+    expect(extendsScore({ ...record([top, bottom]), decidingSet: "matchTiebreak" }, record([top]))).toBe(
+      false,
+    );
   });
 });
 

@@ -240,6 +240,31 @@ describe("saveMatchScore", () => {
     expect(retry).toMatchObject({ kind: "saved", match: { version: 1 } });
   });
 
+  it("saves a record on an old version that only adds points to the stored one", () => {
+    const database = setup();
+    const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
+    const match = matchByNumber(matches, 2);
+
+    saveMatchScore(database, match.id, 0, record([point("top")]));
+    // The device never saw version 1 and sends its next point on version 0.
+    const result = saveMatchScore(database, match.id, 0, record([point("top"), point("bottom")]));
+
+    expect(result).toMatchObject({ kind: "saved", match: { version: 2 } });
+    expect(result.match.events).toEqual([point("top"), point("bottom")]);
+  });
+
+  it("returns a conflict for an undo sent on an old version", () => {
+    const database = setup();
+    const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
+    const match = matchByNumber(matches, 2);
+
+    saveMatchScore(database, match.id, 0, record([point("top"), point("top")]));
+    const undo = saveMatchScore(database, match.id, 0, record([point("top")]));
+
+    expect(undo.kind).toBe("conflict");
+    expect(undo.match.events).toHaveLength(2);
+  });
+
   it("returns a conflict with the stored match when it changed since the base version", () => {
     const database = setup();
     const { matches } = materializedDraw(database, ["a", null, "b", "c"]);

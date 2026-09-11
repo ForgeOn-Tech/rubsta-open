@@ -16,7 +16,7 @@ import {
 } from "./schema";
 import { buildBracket, type BracketSlot } from "@/lib/draws";
 import { deriveState, standardFormat, type Side } from "@/lib/match";
-import { sameScore, scoreRecordOf, type ScoreRecord } from "@/lib/score-record";
+import { extendsScore, sameScore, scoreRecordOf, type ScoreRecord } from "@/lib/score-record";
 
 export interface MatchSideInfo {
   entryId: string;
@@ -147,8 +147,9 @@ export function advanceWinnerToNextMatch(database: Database, match: Match): void
 
 /**
  * Saves an umpire's whole score record if the match is still at
- * `baseVersion`, and bumps the version. A retry of a save that already landed
- * counts as saved; any other version mismatch is a conflict that returns the
+ * `baseVersion`, and bumps the version. On an older version, a retry of a save
+ * that already landed counts as saved, and a record that only adds events to
+ * the stored one is saved. Any other mismatch is a conflict that returns the
  * stored match. The first save starts the match. The save that finishes it
  * records the winner and advances them, in the same transaction.
  */
@@ -162,8 +163,12 @@ export function saveMatchScore(
     const row = loadMatch(tx, matchId);
     if (row.version !== baseVersion) {
       const stored = scoreRecordOf(row);
-      const landed = stored !== null && sameScore(stored, record);
-      return { kind: landed ? "saved" : "conflict", match: row };
+      if (stored !== null && sameScore(stored, record)) return { kind: "saved", match: row };
+      // A save whose response was lost, followed by more points, arrives on an
+      // old version. It only adds to what is stored, so nothing is overwritten.
+      const addsToStored =
+        row.status === "in_progress" && stored !== null && extendsScore(record, stored);
+      if (!addsToStored) return { kind: "conflict", match: row };
     }
     if (row.status === "completed") {
       throw new Error(`Match ${row.matchNumber} is already complete.`);
