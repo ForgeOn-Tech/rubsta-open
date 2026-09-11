@@ -83,6 +83,7 @@ test.describe.serial("registration", () => {
 
     const csv = await page.request.get("/admin/entries/export?status=paid");
     expect(csv.headers()["content-type"]).toContain("text/csv");
+    expect(csv.headers()["content-disposition"]).toContain('filename="rubsta-open-2026-entries.csv"');
     const body = await csv.text();
     expect(body).toContain("Payment reference");
     expect(body).toContain("Demo Player");
@@ -139,5 +140,11 @@ test.describe.serial("registration", () => {
     await expect(page.getByRole("button", { name: "Back to draft" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Generate again" })).toHaveCount(0);
     await expect(page.getByLabel("Seed for Demo Player")).toBeDisabled();
+
+    // The entries table warns that these entries sit in a published draw.
+    await page.goto("/admin/entries?category=MS");
+    await expect(page.getByRole("row", { name: /Demo Player/ })).toContainText(
+      "In the published draw",
+    );
   });
 });

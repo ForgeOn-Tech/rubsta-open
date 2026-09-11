@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   ENTRY_CSV_HEADER,
+  entriesExportFilename,
   entrantLabel,
   entriesHref,
   entryCsvRows,
@@ -94,6 +95,16 @@ describe("playerName", () => {
     expect(playerName({ email: "g@example.com", accountName: null, profile: null })).toBe(
       "g@example.com",
     );
+  });
+});
+
+describe("entriesExportFilename", () => {
+  it("builds the file name from the tournament name", () => {
+    expect(entriesExportFilename("Rubsta Open 2026")).toBe("rubsta-open-2026-entries.csv");
+  });
+
+  it("still names the file when the tournament name has no letters or digits", () => {
+    expect(entriesExportFilename("— !?")).toBe("tournament-entries.csv");
   });
 });
 

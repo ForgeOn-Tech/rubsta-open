@@ -7,11 +7,18 @@ import {
   type EntryStatus,
   type Profile,
 } from "@/db/schema";
-import type { CsvValue } from "@/lib/csv";
+import { fileSlug, type CsvValue } from "@/lib/csv";
 import { formatEntryTime } from "@/lib/format";
 
 export const ADMIN_ENTRIES_PATH = "/admin/entries";
 export const ADMIN_ENTRIES_EXPORT_PATH = "/admin/entries/export";
+// Used when a tournament name has no letters or digits to build a file name from.
+const EXPORT_FILE_STEM = "tournament";
+
+/** Download name for the entries CSV, e.g. "rubsta-open-2026-entries.csv". */
+export function entriesExportFilename(tournamentName: string): string {
+  return `${fileSlug(tournamentName) || EXPORT_FILE_STEM}-entries.csv`;
+}
 
 /** An entry joined with its player's account and profile. */
 export interface AdminEntryRow {

@@ -6,6 +6,8 @@ import { requireAdmin } from "@/auth/require";
 import { AdminNotice } from "@/components/admin-notice";
 import { AdminPageHeader } from "@/components/admin-page-header";
 import { StatusBadge } from "@/components/status-badge";
+import { getDb } from "@/db/client";
+import { listDrawsWithSlots } from "@/db/draws";
 import { getCurrentTournament, listTournamentEntries } from "@/db/queries";
 import { CATEGORIES, ENTRY_STATUS_LABELS } from "@/db/schema";
 import {
@@ -18,6 +20,7 @@ import {
   type EntryFilters,
 } from "@/lib/admin-entries";
 import { ageFromDob } from "@/lib/age";
+import { ADMIN_DRAWS_PATH } from "@/lib/draws";
 import {
   CATEGORY_LABELS,
   STATUS_ORDER,
@@ -60,6 +63,12 @@ export default async function AdminEntriesPage({
   const inEvent = filterEntries(rows, { status: null, category: filters.category });
   const statusCounts = countByStatus(inEvent.map((row) => row.entry.status));
   const visibleRows = filterEntries(rows, filters);
+  // Cancelling one of these entries leaves its published draw out of date.
+  const publishedDrawEntryIds = new Set(
+    listDrawsWithSlots(getDb(), tournament.id)
+      .filter((item) => item.draw.status === "published")
+      .flatMap((item) => item.slots.flatMap((slot) => (slot.entryId ? [slot.entryId] : []))),
+  );
 
   return (
     <>
@@ -182,6 +191,15 @@ export default async function AdminEntriesPage({
                           subject={`${name}, ${CATEGORY_LABELS[entry.category]}`}
                           action={changeEntryStatus}
                         />
+                        {publishedDrawEntryIds.has(entry.id) ? (
+                          <Link
+                            href={`${ADMIN_DRAWS_PATH}/${entry.category}`}
+                            className="mt-1.5 block text-[11px]"
+                            style={{ color: "var(--color-warn)" }}
+                          >
+                            In the published draw
+                          </Link>
+                        ) : null}
                       </td>
                     </tr>
                   );

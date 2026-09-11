@@ -1,7 +1,12 @@
 import { requireAdmin } from "@/auth/require";
 import { getCurrentTournament, listTournamentEntries } from "@/db/queries";
-import { entryCsvRows, filterEntries, parseCategoryFilter } from "@/lib/admin-entries";
-import { fileSlug, toCsv } from "@/lib/csv";
+import {
+  entriesExportFilename,
+  entryCsvRows,
+  filterEntries,
+  parseCategoryFilter,
+} from "@/lib/admin-entries";
+import { toCsv } from "@/lib/csv";
 import { parseStatusFilter } from "@/lib/entries";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +32,7 @@ export async function GET(request: Request): Promise<Response> {
   return new Response(UTF8_BOM + toCsv(entryCsvRows(rows)), {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${fileSlug(tournament.name)}-entries.csv"`,
+      "Content-Disposition": `attachment; filename="${entriesExportFilename(tournament.name)}"`,
       "Cache-Control": "no-store",
     },
   });
