@@ -11,7 +11,9 @@ import * as schema from "./schema";
 const DEFAULT_DB_PATH = "./data/tournament.db";
 
 function createDb() {
-  const dbPath = process.env.DATABASE_PATH ?? DEFAULT_DB_PATH;
+  // `||`, not `??`: .env.example sets DATABASE_PATH= (empty), and SQLite opens
+  // an empty path as a temporary database that is lost on restart.
+  const dbPath = process.env.DATABASE_PATH || DEFAULT_DB_PATH;
   if (dbPath !== ":memory:") {
     fs.mkdirSync(path.dirname(path.resolve(dbPath)), { recursive: true });
   }
