@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { auth } from "./auth";
-import { isAdmin } from "@/lib/access";
+import { isListedEmail } from "@/lib/access";
 
 export interface SessionUser {
   id: string;
@@ -31,12 +31,24 @@ export async function requireUser(): Promise<SessionUser> {
  * list demo@rubstaopen.local to use /admin locally.
  */
 export function canAccessAdmin(email: string): boolean {
-  return isAdmin(email, process.env.ADMIN_EMAILS ?? "");
+  return isListedEmail(email, process.env.ADMIN_EMAILS ?? "");
 }
 
 /** Guard for /admin. Signed-out visitors go to /signin; players without access go home. */
 export async function requireAdmin(): Promise<SessionUser> {
   const user = await requireUser();
   if (!canAccessAdmin(user.email)) redirect("/home");
+  return user;
+}
+
+/** Umpires in UMPIRE_EMAILS can score matches, and so can every admin. */
+export function canScoreMatches(email: string): boolean {
+  return canAccessAdmin(email) || isListedEmail(email, process.env.UMPIRE_EMAILS ?? "");
+}
+
+/** Guard for /score. Signed-out visitors go to /signin; others without access go home. */
+export async function requireScorer(): Promise<SessionUser> {
+  const user = await requireUser();
+  if (!canScoreMatches(user.email)) redirect("/home");
   return user;
 }
