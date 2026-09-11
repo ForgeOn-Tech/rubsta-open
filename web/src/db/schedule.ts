@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull } from "drizzle-orm";
 
 import type { Database } from "./draws";
 import {
@@ -6,8 +6,10 @@ import {
   courts,
   draws,
   matches,
+  profiles,
   scheduleDays,
   scheduleItems,
+  users,
   type ScheduleDay,
   type ScheduleItem,
   type ScheduleTiming,
@@ -63,7 +65,8 @@ function requireDay(day: string): void {
   if (!isCalendarDate(day)) throw new Error(`"${day}" is not a YYYY-MM-DD date.`);
 }
 
-function loadItem(database: Database, itemId: string): ScheduleItem {
+/** One schedule item. Throws ScheduleItemNotFoundError for an unknown id. */
+export function getScheduleItem(database: Database, itemId: string): ScheduleItem {
   const item = database.select().from(scheduleItems).where(eq(scheduleItems.id, itemId)).get();
   if (!item) throw new ScheduleItemNotFoundError(itemId);
   return item;
@@ -140,6 +143,36 @@ export function listScheduleDaysInUse(database: Database, tournamentId: string):
     .where(eq(scheduleDays.tournamentId, tournamentId))
     .all();
   return [...new Set([...working, ...published].map((row) => row.day))].sort();
+}
+
+/** Ids of the matches that have a place on the working order of play, on any day. */
+export function listScheduledMatchIds(database: Database, tournamentId: string): Set<string> {
+  const rows = database
+    .select({ matchId: scheduleItems.matchId })
+    .from(scheduleItems)
+    .where(and(eq(scheduleItems.tournamentId, tournamentId), isNotNull(scheduleItems.matchId)))
+    .all();
+  return new Set(rows.flatMap((row) => (row.matchId === null ? [] : [row.matchId])));
+}
+
+/**
+ * Names for the given lower-case emails: the profile name, else the account
+ * name. Emails with no account or no name are left out.
+ */
+export function listNamesByEmail(database: Database, emails: readonly string[]): Map<string, string> {
+  if (emails.length === 0) return new Map();
+  const rows = database
+    .select({ email: users.email, accountName: users.name, fullName: profiles.fullName })
+    .from(users)
+    .leftJoin(profiles, eq(profiles.userId, users.id))
+    .where(inArray(users.email, [...emails]))
+    .all();
+  return new Map(
+    rows.flatMap((row): [string, string][] => {
+      const name = row.fullName ?? row.accountName;
+      return name === null ? [] : [[row.email.toLowerCase(), name]];
+    }),
+  );
 }
 
 /** Puts a match at the bottom of a court's list for the day. */
@@ -226,7 +259,7 @@ export function addBlockItem(
 }
 
 export function updateMatchItem(database: Database, itemId: string, changes: MatchItemChanges): void {
-  const item = loadItem(database, itemId);
+  const item = getScheduleItem(database, itemId);
   if (item.kind !== "match") throw new Error(`Schedule item ${itemId} is not a match.`);
   database
     .update(scheduleItems)
@@ -236,7 +269,7 @@ export function updateMatchItem(database: Database, itemId: string, changes: Mat
 }
 
 export function updateBlockItem(database: Database, itemId: string, block: BlockFields): void {
-  const item = loadItem(database, itemId);
+  const item = getScheduleItem(database, itemId);
   if (item.kind !== "block") throw new Error(`Schedule item ${itemId} is not a session.`);
   database
     .update(scheduleItems)
@@ -248,7 +281,7 @@ export function updateBlockItem(database: Database, itemId: string, block: Block
 /** Swaps an item with its neighbour on the same court. */
 export function moveItem(database: Database, itemId: string, direction: MoveDirection): void {
   database.transaction((tx) => {
-    const item = loadItem(tx, itemId);
+    const item = getScheduleItem(tx, itemId);
     const ids = courtItems(tx, item.tournamentId, item.day, item.courtNumber).map((row) => row.id);
     renumber(tx, moveInOrder(ids, itemId, direction));
   });
@@ -257,7 +290,7 @@ export function moveItem(database: Database, itemId: string, direction: MoveDire
 /** Moves an item to the bottom of another court's list for the same day. */
 export function moveItemToCourt(database: Database, itemId: string, courtNumber: number): void {
   database.transaction((tx) => {
-    const item = loadItem(tx, itemId);
+    const item = getScheduleItem(tx, itemId);
     if (item.courtNumber === courtNumber) return;
     requireCourt(tx, item.tournamentId, courtNumber);
 
@@ -277,7 +310,7 @@ export function moveItemToCourt(database: Database, itemId: string, courtNumber:
 /** Takes an item off the order of play and closes the gap it leaves. */
 export function removeItem(database: Database, itemId: string): void {
   database.transaction((tx) => {
-    const item = loadItem(tx, itemId);
+    const item = getScheduleItem(tx, itemId);
     tx.delete(scheduleItems).where(eq(scheduleItems.id, itemId)).run();
     const left = courtItems(tx, item.tournamentId, item.day, item.courtNumber).map((row) => row.id);
     renumber(tx, left);

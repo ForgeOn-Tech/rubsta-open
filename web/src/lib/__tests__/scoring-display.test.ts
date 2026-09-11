@@ -8,6 +8,7 @@ import {
   groupScoringMatches,
   matchSummary,
   scoringGroupOf,
+  setGamesBySide,
   sideLabel,
   situationLabel,
 } from "@/lib/scoring-display";
@@ -47,6 +48,25 @@ function row(match: Partial<Match>): ScoringMatchRow {
 function started(events: MatchEvent[], status: Match["status"], winnerEntryId: string | null) {
   return row({ firstServer: "top", startedAt: STARTED_AT, events, status, winnerEntryId });
 }
+
+describe("setGamesBySide", () => {
+  it("is null before the match starts", () => {
+    expect(setGamesBySide(row({}))).toBeNull();
+  });
+
+  it("shows finished sets and the current set while the match plays", () => {
+    const events = [...points("top", 24), ...points("bottom", 4)];
+
+    expect(setGamesBySide(started(events, "in_progress", null))).toEqual({ top: "6 0", bottom: "0 1" });
+  });
+
+  it("shows only the sets once the match is over", () => {
+    expect(setGamesBySide(started(points("top", 48), "completed", "a"))).toEqual({
+      top: "6 6",
+      bottom: "0 0",
+    });
+  });
+});
 
 describe("sideLabel", () => {
   it("joins doubles partners and keeps the seed", () => {

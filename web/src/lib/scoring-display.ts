@@ -6,6 +6,7 @@ import {
   deriveState,
   isDeuce,
   scoreLine,
+  setScores,
   standardFormat,
   type MatchState,
   type Side,
@@ -116,6 +117,22 @@ export function situationLabel(state: MatchState, sides: Record<Side, SideLabel>
   }
   if (state.faultPending) parts.push("Second serve");
   return parts.length === 0 ? null : parts.join(" · ");
+}
+
+/**
+ * Games in each set for each side, e.g. "6 3", once a match has started: the
+ * current set too while it plays, finished sets only once it is over.
+ */
+export function setGamesBySide(row: ScoringMatchRow): Record<Side, string> | null {
+  const record = snapshotOf(row.match).record;
+  if (row.match.status === "scheduled" || record === null) return null;
+  const state = deriveState(record.events, standardFormat(record.decidingSet), record.firstServer);
+  const cells = setScores(state);
+  const shown = row.match.status === "completed" ? state.sets.length : cells.top.length;
+  return {
+    top: cells.top.slice(0, shown).join(" "),
+    bottom: cells.bottom.slice(0, shown).join(" "),
+  };
 }
 
 /** Match time in hours and minutes, e.g. "1:42". */

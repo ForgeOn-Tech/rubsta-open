@@ -2,6 +2,7 @@ import {
   SCHEDULE_TIMINGS,
   type Court,
   type MatchStatus,
+  type ScheduleDay,
   type ScheduleItem,
   type ScheduleItemKind,
   type ScheduleTiming,
@@ -18,6 +19,20 @@ export const MAX_BLOCK_NOTE_LENGTH = 120;
 
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 const MS_PER_DAY = 86_400_000;
+const VENUE_TIME_ZONE = "Asia/Kolkata";
+// en-CA writes dates as YYYY-MM-DD.
+const VENUE_DATE = new Intl.DateTimeFormat("en-CA", {
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  timeZone: VENUE_TIME_ZONE,
+});
+const VENUE_CLOCK = new Intl.DateTimeFormat("en-GB", {
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+  timeZone: VENUE_TIME_ZONE,
+});
 const DAY_LABEL = new Intl.DateTimeFormat("en-GB", {
   weekday: "short",
   day: "numeric",
@@ -283,4 +298,109 @@ export function validateBlock(input: {
     return { ok: false, error: "The session must end after it starts." };
   }
   return { ok: true, value: { title, note, time, endTime } };
+}
+
+/** The date at the venue in India, as YYYY-MM-DD. */
+export function venueDay(epochMs: number): string {
+  return VENUE_DATE.format(new Date(epochMs));
+}
+
+/** The time at the venue in India, e.g. "13:12". */
+export function venueClock(epochMs: number): string {
+  return VENUE_CLOCK.format(new Date(epochMs));
+}
+
+/** Today while the tournament plays, otherwise its first day; null with no days. */
+export function defaultScheduleDay(days: readonly string[], today: string): string | null {
+  return days.includes(today) ? today : (days[0] ?? null);
+}
+
+/** How the item below refers to this one: "M21", or a session's title. */
+export function itemName(
+  entry: Pick<ScheduleEntry, "id" | "kind" | "title">,
+  matchNumber: number | null,
+): string {
+  if (entry.kind === "block") {
+    if (entry.title === null) throw new Error(`Session ${entry.id} has no title.`);
+    return entry.title;
+  }
+  if (matchNumber === null) throw new Error(`Schedule item ${entry.id} has no match number.`);
+  return `M${matchNumber}`;
+}
+
+/** A court as a choice in a form, e.g. "Court 1 · Centre". */
+export interface CourtOption {
+  number: number;
+  label: string;
+}
+
+export function courtOptionLabel(court: Pick<Court, "number" | "name">): string {
+  return court.name === null ? courtTitle(court.number) : `${courtTitle(court.number)} · ${court.name}`;
+}
+
+/** Where and when a match plays, as last published. */
+export interface PublishedPlace {
+  day: string;
+  courtNumber: number;
+  position: number;
+  /** e.g. "Not before 15:30" or "After M21". */
+  timing: string;
+  umpireEmail: string | null;
+}
+
+/**
+ * The published place of each match in `matchNumbers`. A match missing from
+ * it, such as one deleted when its draw went back to draft, is left out.
+ */
+export function publishedPlaces(
+  days: readonly Pick<ScheduleDay, "items">[],
+  matchNumbers: ReadonlyMap<string, number>,
+): Map<string, PublishedPlace> {
+  const nameOf = (entry: ScheduleEntry): string | null => {
+    if (entry.kind === "block") return entry.title;
+    const matchNumber = entry.matchId === null ? undefined : matchNumbers.get(entry.matchId);
+    return matchNumber === undefined ? null : `M${matchNumber}`;
+  };
+
+  return new Map(
+    days.flatMap((day) => {
+      const sorted = sortEntries(day.items);
+      return sorted.flatMap((entry, index): [string, PublishedPlace][] => {
+        if (entry.kind !== "match" || entry.matchId === null || !matchNumbers.has(entry.matchId)) {
+          return [];
+        }
+        const above = index > 0 ? sorted[index - 1] : null;
+        const previousName = above !== null && above.courtNumber === entry.courtNumber ? nameOf(above) : null;
+        return [
+          [
+            entry.matchId,
+            {
+              day: entry.day,
+              courtNumber: entry.courtNumber,
+              position: entry.position,
+              timing: timingLabel(entry, previousName),
+              umpireEmail: entry.umpireEmail,
+            },
+          ],
+        ];
+      });
+    }),
+  );
+}
+
+/** e.g. "Sat 26 Sept · Court 2 · Not before 15:30". */
+export function placeLabel(place: PublishedPlace): string {
+  return `${formatScheduleDay(place.day)} · ${courtTitle(place.courtNumber)} · ${place.timing}`;
+}
+
+/** The ids of the matches an umpire is assigned, in playing order: day, court, then place on court. */
+export function umpireMatchIds(places: ReadonlyMap<string, PublishedPlace>, email: string): string[] {
+  const normalised = email.trim().toLowerCase();
+  return [...places.entries()]
+    .filter(([, place]) => place.umpireEmail === normalised)
+    .sort(
+      ([, a], [, b]) =>
+        a.day.localeCompare(b.day) || a.courtNumber - b.courtNumber || a.position - b.position,
+    )
+    .map(([matchId]) => matchId);
 }

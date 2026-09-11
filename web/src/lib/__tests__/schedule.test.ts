@@ -7,17 +7,26 @@ import {
   MAX_SCHEDULE_DAYS,
   courtColumns,
   courtDetail,
+  courtOptionLabel,
+  defaultScheduleDay,
   formatScheduleDay,
   hasUnpublishedChanges,
+  itemName,
   moveInOrder,
   nextCourtNumber,
+  placeLabel,
   playFrom,
+  publishedPlaces,
   scheduleDayChoices,
   timingLabel,
   tournamentDays,
+  umpireMatchIds,
   validateBlock,
   validateCourt,
   validateTiming,
+  venueClock,
+  venueDay,
+  type PublishedPlace,
   type ScheduleEntry,
 } from "@/lib/schedule";
 import { MAX_COURT } from "@/lib/score-record";
@@ -284,5 +293,131 @@ describe("validateBlock", () => {
       ok: false,
       error: "The session must end after it starts.",
     });
+  });
+});
+
+describe("venueDay and venueClock", () => {
+  it("use the date and time in India", () => {
+    // 20:00 UTC on 25 September is 01:30 IST on 26 September.
+    const instant = Date.UTC(2026, 8, 25, 20, 0);
+
+    expect(venueDay(instant)).toBe("2026-09-26");
+    expect(venueClock(instant)).toBe("01:30");
+  });
+});
+
+describe("defaultScheduleDay", () => {
+  const days = ["2026-09-25", "2026-09-26"];
+
+  it("picks today while the tournament plays", () => {
+    expect(defaultScheduleDay(days, "2026-09-26")).toBe("2026-09-26");
+  });
+
+  it("picks the first day on any other date", () => {
+    expect(defaultScheduleDay(days, "2026-09-11")).toBe("2026-09-25");
+  });
+
+  it("is null with no days", () => {
+    expect(defaultScheduleDay([], "2026-09-11")).toBeNull();
+  });
+});
+
+describe("itemName", () => {
+  it("names a match by number and a session by title", () => {
+    expect(itemName(entry({}), 21)).toBe("M21");
+    expect(itemName(entry({ kind: "block", title: "Serve Speed Challenge" }), null)).toBe(
+      "Serve Speed Challenge",
+    );
+  });
+
+  it("rejects a match without a number", () => {
+    expect(() => itemName(entry({}), null)).toThrow(/no match number/);
+  });
+});
+
+describe("courtOptionLabel", () => {
+  it("adds the name when the court has one", () => {
+    expect(courtOptionLabel({ number: 1, name: "Centre" })).toBe("Court 1 · Centre");
+    expect(courtOptionLabel({ number: 2, name: null })).toBe("Court 2");
+  });
+});
+
+describe("publishedPlaces", () => {
+  const numbers = new Map([
+    ["match-1", 21],
+    ["match-2", 23],
+  ]);
+
+  it("gives each match its day, court and timing, naming the item above", () => {
+    const items = [
+      entry({ id: "b", matchId: "match-2", position: 2, timing: "followOn", time: null, umpireEmail: "ump@example.com" }),
+      entry({ id: "a", matchId: "match-1", position: 1 }),
+    ];
+
+    const places = publishedPlaces([{ items }], numbers);
+
+    expect(places.get("match-1")).toEqual({
+      day: "2026-09-26",
+      courtNumber: 1,
+      position: 1,
+      timing: "11:00",
+      umpireEmail: null,
+    });
+    expect(places.get("match-2")).toEqual({
+      day: "2026-09-26",
+      courtNumber: 1,
+      position: 2,
+      timing: "After M21",
+      umpireEmail: "ump@example.com",
+    });
+  });
+
+  it("does not name an item on another court", () => {
+    const items = [
+      entry({ id: "a", matchId: "match-1", courtNumber: 1 }),
+      entry({ id: "b", matchId: "match-2", courtNumber: 2, timing: "followOn", time: null }),
+    ];
+
+    expect(publishedPlaces([{ items }], numbers).get("match-2")?.timing).toBe("Time to follow");
+  });
+
+  it("leaves out sessions and matches that no longer exist", () => {
+    const items = [
+      entry({ id: "s", kind: "block", matchId: null, title: "Serve Speed Challenge", endTime: "14:00" }),
+      entry({ id: "gone", matchId: "deleted", position: 2 }),
+    ];
+
+    expect([...publishedPlaces([{ items }], numbers).keys()]).toEqual([]);
+  });
+});
+
+describe("placeLabel", () => {
+  it("names the day, court and timing", () => {
+    const place: PublishedPlace = {
+      day: "2026-09-26",
+      courtNumber: 2,
+      position: 1,
+      timing: "Not before 15:30",
+      umpireEmail: null,
+    };
+
+    expect(placeLabel(place)).toMatch(/^Sat 26 Sept? · Court 2 · Not before 15:30$/);
+  });
+});
+
+describe("umpireMatchIds", () => {
+  function place(day: string, courtNumber: number, position: number, umpireEmail: string): PublishedPlace {
+    return { day, courtNumber, position, timing: "11:00", umpireEmail };
+  }
+
+  it("lists an umpire's matches in playing order, whatever the email's case", () => {
+    const places = new Map([
+      ["late", place("2026-09-27", 1, 1, "ump@example.com")],
+      ["court-2", place("2026-09-26", 2, 1, "ump@example.com")],
+      ["first", place("2026-09-26", 1, 3, "ump@example.com")],
+      ["someone-else", place("2026-09-26", 1, 1, "other@example.com")],
+    ]);
+
+    expect(umpireMatchIds(places, " Ump@Example.com ")).toEqual(["first", "court-2", "late"]);
   });
 });
