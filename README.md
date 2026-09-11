@@ -121,9 +121,9 @@ The registration app in `web/` uses Next.js 16, Auth.js v5, Drizzle ORM and SQLi
 
 ## Registration app
 
-`web/` holds the first Tournament OS surface: sign-in, player profile, event entry
-and the organiser entries table. It needs a Node server, so GitHub Pages cannot
-host it.
+`web/` holds the first Tournament OS surface: sign-in, player profile, event entry,
+the organiser admin and umpire scoring. It needs a Node server, so GitHub Pages
+cannot host it.
 
 Run it from `web/`:
 
@@ -148,13 +148,43 @@ npm run dev                  # http://localhost:3100
 | `/admin/draws/<event>` | Admins | Seed entrants, generate a draw, publish it or move it back to draft |
 | `/admin/players` | Admins | Everyone with a profile or entry, their entries, and search by name, email, club or mobile |
 | `/admin/settings` | Admins | Name, dates, venue, closing time (IST), fee, entries open or closed, schedule confirmed |
+| `/score` | Admins and umpires | Matches in progress, ready to start, waiting on earlier results, and completed |
+| `/score/<match id>` | Admins and umpires | Umpire scoring screen, which keeps working when the signal drops |
 
 Draws take an event's confirmed and paid entries. The draw size is the next power
 of two, up to 128 lines, with one seed per four lines (at least two). Seeds 1 and 2
 take the top and bottom lines, and later seed groups draw lots, so seeds 1–4 of a
 32-line draw sit on lines 1, 16, 17 and 32. Byes go to seeds in seed order. A
 published draw is locked; move it back to draft to change seeds or generate it
-again. Players do not see draws yet.
+again. Once any match in the draw has started, it cannot go back to draft, because
+that would delete scores. Players do not see draws yet.
+
+### Scoring
+
+Publishing a draw creates its matches. A match against a bye is complete at once,
+and each winner moves into the next round.
+
+Umpires score at `/score`. Emails in `ADMIN_EMAILS` or `UMPIRE_EMAILS` can open it,
+and umpires cannot open `/admin`. The scoring screen follows the LiveScore umpire
+artboard. It records points, faults, double faults and lets. It handles deuce,
+tiebreaks and an optional 10-point match tiebreak for the deciding set. The umpire
+confirms the point that ends the match before it saves.
+
+Scoring keeps working when the connection drops. The phone holds the score: each
+tap shows at once and stays in the browser's localStorage. Saves run in the
+background and retry until the connection returns. The header shows Saved,
+Saving, Offline or Conflict. Each save carries the match version it builds on, so
+when another device changed the match, the umpire chooses which score to keep.
+Retire and reset need a connection.
+
+A service worker (`public/sw.js`) keeps each scoring page an umpire opens, with
+the app files it needs, so the page reopens or reloads with no signal. It
+controls only `/score` pages and fetches from the network first. It waits up to
+5 seconds for a page before it falls back to a kept copy. A scoring page never
+opened on the phone shows a "No connection" notice instead. The sign-in page
+deletes the kept pages, so the next person on a shared phone cannot open them
+offline. Scores kept in localStorage stay, because they may not have reached
+the server yet.
 
 Entry status moves submitted → confirmed → paid. Any live entry can be cancelled,
 and a cancelled entry can be reinstated as submitted. Marking an entry paid by hand
@@ -187,7 +217,12 @@ npx tsc --noEmit
 npm test                         # Vitest unit and component tests
 npx playwright install chromium  # once
 npm run test:e2e                 # starts its own dev server with a fresh database
+npm run test:e2e:production      # the same tests against next build and next start
 ```
+
+The offline reload test runs only in the production run. Under `next dev`, a
+page reopened with no signal gets its files from the service worker but does not
+hydrate.
 
 ### Event images and sponsors
 

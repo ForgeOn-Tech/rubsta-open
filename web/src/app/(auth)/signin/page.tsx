@@ -1,4 +1,5 @@
 import { signInWithDemo, signInWithGoogle } from "./actions";
+import { ClearOfflinePages } from "./clear-offline-pages";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,7 @@ export default async function SignInPage({
       className="flex min-h-screen items-center justify-center px-5 py-12"
       style={{ background: "var(--color-surface-0)" }}
     >
+      <ClearOfflinePages />
       <div className="card w-full max-w-sm p-8">
         <div className="eyebrow">Tournament OS · Entry</div>
         <h1 className="mt-3 text-[20px] font-semibold tracking-[-0.01em]">
