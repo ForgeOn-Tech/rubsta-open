@@ -13,6 +13,7 @@ import {
   listPartneredEntries,
   listPendingInvitations,
   listPlayedCategories,
+  listTeamEntryIds,
   respondToInvitation,
 } from "@/db/partners";
 import * as schema from "@/db/schema";
@@ -102,6 +103,8 @@ describe("respondToInvitation", () => {
     expect(entry(database).partnerRespondedAt).not.toBeNull();
     expect(listPartneredEntries(database, PARTNER.userId).map((item) => item.entry.id)).toEqual(["doubles"]);
     expect(listPlayedCategories(database, PARTNER.userId)).toEqual(["MD"]);
+    expect(listTeamEntryIds(database, PARTNER.userId)).toEqual(["doubles"]);
+    expect(listTeamEntryIds(database, INVITER.userId)).toEqual(["doubles"]);
     expect(listPendingInvitations(database, PARTNER.email)).toEqual([]);
   });
 

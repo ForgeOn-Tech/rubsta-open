@@ -43,6 +43,13 @@
       "when": 1789143674895,
       "tag": "0005_doubles_partners",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1789144248288,
+      "tag": "0006_player_card",
+      "breakpoints": true
     }
   ]
 }

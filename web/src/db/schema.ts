@@ -84,6 +84,13 @@ export const GENDER_LABELS: Record<Gender, string> = {
   other: "Other",
 };
 
+export const HANDS = ["right", "left"] as const;
+export type Hand = (typeof HANDS)[number];
+export const HAND_LABELS: Record<Hand, string> = {
+  right: "Right-handed",
+  left: "Left-handed",
+};
+
 export const profiles = sqliteTable("profiles", {
   id: text("id")
     .primaryKey()
@@ -102,13 +109,16 @@ export const profiles = sqliteTable("profiles", {
     .$type<PreviousTournament[]>()
     .notNull()
     .default([]),
+  plays: text("plays", { enum: HANDS }),
+  // The player ID number, e.g. 117 in FL-2026-0117. Given once, in the order profiles are made.
+  playerNumber: integer("player_number"),
   createdAt: integer("created_at")
     .notNull()
     .default(sql`(unixepoch() * 1000)`),
   updatedAt: integer("updated_at")
     .notNull()
     .default(sql`(unixepoch() * 1000)`),
-});
+}, (table) => [uniqueIndex("profiles_player_number").on(table.playerNumber)]);
 
 export const TOURNAMENT_STATUSES = ["open", "closed"] as const;
 export type TournamentStatus = (typeof TOURNAMENT_STATUSES)[number];

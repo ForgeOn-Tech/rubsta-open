@@ -1,11 +1,11 @@
 "use server";
 
-import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
 import { requireUser } from "@/auth/require";
-import { db } from "@/db/client";
-import { GENDERS, profiles, type Gender, type PreviousTournament } from "@/db/schema";
+import { getDb } from "@/db/client";
+import { upsertProfile } from "@/db/profiles";
+import { GENDERS, HANDS, type Gender, type PreviousTournament } from "@/db/schema";
 import { ageFromDob } from "@/lib/age";
 
 export interface ProfileFormState {
@@ -24,6 +24,7 @@ export async function saveProfile(
   const mobile = String(formData.get("mobile") ?? "").trim();
   const club = String(formData.get("club") ?? "").trim();
   const bestRanking = String(formData.get("bestRanking") ?? "").trim();
+  const playsInput = String(formData.get("plays") ?? "");
   const previousTournaments = parsePreviousTournaments(
     String(formData.get("previousTournaments") ?? "[]"),
   );
@@ -34,14 +35,10 @@ export async function saveProfile(
   }
   if (!GENDERS.includes(gender)) return { error: "Choose a gender." };
   if (!mobile) return { error: "Mobile number is required." };
+  const plays = HANDS.find((hand) => hand === playsInput);
+  if (playsInput !== "" && plays === undefined) return { error: "Choose the hand you play with." };
 
-  const existing = db
-    .select()
-    .from(profiles)
-    .where(eq(profiles.userId, user.id))
-    .get();
-
-  const values = {
+  upsertProfile(getDb(), user.id, {
     fullName,
     dateOfBirth,
     gender,
@@ -49,16 +46,8 @@ export async function saveProfile(
     club: club || null,
     bestRanking: bestRanking || null,
     previousTournaments,
-    updatedAt: Date.now(),
-  };
-
-  if (existing) {
-    db.update(profiles).set(values).where(eq(profiles.userId, user.id)).run();
-  } else {
-    db.insert(profiles)
-      .values({ ...values, userId: user.id })
-      .run();
-  }
+    plays: plays ?? null,
+  });
 
   redirect("/home");
 }

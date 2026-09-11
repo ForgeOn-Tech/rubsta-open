@@ -6,7 +6,8 @@ import { requireUser } from "@/auth/require";
 import { PartnerStatusBadge } from "@/components/partner-status-badge";
 import { StatusBadge } from "@/components/status-badge";
 import { db, getDb } from "@/db/client";
-import { listPartneredEntries, listPendingInvitations } from "@/db/partners";
+import { listScoringMatches } from "@/db/matches";
+import { listPartneredEntries, listPendingInvitations, listTeamEntryIds } from "@/db/partners";
 import { CATEGORIES, entries, profiles, tournaments } from "@/db/schema";
 import { CATEGORY_LABELS, entriesOpen } from "@/lib/entries";
 import {
@@ -17,6 +18,7 @@ import {
 } from "@/lib/format";
 import { UPCOMING_FEATURES, greetingName, nextStep } from "@/lib/home";
 import { partnerInvitationPath } from "@/lib/partners";
+import { formatPlayerId, matchRecord } from "@/lib/player-card";
 import { PROVISIONAL_SCHEDULE_NOTE } from "@/lib/tournament";
 
 export const dynamic = "force-dynamic";
@@ -38,6 +40,12 @@ export default async function HomePage() {
     .all();
   const invitations = listPendingInvitations(getDb(), user.email);
   const partnered = listPartneredEntries(getDb(), user.id);
+  const teamEntryIds = new Set(listTeamEntryIds(getDb(), user.id));
+  const tournamentMatches = tournament ? listScoringMatches(getDb(), tournament.id) : [];
+  const record = matchRecord(
+    tournamentMatches.map((row) => row.match),
+    teamEntryIds,
+  );
 
   const step = nextStep({
     hasProfile: profile !== null,
@@ -186,7 +194,14 @@ export default async function HomePage() {
           ) : null}
         </SectionHeading>
         {profile ? (
-          <PlayerCard profile={profile} entryCount={myEntries.length + partnered.length} />
+          <PlayerCard
+            profile={profile}
+            playerId={
+              profile.playerNumber === null ? null : formatPlayerId(profile.playerNumber, profile.createdAt)
+            }
+            entryCount={myEntries.length + partnered.length}
+            record={record}
+          />
         ) : (
           <p className="mt-6 border-t border-club-line pt-5 text-[13px] text-club-muted">
             Your player card starts when you create your profile.

@@ -91,19 +91,28 @@ export function listPartneredEntries(database: Database, userId: string): Partne
     .map(toInvitation);
 }
 
+/** Entries a user plays in: their own, and the doubles entries they joined as a partner. */
+function playsIn(userId: string) {
+  return or(
+    eq(entries.userId, userId),
+    and(eq(entries.partnerUserId, userId), eq(entries.partnerStatus, "accepted")),
+  );
+}
+
 /** The events a user plays: their own entries and the entries they joined as a partner. */
 export function listPlayedCategories(database: Database, userId: string): Category[] {
-  const rows = database
-    .select({ category: entries.category })
-    .from(entries)
-    .where(
-      or(
-        eq(entries.userId, userId),
-        and(eq(entries.partnerUserId, userId), eq(entries.partnerStatus, "accepted")),
-      ),
-    )
-    .all();
+  const rows = database.select({ category: entries.category }).from(entries).where(playsIn(userId)).all();
   return [...new Set(rows.map((row) => row.category))];
+}
+
+/** Ids of the entries a user plays in, so their matches can be found in draws. */
+export function listTeamEntryIds(database: Database, userId: string): string[] {
+  return database
+    .select({ id: entries.id })
+    .from(entries)
+    .where(playsIn(userId))
+    .all()
+    .map((row) => row.id);
 }
 
 /** True when the entry has a line in a published draw. */
