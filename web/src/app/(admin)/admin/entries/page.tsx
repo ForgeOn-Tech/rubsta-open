@@ -1,17 +1,22 @@
-import { desc, eq } from "drizzle-orm";
 import Link from "next/link";
 
+import { changeEntryStatus } from "./actions";
+import { EntryStatusActions } from "./entry-status-actions";
 import { requireAdmin } from "@/auth/require";
+import { AdminNotice } from "@/components/admin-notice";
 import { AdminPageHeader } from "@/components/admin-page-header";
 import { StatusBadge } from "@/components/status-badge";
-import { db } from "@/db/client";
+import { getCurrentTournament, listTournamentEntries } from "@/db/queries";
+import { CATEGORIES, ENTRY_STATUS_LABELS } from "@/db/schema";
 import {
-  ENTRY_STATUS_LABELS,
-  entries,
-  profiles,
-  tournaments,
-  users,
-} from "@/db/schema";
+  ADMIN_ENTRIES_EXPORT_PATH,
+  ADMIN_ENTRIES_PATH,
+  entriesHref,
+  filterEntries,
+  parseCategoryFilter,
+  playerName,
+  type EntryFilters,
+} from "@/lib/admin-entries";
 import { ageFromDob } from "@/lib/age";
 import {
   CATEGORY_LABELS,
@@ -23,7 +28,6 @@ import { formatEntryCloses, formatEntryTime, formatFee } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-const ENTRIES_PATH = "/admin/entries";
 const EMPTY_CELL = "—";
 const COLUMNS = [
   "Player",
@@ -34,46 +38,28 @@ const COLUMNS = [
   "Club",
   "Status",
   "Submitted",
+  "Actions",
 ] as const;
 
 export default async function AdminEntriesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; category?: string }>;
 }) {
   await requireAdmin();
-  const { status } = await searchParams;
-  const filter = parseStatusFilter(status);
+  const params = await searchParams;
+  const filters: EntryFilters = {
+    status: parseStatusFilter(params.status),
+    category: parseCategoryFilter(params.category),
+  };
 
-  const tournament = db.select().from(tournaments).get();
-  if (!tournament) {
-    return (
-      <div className="p-6">
-        <p className="card p-4 text-[13px] text-muted" role="status">
-          No tournament has been set up.
-        </p>
-      </div>
-    );
-  }
+  const tournament = getCurrentTournament();
+  if (!tournament) return <AdminNotice message="No tournament has been set up." />;
 
-  const rows = db
-    .select({
-      entry: entries,
-      email: users.email,
-      accountName: users.name,
-      profile: profiles,
-    })
-    .from(entries)
-    .innerJoin(users, eq(entries.userId, users.id))
-    .leftJoin(profiles, eq(profiles.userId, entries.userId))
-    .where(eq(entries.tournamentId, tournament.id))
-    .orderBy(desc(entries.createdAt))
-    .all();
-
-  const counts = countByStatus(rows.map((row) => row.entry.status));
-  const visibleRows = filter
-    ? rows.filter((row) => row.entry.status === filter)
-    : rows;
+  const rows = listTournamentEntries(tournament.id);
+  const inEvent = filterEntries(rows, { status: null, category: filters.category });
+  const statusCounts = countByStatus(inEvent.map((row) => row.entry.status));
+  const visibleRows = filterEntries(rows, filters);
 
   return (
     <>
@@ -85,32 +71,55 @@ export default async function AdminEntriesPage({
           `Fee ${formatFee(tournament.feeCents, tournament.currency)}`,
           `Closes ${formatEntryCloses(tournament.entryClosesAt)} IST`,
         ]}
-      />
-
-      <div className="flex flex-col gap-5 p-6">
-        <nav
-          aria-label="Filter by status"
-          className="flex w-fit max-w-full flex-wrap border border-line bg-surface-1"
+      >
+        {/* A plain link: the CSV comes from a route handler, not a page. */}
+        <a
+          href={entriesHref(ADMIN_ENTRIES_EXPORT_PATH, filters)}
+          className="btn btn-outline h-8 text-[12px]"
         >
+          Export CSV
+        </a>
+      </AdminPageHeader>
+
+      <div className="flex flex-col gap-3 p-6">
+        <nav aria-label="Filter by event" className={SEGMENTS}>
           <FilterLink
-            href={ENTRIES_PATH}
-            label="All"
+            href={entriesHref(ADMIN_ENTRIES_PATH, { ...filters, category: null })}
+            label="All events"
             count={rows.length}
-            active={filter === null}
+            active={filters.category === null}
           />
-          {STATUS_ORDER.map((value) => (
+          {CATEGORIES.map((category) => (
             <FilterLink
-              key={value}
-              href={`${ENTRIES_PATH}?status=${value}`}
-              label={ENTRY_STATUS_LABELS[value]}
-              count={counts[value]}
-              active={filter === value}
+              key={category}
+              href={entriesHref(ADMIN_ENTRIES_PATH, { ...filters, category })}
+              label={CATEGORY_LABELS[category]}
+              count={rows.filter((row) => row.entry.category === category).length}
+              active={filters.category === category}
             />
           ))}
         </nav>
 
-        <div className="card overflow-x-auto">
-          <table className="w-full min-w-[880px] border-collapse text-left text-[13px]">
+        <nav aria-label="Filter by status" className={SEGMENTS}>
+          <FilterLink
+            href={entriesHref(ADMIN_ENTRIES_PATH, { ...filters, status: null })}
+            label="All"
+            count={inEvent.length}
+            active={filters.status === null}
+          />
+          {STATUS_ORDER.map((status) => (
+            <FilterLink
+              key={status}
+              href={entriesHref(ADMIN_ENTRIES_PATH, { ...filters, status })}
+              label={ENTRY_STATUS_LABELS[status]}
+              count={statusCounts[status]}
+              active={filters.status === status}
+            />
+          ))}
+        </nav>
+
+        <div className="card mt-2 overflow-x-auto">
+          <table className="w-full min-w-[1040px] border-collapse text-left text-[13px]">
             <thead>
               <tr className="border-b border-line">
                 {COLUMNS.map((column) => (
@@ -123,27 +132,21 @@ export default async function AdminEntriesPage({
             <tbody>
               {visibleRows.length === 0 ? (
                 <tr>
-                  <td
-                    colSpan={COLUMNS.length}
-                    className="px-4 py-8 text-center text-muted"
-                  >
-                    {filter
-                      ? `No ${ENTRY_STATUS_LABELS[filter].toLowerCase()} entries.`
-                      : "No entries yet."}
+                  <td colSpan={COLUMNS.length} className="px-4 py-8 text-center text-muted">
+                    {emptyMessage(filters)}
                   </td>
                 </tr>
               ) : (
-                visibleRows.map(({ entry, email, accountName, profile }) => {
+                visibleRows.map((row) => {
+                  const { entry, email, profile } = row;
+                  const name = playerName(row);
                   const age = profile ? ageFromDob(profile.dateOfBirth) : null;
                   return (
-                    <tr
-                      key={entry.id}
-                      className="border-b border-line align-top last:border-b-0"
-                    >
+                    <tr key={entry.id} className="border-b border-line align-top last:border-b-0">
                       <td className="px-4 py-3">
-                        <div className="font-medium">
-                          {profile?.fullName ?? accountName ?? email}
-                        </div>
+                        <Link href={`${ADMIN_ENTRIES_PATH}/${entry.id}`} className="font-medium">
+                          {name}
+                        </Link>
                         <div className="mono mt-0.5 text-[11px] text-dim">{email}</div>
                       </td>
                       <td className="whitespace-nowrap px-4 py-3">
@@ -172,6 +175,14 @@ export default async function AdminEntriesPage({
                       <td className="mono whitespace-nowrap px-4 py-3 text-[12px] text-muted">
                         {formatEntryTime(entry.createdAt)}
                       </td>
+                      <td className="px-4 py-2.5">
+                        <EntryStatusActions
+                          entryId={entry.id}
+                          status={entry.status}
+                          subject={`${name}, ${CATEGORY_LABELS[entry.category]}`}
+                          action={changeEntryStatus}
+                        />
+                      </td>
                     </tr>
                   );
                 })
@@ -182,6 +193,14 @@ export default async function AdminEntriesPage({
       </div>
     </>
   );
+}
+
+const SEGMENTS = "flex w-fit max-w-full flex-wrap border border-line bg-surface-1";
+
+function emptyMessage(filters: EntryFilters): string {
+  const status = filters.status ? `${ENTRY_STATUS_LABELS[filters.status].toLowerCase()} ` : "";
+  const event = filters.category ? ` in ${CATEGORY_LABELS[filters.category]}` : "";
+  return status || event ? `No ${status}entries${event}.` : "No entries yet.";
 }
 
 function FilterLink({

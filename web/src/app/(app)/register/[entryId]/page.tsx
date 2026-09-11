@@ -6,12 +6,10 @@ import { requireUser } from "@/auth/require";
 import { StatusBadge } from "@/components/status-badge";
 import { db } from "@/db/client";
 import { entries, tournaments } from "@/db/schema";
-import { CATEGORY_LABELS } from "@/lib/entries";
+import { CATEGORY_LABELS, entryReference } from "@/lib/entries";
 import { formatDate, formatFee } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
-
-const REFERENCE_LENGTH = 8;
 
 interface Detail {
   label: string;
@@ -64,7 +62,7 @@ export default async function EntryConfirmationPage({
       label: "Reference",
       value: (
         <span className="mono">
-          {entry.id.slice(0, REFERENCE_LENGTH).toUpperCase()}
+          {entryReference(entry.id)}
         </span>
       ),
     },

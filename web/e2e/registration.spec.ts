@@ -61,8 +61,27 @@ test.describe.serial("registration", () => {
     await expect(row).toContainText("Men's singles");
     await expect(row).toContainText("Submitted");
 
-    await page.getByRole("link", { name: /^Paid/ }).click();
+    const statusFilter = page.getByRole("navigation", { name: "Filter by status" });
+    await statusFilter.getByRole("link", { name: /^Paid/ }).click();
     await expect(page).toHaveURL(/\/admin\/entries\?status=paid$/);
     await expect(page.getByText("No paid entries.")).toBeVisible();
+    await statusFilter.getByRole("link", { name: /^All/ }).click();
+
+    await row.getByRole("button", { name: /^Confirm/ }).click();
+    await expect(row).toContainText("Confirmed");
+    await row.getByRole("button", { name: /^Mark paid/ }).click();
+    await expect(row).toContainText("Paid");
+
+    await row.getByRole("link", { name: "Demo Player" }).click();
+    await expect(page.getByRole("heading", { name: "Demo Player" })).toBeVisible();
+    const entry = page.getByRole("region", { name: "Entry" });
+    await expect(entry).toContainText("manual");
+
+    const csv = await page.request.get("/admin/entries/export?status=paid");
+    expect(csv.headers()["content-type"]).toContain("text/csv");
+    const body = await csv.text();
+    expect(body).toContain("Payment reference");
+    expect(body).toContain("Demo Player");
+    expect(body).toContain("Men's singles");
   });
 });

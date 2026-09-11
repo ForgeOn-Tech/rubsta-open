@@ -5,6 +5,7 @@ import {
   countByStatus,
   entriesClosed,
   entriesOpen,
+  entryReference,
   isDoubles,
   isUniqueViolation,
   parseStatusFilter,
@@ -144,6 +145,12 @@ describe("entriesOpen", () => {
     expect(entriesOpen({ status: "closed", entryClosesAt: CLOSES_AT }, BEFORE_CLOSE)).toBe(
       false,
     );
+  });
+});
+
+describe("entryReference", () => {
+  it("takes the first eight characters of the id in upper case", () => {
+    expect(entryReference("d86c051e-0071-4f3b-a0b0-24d87c5cde5f")).toBe("D86C051E");
   });
 });
 

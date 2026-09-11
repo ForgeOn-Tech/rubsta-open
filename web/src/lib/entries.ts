@@ -9,6 +9,12 @@ import {
 export { CATEGORY_LABELS, DOUBLES_CATEGORIES };
 
 const SQLITE_UNIQUE_VIOLATION = "SQLITE_CONSTRAINT_UNIQUE";
+const REFERENCE_LENGTH = 8;
+
+/** Short uppercase reference shown to players and organisers, e.g. "D86C051E". */
+export function entryReference(entryId: string): string {
+  return entryId.slice(0, REFERENCE_LENGTH).toUpperCase();
+}
 
 export function isDoubles(category: Category): boolean {
   return DOUBLES_CATEGORIES.includes(category);

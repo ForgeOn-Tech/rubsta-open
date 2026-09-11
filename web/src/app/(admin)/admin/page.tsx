@@ -1,11 +1,12 @@
-import { desc, eq } from "drizzle-orm";
 import Link from "next/link";
 
 import { requireAdmin } from "@/auth/require";
+import { AdminNotice } from "@/components/admin-notice";
 import { AdminPageHeader } from "@/components/admin-page-header";
 import { StatusBadge } from "@/components/status-badge";
-import { db } from "@/db/client";
-import { ENTRY_STATUS_LABELS, entries, profiles, tournaments, users } from "@/db/schema";
+import { getCurrentTournament, listTournamentEntries } from "@/db/queries";
+import { ENTRY_STATUS_LABELS } from "@/db/schema";
+import { ADMIN_ENTRIES_PATH, entriesHref, playerName } from "@/lib/admin-entries";
 import { CATEGORY_LABELS, STATUS_ORDER, countByStatus } from "@/lib/entries";
 import { formatEntryTime, formatFee } from "@/lib/format";
 import { summariseByEvent, timeToCloseLabel } from "@/lib/overview";
@@ -17,35 +18,12 @@ const RECENT_ENTRY_LIMIT = 5;
 export default async function AdminOverviewPage() {
   await requireAdmin();
 
-  const tournament = db.select().from(tournaments).get() ?? null;
-  if (!tournament) {
-    return (
-      <div className="p-6">
-        <p className="card p-4 text-[13px] text-muted" role="status">
-          No tournament has been set up.
-        </p>
-      </div>
-    );
-  }
+  const tournament = getCurrentTournament();
+  if (!tournament) return <AdminNotice message="No tournament has been set up." />;
 
-  const rows = db
-    .select({
-      id: entries.id,
-      category: entries.category,
-      status: entries.status,
-      createdAt: entries.createdAt,
-      fullName: profiles.fullName,
-      email: users.email,
-    })
-    .from(entries)
-    .innerJoin(users, eq(entries.userId, users.id))
-    .leftJoin(profiles, eq(profiles.userId, entries.userId))
-    .where(eq(entries.tournamentId, tournament.id))
-    .orderBy(desc(entries.createdAt))
-    .all();
-
-  const statusCounts = countByStatus(rows.map((row) => row.status));
-  const events = summariseByEvent(rows);
+  const rows = listTournamentEntries(tournament.id);
+  const statusCounts = countByStatus(rows.map((row) => row.entry.status));
+  const events = summariseByEvent(rows.map((row) => row.entry));
   const recent = rows.slice(0, RECENT_ENTRY_LIMIT);
 
   return (
@@ -59,7 +37,7 @@ export default async function AdminOverviewPage() {
           `Fee ${formatFee(tournament.feeCents, tournament.currency)}`,
         ]}
       >
-        <Link href="/admin/entries" className="btn btn-outline h-8 text-[12px]">
+        <Link href={ADMIN_ENTRIES_PATH} className="btn btn-outline h-8 text-[12px]">
           View entries
         </Link>
       </AdminPageHeader>
@@ -73,7 +51,7 @@ export default async function AdminOverviewPage() {
             {STATUS_ORDER.map((status) => (
               <li key={status} className="bg-surface-1">
                 <Link
-                  href={`/admin/entries?status=${status}`}
+                  href={entriesHref(ADMIN_ENTRIES_PATH, { status, category: null })}
                   className="block px-4 py-4 hover:bg-surface-2"
                 >
                   <span className="caps block">{ENTRY_STATUS_LABELS[status]}</span>
@@ -112,7 +90,14 @@ export default async function AdminOverviewPage() {
                 {events.map((event) => (
                   <tr key={event.category} className="border-b border-line last:border-b-0">
                     <th scope="row" className="px-4 py-3 text-left font-medium">
-                      {event.label}
+                      <Link
+                        href={entriesHref(ADMIN_ENTRIES_PATH, {
+                          status: null,
+                          category: event.category,
+                        })}
+                      >
+                        {event.label}
+                      </Link>
                     </th>
                     <td className="mono px-4 py-3 text-right">{event.active}</td>
                     <td className="mono px-4 py-3 text-right">{event.awaitingReview}</td>
@@ -136,19 +121,22 @@ export default async function AdminOverviewPage() {
           ) : (
             <ul className="card mt-2 divide-y divide-line">
               {recent.map((row) => (
-                <li
-                  key={row.id}
-                  className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
-                >
-                  <span className="min-w-0">
-                    <span className="block text-[13px] font-medium">
-                      {row.fullName ?? row.email}
+                <li key={row.entry.id}>
+                  <Link
+                    href={`${ADMIN_ENTRIES_PATH}/${row.entry.id}`}
+                    className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 hover:bg-surface-2"
+                  >
+                    <span className="min-w-0">
+                      <span className="block text-[13px] font-medium text-ink">
+                        {playerName(row)}
+                      </span>
+                      <span className="mono mt-0.5 block text-[11px] text-dim">
+                        {CATEGORY_LABELS[row.entry.category]} ·{" "}
+                        {formatEntryTime(row.entry.createdAt)}
+                      </span>
                     </span>
-                    <span className="mono mt-0.5 block text-[11px] text-dim">
-                      {CATEGORY_LABELS[row.category]} · {formatEntryTime(row.createdAt)}
-                    </span>
-                  </span>
-                  <StatusBadge status={row.status} />
+                    <StatusBadge status={row.entry.status} />
+                  </Link>
                 </li>
               ))}
             </ul>

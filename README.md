@@ -93,7 +93,13 @@ npm run dev                  # http://localhost:3100
 | `/register` | Players | Choose an event (MS, WS, MD, WD); doubles need a partner name and email |
 | `/register/<entry id>` | Players | Entry confirmation, visible only to the player who entered |
 | `/admin` | Admins | Overview: entries by status and event, time to close, latest entries |
-| `/admin/entries` | Admins | Every entry, with status filters and counts (`/entries` redirects here) |
+| `/admin/entries` | Admins | Every entry, with event and status filters and status actions (`/entries` redirects here) |
+| `/admin/entries/<entry id>` | Admins | Player and entry details, with status actions |
+| `/admin/entries/export` | Admins | CSV of entries; takes the same `status` and `category` filters |
+
+Entry status moves submitted → confirmed → paid. Any live entry can be cancelled,
+and a cancelled entry can be reinstated as submitted. Marking an entry paid by hand
+records the payment reference `manual`.
 
 Sign-in lands on `/home`, which uses the landing page's club theme. Its player
 card marks matches, win–loss, player ID, handedness, certificates and card
