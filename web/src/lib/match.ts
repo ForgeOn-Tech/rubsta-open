@@ -40,9 +40,12 @@ export type MatchEvent =
   | { type: "let" };
 
 export interface CompletedSet {
+  /** Games won. A match tiebreak counts as one game: 1–0. */
   games: Record<Side, number>;
   /** Both sides' tiebreak points when the set ended in a tiebreak, else null. */
   tiebreak: Record<Side, number> | null;
+  /** The set was a deciding match tiebreak, written [10–8]. */
+  matchTiebreak: boolean;
 }
 
 export type MatchStatus = "in_progress" | "completed";
@@ -156,13 +159,17 @@ function awardPoint(state: MatchState, side: Side, format: MatchFormat): void {
       state.server = tiebreakServerFor(nextPoint, state.tiebreakServer);
       return;
     }
-    // The tiebreak game is the set: record it 7–6 with the tiebreak points.
+    // A tiebreak at 6–6 makes the set 7–6; a match tiebreak is the whole set, 1–0.
+    const matchTiebreak = isDecidingTiebreakSet(state.sets.length, format);
+    const winnerGames = matchTiebreak ? 1 : format.gamesPerSet + 1;
+    const loserGames = matchTiebreak ? 0 : format.gamesPerSet;
     state.sets.push({
       games: {
-        top: format.gamesPerSet + (side === "top" ? 1 : 0),
-        bottom: format.gamesPerSet + (side === "bottom" ? 1 : 0),
+        top: side === "top" ? winnerGames : loserGames,
+        bottom: side === "bottom" ? winnerGames : loserGames,
       },
       tiebreak: { ...state.points },
+      matchTiebreak,
     });
     afterSet(state, side, format);
     return;
@@ -173,7 +180,7 @@ function awardPoint(state: MatchState, side: Side, format: MatchFormat): void {
   state.points = zeroScore();
 
   if (gameWinsSet(state.games, side, format)) {
-    state.sets.push({ games: { ...state.games }, tiebreak: null });
+    state.sets.push({ games: { ...state.games }, tiebreak: null, matchTiebreak: false });
     afterSet(state, side, format);
     return;
   }
@@ -284,23 +291,44 @@ export function changeEndsAfterThisGame(state: MatchState): boolean {
   return currentGameNumber(state) % 2 === 1;
 }
 
+/** One side's cell for a completed set: games, "6(5)" for a tiebreak loser, points for a match tiebreak. */
+function setCell(set: CompletedSet, side: Side): string {
+  if (set.tiebreak === null) return String(set.games[side]);
+  if (set.matchTiebreak) return String(set.tiebreak[side]);
+  const won = set.games[side] > set.games[other(side)];
+  return won ? String(set.games[side]) : `${set.games[side]}(${set.tiebreak[side]})`;
+}
+
 /**
  * Per-side set scores for a scoreboard row: game counts per completed set,
  * then the current set's games. Tiebreak sets show the loser's points in
- * parentheses: [7, "6(5)"] for a 7–6(5) set.
+ * parentheses: [7, "6(5)"] for a 7–6(5) set. A match tiebreak shows points.
  */
 export function setScores(state: MatchState): Record<Side, string[]> {
   const scores: Record<Side, string[]> = { top: [], bottom: [] };
   for (const set of state.sets) {
-    const winner: Side = set.games.top > set.games.bottom ? "top" : "bottom";
     for (const side of SIDES) {
-      const games = String(set.games[side]);
-      scores[side].push(
-        set.tiebreak && side !== winner ? `${games}(${set.tiebreak[side]})` : games,
-      );
+      scores[side].push(setCell(set, side));
     }
   }
   scores.top.push(String(state.games.top));
   scores.bottom.push(String(state.games.bottom));
   return scores;
+}
+
+/**
+ * Completed sets on one line from `side`'s point of view, such as
+ * "7–6(5) 3–6 [10–8]". A tiebreak shows the losing side's points.
+ */
+export function scoreLine(sets: readonly CompletedSet[], side: Side): string {
+  return sets
+    .map((set) => {
+      const own = set.games[side];
+      const opponent = set.games[other(side)];
+      if (set.tiebreak === null) return `${own}–${opponent}`;
+      if (set.matchTiebreak) return `[${set.tiebreak[side]}–${set.tiebreak[other(side)]}]`;
+      const loser: Side = own > opponent ? other(side) : side;
+      return `${own}–${opponent}(${set.tiebreak[loser]})`;
+    })
+    .join(" ");
 }

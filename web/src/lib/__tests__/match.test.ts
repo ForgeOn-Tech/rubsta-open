@@ -11,6 +11,7 @@ import {
   isDeuce,
   other,
   pointLabel,
+  scoreLine,
   setScores,
   standardFormat,
   type MatchEvent,
@@ -129,7 +130,9 @@ describe("games", () => {
 describe("sets", () => {
   it("records a 6–0 set and starts the next", () => {
     const state = deriveState(set("top", 6, 0), FORMAT, "top");
-    expect(state.sets).toEqual([{ games: { top: 6, bottom: 0 }, tiebreak: null }]);
+    expect(state.sets).toEqual([
+      { games: { top: 6, bottom: 0 }, tiebreak: null, matchTiebreak: false },
+    ]);
     expect(state.status).toBe("in_progress");
     expect(state.games).toEqual({ top: 0, bottom: 0 });
   });
@@ -143,9 +146,11 @@ describe("sets", () => {
     ];
     const state = deriveState(events, FORMAT, "top");
     expect(state.sets).toEqual([
-      { games: { top: 7, bottom: 6 }, tiebreak: { top: 7, bottom: 5 } },
+      { games: { top: 7, bottom: 6 }, tiebreak: { top: 7, bottom: 5 }, matchTiebreak: false },
     ]);
     expect(setScores(state)).toEqual({ top: ["7", "0"], bottom: ["6(5)", "0"] });
+    expect(scoreLine(state.sets, "top")).toBe("7–6(5)");
+    expect(scoreLine(state.sets, "bottom")).toBe("6–7(5)");
   });
 
   it("plays a tiebreak past 6–6 to win by two", () => {
@@ -163,6 +168,7 @@ describe("sets", () => {
     expect(state.sets[0]).toEqual({
       games: { top: 7, bottom: 6 },
       tiebreak: { top: 9, bottom: 7 },
+      matchTiebreak: false,
     });
   });
 
@@ -239,9 +245,12 @@ describe("match", () => {
     expect(state.status).toBe("completed");
     expect(state.winner).toBe("top");
     expect(state.sets[2]).toEqual({
-      games: { top: 7, bottom: 6 },
+      games: { top: 1, bottom: 0 },
       tiebreak: { top: 10, bottom: 8 },
+      matchTiebreak: true,
     });
+    expect(setScores(state).bottom.slice(0, 3)).toEqual(["0", "6", "8"]);
+    expect(scoreLine(state.sets, "top")).toBe("6–0 0–6 [10–8]");
   });
 });
 
