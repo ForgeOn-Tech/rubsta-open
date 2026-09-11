@@ -266,6 +266,8 @@ export const matches = sqliteTable(
     court: integer("court"),
     startedAt: integer("started_at"),
     completedAt: integer("completed_at"),
+    // Bumped by every score change; a device saves only on the version it read.
+    version: integer("version").notNull().default(0),
     createdAt: integer("created_at")
       .notNull()
       .default(sql`(unixepoch() * 1000)`),

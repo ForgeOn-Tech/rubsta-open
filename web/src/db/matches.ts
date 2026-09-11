@@ -15,13 +15,8 @@ import {
   type MatchSlot,
 } from "./schema";
 import { buildBracket, type BracketSlot } from "@/lib/draws";
-import {
-  deriveState,
-  standardFormat,
-  type DecidingSet,
-  type MatchEvent,
-  type Side,
-} from "@/lib/match";
+import { deriveState, standardFormat, type Side } from "@/lib/match";
+import { sameScore, scoreRecordOf, type ScoreRecord } from "@/lib/score-record";
 
 export interface MatchSideInfo {
   entryId: string;
@@ -32,9 +27,14 @@ export interface MatchSideInfo {
 
 export interface ScoringMatchRow {
   match: Match;
+  category: Category;
   top: MatchSideInfo | null;
   bottom: MatchSideInfo | null;
 }
+
+export type SaveScoreResult =
+  | { kind: "saved"; match: Match }
+  | { kind: "conflict"; match: Match };
 
 function slotFor(bracket: BracketSlot): MatchSlot {
   switch (bracket.kind) {
@@ -51,6 +51,13 @@ function loadMatch(database: Database, matchId: string): Match {
   const row = database.select().from(matches).where(eq(matches.id, matchId)).get();
   if (!row) throw new Error(`Match ${matchId} does not exist.`);
   return row;
+}
+
+function entryIdOf(slot: MatchSlot, matchNumber: number): string {
+  if (slot.kind !== "entry") {
+    throw new Error(`Match ${matchNumber} has a side that is not a drawn entry.`);
+  }
+  return slot.entryId;
 }
 
 /**
@@ -139,91 +146,59 @@ export function advanceWinnerToNextMatch(database: Database, match: Match): void
 }
 
 /**
- * Appends one scoring event and persists the re-derived state. Completing
- * the match records the winner and advances them, in one transaction.
+ * Saves an umpire's whole score record if the match is still at
+ * `baseVersion`, and bumps the version. A retry of a save that already landed
+ * counts as saved; any other version mismatch is a conflict that returns the
+ * stored match. The first save starts the match. The save that finishes it
+ * records the winner and advances them, in the same transaction.
  */
-export function appendMatchEvent(database: Database, matchId: string, event: MatchEvent): Match {
+export function saveMatchScore(
+  database: Database,
+  matchId: string,
+  baseVersion: number,
+  record: ScoreRecord,
+): SaveScoreResult {
   return database.transaction((tx) => {
     const row = loadMatch(tx, matchId);
-    if (row.status === "completed") throw new Error("The match is already complete.");
-    if (row.status !== "in_progress" || row.firstServer === null) {
-      throw new Error("Start the match first.");
+    if (row.version !== baseVersion) {
+      const stored = scoreRecordOf(row);
+      const landed = stored !== null && sameScore(stored, record);
+      return { kind: landed ? "saved" : "conflict", match: row };
+    }
+    if (row.status === "completed") {
+      throw new Error(`Match ${row.matchNumber} is already complete.`);
+    }
+    if (row.topSlot.kind !== "entry" || row.bottomSlot.kind !== "entry") {
+      throw new Error(`Match ${row.matchNumber} is waiting on an earlier result.`);
     }
 
-    const events = [...row.events, event];
-    const state = deriveState(events, standardFormat(row.decidingSet), row.firstServer);
-    let winnerEntryId: string | null = null;
-    let completedAt: number | null = null;
-    if (state.status === "completed") {
-      const winnerSlot = row[state.winner === "top" ? "topSlot" : "bottomSlot"];
-      if (winnerSlot.kind !== "entry") {
-        throw new Error("The winning side is not a drawn entry.");
-      }
-      winnerEntryId = winnerSlot.entryId;
-      completedAt = Date.now();
-    }
-
+    const state = deriveState(record.events, standardFormat(record.decidingSet), record.firstServer);
+    const completed = state.status === "completed";
+    const winnerSlot = state.winner === "top" ? row.topSlot : row.bottomSlot;
+    const now = Date.now();
     tx.update(matches)
-      .set({ events, status: state.status, winnerEntryId, completedAt, updatedAt: Date.now() })
+      .set({
+        firstServer: record.firstServer,
+        decidingSet: record.decidingSet,
+        // The court is set when the match starts; later saves keep any change made since.
+        court: row.status === "scheduled" ? record.court : row.court,
+        startedAt: row.startedAt ?? record.startedAt,
+        events: record.events,
+        status: state.status,
+        winnerEntryId: completed ? entryIdOf(winnerSlot, row.matchNumber) : null,
+        completedAt: completed ? now : null,
+        version: row.version + 1,
+        updatedAt: now,
+      })
       .where(eq(matches.id, matchId))
       .run();
 
     const updated = loadMatch(tx, matchId);
-    if (state.status === "completed" && !isLastRound(tx, updated)) {
+    if (completed && !isLastRound(tx, updated)) {
       advanceWinnerToNextMatch(tx, updated);
     }
-    return updated;
+    return { kind: "saved", match: updated };
   });
-}
-
-/** Drops the last scoring event, re-scheduling a match left with none. */
-export function undoLastMatchEvent(database: Database, matchId: string): Match {
-  return database.transaction((tx) => {
-    const row = loadMatch(tx, matchId);
-    if (row.status === "completed") throw new Error("The match is already complete.");
-    if (row.events.length === 0) throw new Error("Nothing to undo.");
-
-    const events = row.events.slice(0, -1);
-    tx.update(matches)
-      .set({
-        events,
-        status: events.length === 0 ? "scheduled" : "in_progress",
-        startedAt: events.length === 0 ? null : row.startedAt,
-        updatedAt: Date.now(),
-      })
-      .where(eq(matches.id, matchId))
-      .run();
-    return loadMatch(tx, matchId);
-  });
-}
-
-/**
- * Moves a scheduled match to in progress. Both sides must be drawn entries,
- * so a match waiting on an earlier result cannot be scored yet.
- */
-export function startMatch(
-  database: Database,
-  matchId: string,
-  input: { firstServer: Side; court: number | null; decidingSet: DecidingSet },
-): Match {
-  const row = loadMatch(database, matchId);
-  if (row.status !== "scheduled") throw new Error("The match has already started.");
-  if (row.topSlot.kind !== "entry" || row.bottomSlot.kind !== "entry") {
-    throw new Error("Both players must be known before scoring.");
-  }
-  database
-    .update(matches)
-    .set({
-      firstServer: input.firstServer,
-      court: input.court,
-      decidingSet: input.decidingSet,
-      status: "in_progress",
-      startedAt: Date.now(),
-      updatedAt: Date.now(),
-    })
-    .where(eq(matches.id, matchId))
-    .run();
-  return loadMatch(database, matchId);
 }
 
 /** Assigns or clears the court for a match. */
@@ -251,6 +226,7 @@ export function resetMatch(database: Database, matchId: string): Match {
       status: "scheduled",
       startedAt: null,
       firstServer: null,
+      version: row.version + 1,
       updatedAt: Date.now(),
     })
     .where(eq(matches.id, matchId))
@@ -278,6 +254,7 @@ export function retireMatch(database: Database, matchId: string, retiringSide: S
         winnerEntryId: winnerSlot.entryId,
         startedAt: row.startedAt ?? now,
         completedAt: now,
+        version: row.version + 1,
         updatedAt: now,
       })
       .where(eq(matches.id, matchId))
@@ -355,9 +332,14 @@ function sideInfosFor(database: Database, slots: MatchSlot[]): Map<string, Match
   );
 }
 
-function scoringRow(match: Match, infos: Map<string, MatchSideInfo>): ScoringMatchRow {
+function scoringRow(
+  match: Match,
+  category: Category,
+  infos: Map<string, MatchSideInfo>,
+): ScoringMatchRow {
   return {
     match,
+    category,
     top: match.topSlot.kind === "entry" ? (infos.get(match.topSlot.entryId) ?? null) : null,
     bottom:
       match.bottomSlot.kind === "entry" ? (infos.get(match.bottomSlot.entryId) ?? null) : null,
@@ -390,12 +372,21 @@ export function listScoringMatches(database: Database, tournamentId: string): Sc
     if (a.match.roundIndex !== b.match.roundIndex) return b.match.roundIndex - a.match.roundIndex;
     return a.match.matchNumber - b.match.matchNumber;
   });
-  return rows.map((row) => scoringRow(row.match, infos));
+  return rows.map((row) => scoringRow(row.match, row.draw.category, infos));
 }
 
 /** One match with its side details, or null when the id does not exist. */
 export function getScoringMatch(database: Database, matchId: string): ScoringMatchRow | null {
-  const row = database.select().from(matches).where(eq(matches.id, matchId)).get();
+  const row = database
+    .select({ match: matches, draw: draws })
+    .from(matches)
+    .innerJoin(draws, eq(matches.drawId, draws.id))
+    .where(eq(matches.id, matchId))
+    .get();
   if (!row) return null;
-  return scoringRow(row, sideInfosFor(database, [row.topSlot, row.bottomSlot]));
+  return scoringRow(
+    row.match,
+    row.draw.category,
+    sideInfosFor(database, [row.match.topSlot, row.match.bottomSlot]),
+  );
 }

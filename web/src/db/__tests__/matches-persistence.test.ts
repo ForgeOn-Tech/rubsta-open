@@ -8,7 +8,6 @@ import { describe, expect, it } from "vitest";
 import { getDrawWithSlots, saveGeneratedDraw } from "@/db/draws";
 import {
   advanceWinnerToNextMatch,
-  appendMatchEvent,
   deleteMatchesForDraw,
   getScoringMatch,
   listScoringMatches,
@@ -16,16 +15,17 @@ import {
   publishDraw,
   resetMatch,
   retireMatch,
-  startMatch,
-  undoLastMatchEvent,
+  saveMatchScore,
   unpublishDraw,
 } from "@/db/matches";
 import * as schema from "@/db/schema";
 import { SEED_TOURNAMENT } from "@/db/seed";
 import type { DrawLine } from "@/lib/draws";
-import { deriveState, standardFormat, type MatchEvent, type Side } from "@/lib/match";
+import type { MatchEvent, Side } from "@/lib/match";
+import type { ScoreRecord } from "@/lib/score-record";
 
 const TOURNAMENT_ID = "tournament-1";
+const STARTED_AT = 1_700_000_000_000;
 
 function setup() {
   const database = drizzle(new Database(":memory:"), { schema });
@@ -92,6 +92,10 @@ function matchByNumber(matches: schema.Match[], matchNumber: number): schema.Mat
   return matches.find((match) => match.matchNumber === matchNumber)!;
 }
 
+function loadRow(database: Db, matchId: string): schema.Match {
+  return database.select().from(schema.matches).where(eq(schema.matches.id, matchId)).get()!;
+}
+
 // ── Match-event builders (same shape as lib/__tests__/match.test.ts) ──────
 
 function point(side: Side): MatchEvent {
@@ -114,11 +118,17 @@ function setEvents(side: Side, won: number, lost: number): MatchEvent[] {
   return events;
 }
 
-/** Starts the match and plays the top side to a 6–0 6–0 win. */
+/** A score record served first by top, with a full deciding set. */
+function record(events: MatchEvent[]): ScoreRecord {
+  return { firstServer: "top", decidingSet: "set", court: 1, startedAt: STARTED_AT, events };
+}
+
+/** Saves a 6–0 6–0 win for the top side in one save. */
 function playStraightSets(database: Db, matchId: string): schema.Match {
-  const started = startMatch(database, matchId, { firstServer: "top", court: 1, decidingSet: "set" });
   const events = [...setEvents("top", 6, 0), ...setEvents("top", 6, 0)];
-  return events.reduce((_row, event) => appendMatchEvent(database, matchId, event), started);
+  const result = saveMatchScore(database, matchId, loadRow(database, matchId).version, record(events));
+  if (result.kind !== "saved") throw new Error(`Saving match ${matchId} returned a conflict.`);
+  return result.match;
 }
 
 describe("materializeMatches", () => {
@@ -138,6 +148,7 @@ describe("materializeMatches", () => {
       winnerEntryId: "a",
       events: [],
       court: null,
+      version: 0,
     });
     expect(first.completedAt).toEqual(expect.any(Number));
 
@@ -173,71 +184,92 @@ describe("materializeMatches", () => {
   });
 });
 
-describe("startMatch", () => {
-  it("rejects a match still waiting on an earlier result", () => {
+describe("saveMatchScore", () => {
+  it("starts the match with the first save and bumps the version", () => {
+    const database = setup();
+    const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
+    const match = matchByNumber(matches, 2);
+
+    const result = saveMatchScore(database, match.id, 0, record([]));
+
+    expect(result).toMatchObject({
+      kind: "saved",
+      match: {
+        status: "in_progress",
+        firstServer: "top",
+        decidingSet: "set",
+        court: 1,
+        startedAt: STARTED_AT,
+        events: [],
+        version: 1,
+      },
+    });
+  });
+
+  it("replaces the events, so a shorter list undoes a point", () => {
+    const database = setup();
+    const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
+    const match = matchByNumber(matches, 2);
+
+    saveMatchScore(database, match.id, 0, record(game("top")));
+    const result = saveMatchScore(database, match.id, 1, record(game("top").slice(0, 3)));
+
+    expect(result).toMatchObject({ kind: "saved", match: { version: 2, status: "in_progress" } });
+    expect(result.match.events).toHaveLength(3);
+  });
+
+  it("keeps the court chosen at the start when later saves carry another", () => {
+    const database = setup();
+    const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
+    const match = matchByNumber(matches, 2);
+
+    saveMatchScore(database, match.id, 0, record([]));
+    const result = saveMatchScore(database, match.id, 1, { ...record([point("top")]), court: 7 });
+
+    expect(result.match.court).toBe(1);
+  });
+
+  it("treats a retry of a save that already landed as saved", () => {
+    const database = setup();
+    const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
+    const match = matchByNumber(matches, 2);
+
+    saveMatchScore(database, match.id, 0, record([point("top")]));
+    const retry = saveMatchScore(database, match.id, 0, record([point("top")]));
+
+    expect(retry).toMatchObject({ kind: "saved", match: { version: 1 } });
+  });
+
+  it("returns a conflict with the stored match when it changed since the base version", () => {
+    const database = setup();
+    const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
+    const match = matchByNumber(matches, 2);
+
+    saveMatchScore(database, match.id, 0, record([point("top")]));
+    const stale = saveMatchScore(database, match.id, 0, record([point("bottom")]));
+
+    expect(stale.kind).toBe("conflict");
+    expect(stale.match).toMatchObject({ version: 1, events: [point("top")] });
+  });
+
+  it("refuses a match still waiting on an earlier result", () => {
     const database = setup();
     const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
     const final = matchByNumber(matches, 3);
 
-    expect(() =>
-      startMatch(database, final.id, { firstServer: "top", court: 1, decidingSet: "set" }),
-    ).toThrow("Both players must be known before scoring.");
-  });
-
-  it("rejects an already-started match", () => {
-    const database = setup();
-    const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
-    const match = matchByNumber(matches, 2);
-
-    startMatch(database, match.id, { firstServer: "top", court: 2, decidingSet: "set" });
-
-    expect(() =>
-      startMatch(database, match.id, { firstServer: "top", court: 2, decidingSet: "set" }),
-    ).toThrow("The match has already started.");
-  });
-});
-
-describe("scoring a match", () => {
-  it("appends events, agrees with deriveState, and undoes back to scheduled", () => {
-    const database = setup();
-    const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
-    const match = matchByNumber(matches, 2);
-
-    const started = startMatch(database, match.id, {
-      firstServer: "top",
-      court: 3,
-      decidingSet: "set",
-    });
-    expect(started).toMatchObject({ status: "in_progress", firstServer: "top", court: 3 });
-    expect(started.startedAt).toEqual(expect.any(Number));
-
-    let row = started;
-    for (let index = 0; index < 4; index += 1) {
-      row = appendMatchEvent(database, match.id, point("top"));
-    }
-    expect(row.status).toBe("in_progress");
-    expect(row.events).toHaveLength(4);
-    const derived = deriveState(row.events, standardFormat(row.decidingSet), row.firstServer!);
-    expect(derived.games).toEqual({ top: 1, bottom: 0 });
-
-    for (let index = 0; index < 3; index += 1) {
-      row = undoLastMatchEvent(database, match.id);
-      expect(row.status).toBe("in_progress");
-    }
-    row = undoLastMatchEvent(database, match.id);
-    expect(row).toMatchObject({ status: "scheduled", events: [], startedAt: null });
-
-    expect(() => undoLastMatchEvent(database, match.id)).toThrow("Nothing to undo.");
-  });
-
-  it("refuses events before the match starts", () => {
-    const database = setup();
-    const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
-    const match = matchByNumber(matches, 2);
-
-    expect(() => appendMatchEvent(database, match.id, point("top"))).toThrow(
-      "Start the match first.",
+    expect(() => saveMatchScore(database, final.id, 0, record([]))).toThrow(
+      "Match 3 is waiting on an earlier result.",
     );
+  });
+
+  it("refuses events that carry on past the end of the match", () => {
+    const database = setup();
+    const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
+    const match = matchByNumber(matches, 2);
+    const events = [...setEvents("top", 6, 0), ...setEvents("top", 6, 0), point("top")];
+
+    expect(() => saveMatchScore(database, match.id, 0, record(events))).toThrow(/already complete/);
+    expect(loadRow(database, match.id)).toMatchObject({ status: "scheduled", version: 0 });
   });
 
   it("completes a full match and advances the winner into the final", () => {
@@ -247,25 +279,14 @@ describe("scoring a match", () => {
     const semi = matchByNumber(matches, 1);
     const final = matchByNumber(matches, 3);
 
-    startMatch(database, semi.id, { firstServer: "top", court: 1, decidingSet: "set" });
-    const events = [...setEvents("top", 6, 0), ...setEvents("top", 6, 0)];
-    let row = semi;
-    for (const event of events) {
-      row = appendMatchEvent(database, semi.id, event);
-    }
+    const row = playStraightSets(database, semi.id);
 
-    expect(row).toMatchObject({ status: "completed", winnerEntryId: "a" });
+    expect(row).toMatchObject({ status: "completed", winnerEntryId: "a", version: 1 });
     expect(row.completedAt).toEqual(expect.any(Number));
-    expect(() => appendMatchEvent(database, semi.id, point("top"))).toThrow(
-      "The match is already complete.",
+    expect(() => saveMatchScore(database, semi.id, row.version, record([]))).toThrow(
+      "Match 1 is already complete.",
     );
-
-    const updatedFinal = database
-      .select()
-      .from(schema.matches)
-      .where(eq(schema.matches.id, final.id))
-      .get()!;
-    expect(updatedFinal.topSlot).toEqual({ kind: "entry", entryId: "a" });
+    expect(loadRow(database, final.id).topSlot).toEqual({ kind: "entry", entryId: "a" });
   });
 
   it("completes the final without advancing anyone", () => {
@@ -291,16 +312,21 @@ describe("scoring a match", () => {
 });
 
 describe("resetMatch", () => {
-  it("clears a started match back to scheduled", () => {
+  it("clears a started match back to scheduled and bumps the version", () => {
     const database = setup();
     const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
     const match = matchByNumber(matches, 2);
 
-    startMatch(database, match.id, { firstServer: "bottom", court: 1, decidingSet: "set" });
-    appendMatchEvent(database, match.id, point("top"));
+    saveMatchScore(database, match.id, 0, { ...record([point("top")]), firstServer: "bottom" });
 
     const row = resetMatch(database, match.id);
-    expect(row).toMatchObject({ status: "scheduled", events: [], startedAt: null, firstServer: null });
+    expect(row).toMatchObject({
+      status: "scheduled",
+      events: [],
+      startedAt: null,
+      firstServer: null,
+      version: 2,
+    });
 
     expect(() => resetMatch(database, match.id)).toThrow(/in progress/);
   });
@@ -321,22 +347,28 @@ describe("retireMatch", () => {
     const match = matchByNumber(matches, 2);
     const final = matchByNumber(matches, 3);
 
-    startMatch(database, match.id, { firstServer: "top", court: 1, decidingSet: "set" });
+    saveMatchScore(database, match.id, 0, record([]));
     const row = retireMatch(database, match.id, "bottom");
 
-    expect(row).toMatchObject({ status: "completed", winnerEntryId: "b" });
+    expect(row).toMatchObject({ status: "completed", winnerEntryId: "b", version: 2 });
     expect(row.completedAt).toEqual(expect.any(Number));
-
-    const updatedFinal = database
-      .select()
-      .from(schema.matches)
-      .where(eq(schema.matches.id, final.id))
-      .get()!;
-    expect(updatedFinal.bottomSlot).toEqual({ kind: "entry", entryId: "b" });
+    expect(loadRow(database, final.id).bottomSlot).toEqual({ kind: "entry", entryId: "b" });
 
     expect(() => retireMatch(database, match.id, "bottom")).toThrow(
       "The match is already complete.",
     );
+  });
+
+  it("makes a device still scoring the retired match see a conflict", () => {
+    const database = setup();
+    const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
+    const match = matchByNumber(matches, 2);
+
+    saveMatchScore(database, match.id, 0, record([]));
+    retireMatch(database, match.id, "top");
+    const stale = saveMatchScore(database, match.id, 1, record([point("top")]));
+
+    expect(stale).toMatchObject({ kind: "conflict", match: { status: "completed" } });
   });
 
   it("retires the final without advancing anyone", () => {
@@ -393,11 +425,7 @@ describe("unpublishDraw", () => {
   it("refuses once a match has started, keeping the draw and its matches", () => {
     const database = setup();
     const { draw, matches } = materializedDraw(database, ["a", null, "b", "c"]);
-    startMatch(database, matchByNumber(matches, 2).id, {
-      firstServer: "top",
-      court: 1,
-      decidingSet: "set",
-    });
+    saveMatchScore(database, matchByNumber(matches, 2).id, 0, record([]));
 
     expect(() => unpublishDraw(database, draw.id)).toThrow(/have started/);
 
@@ -427,6 +455,7 @@ describe("listScoringMatches", () => {
     expect(rows.map((row) => row.match.matchNumber)).toEqual([3, 1, 2]);
 
     const final = rows[0];
+    expect(final.category).toBe("MS");
     expect(final.top).toEqual({ entryId: "a", seed: 1, name: "Asha Anand", partnerName: null });
     expect(final.bottom).toBeNull();
 
@@ -444,6 +473,8 @@ describe("listScoringMatches", () => {
     const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
 
     expect(getScoringMatch(database, "no-such-match")).toBeNull();
-    expect(getScoringMatch(database, matchByNumber(matches, 1).id)?.top?.name).toBe("Asha Anand");
+    const row = getScoringMatch(database, matchByNumber(matches, 1).id);
+    expect(row?.category).toBe("MS");
+    expect(row?.top?.name).toBe("Asha Anand");
   });
 });
