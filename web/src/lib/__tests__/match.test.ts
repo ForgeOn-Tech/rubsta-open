@@ -177,6 +177,24 @@ describe("sets", () => {
     expect(state.server).toBe("bottom");
   });
 
+  it("rotates the serve inside a tiebreak: one point, then two each", () => {
+    const servers: Side[] = [];
+    let state = deriveState(set("top", 6, 6), FORMAT, "top");
+    for (let index = 0; index < 6; index += 1) {
+      servers.push(state.server);
+      state = applyEvent(state, point(index % 2 === 0 ? "top" : "bottom"), FORMAT);
+    }
+    expect(servers).toEqual(["top", "bottom", "bottom", "top", "top", "bottom"]);
+  });
+
+  it("charges a tiebreak double fault to the player serving that point", () => {
+    // Top serves the first tiebreak point, so bottom serves the second.
+    const events: MatchEvent[] = [...set("top", 6, 6), point("top"), { type: "doubleFault" }];
+    const state = deriveState(events, FORMAT, "top");
+    expect(state.doubleFaults).toEqual({ top: 0, bottom: 1 });
+    expect(state.points).toEqual({ top: 2, bottom: 0 });
+  });
+
   it("requires two clear games before 6–6", () => {
     const state = deriveState(set("top", 5, 4), FORMAT, "top");
     expect(state.sets).toEqual([]);

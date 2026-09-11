@@ -57,6 +57,8 @@ export interface MatchState {
   tiebreak: boolean;
   /** Points needed for the current tiebreak (7, or 10 in a match tiebreak). */
   tiebreakTarget: number | null;
+  /** Who served the first point of the current tiebreak, else null. */
+  tiebreakServer: Side | null;
   server: Side;
   /** First serve missed; the next fault or rally decides the point. */
   faultPending: boolean;
@@ -76,8 +78,9 @@ export function initialState(firstServer: Side, format: MatchFormat): MatchState
     sets: [],
     games: zeroScore(),
     points: zeroScore(),
-    tiebreak: isDecidingTiebreakSet(0, format),
+    tiebreak: false,
     tiebreakTarget: null,
+    tiebreakServer: null,
     server: firstServer,
     faultPending: false,
     status: "in_progress",
@@ -86,8 +89,20 @@ export function initialState(firstServer: Side, format: MatchFormat): MatchState
     breakPointChances: zeroScore(),
     breakPointsWon: zeroScore(),
   };
-  if (state.tiebreak) state.tiebreakTarget = MATCH_TIEBREAK_POINTS;
+  if (isDecidingTiebreakSet(0, format)) startTiebreak(state, MATCH_TIEBREAK_POINTS);
   return state;
+}
+
+/** The next game is a tiebreak to `target`, served first by the side due to serve. */
+function startTiebreak(state: MatchState, target: number): void {
+  state.tiebreak = true;
+  state.tiebreakTarget = target;
+  state.tiebreakServer = state.server;
+}
+
+/** Tiebreak serve order: the first server serves point 1, then two points each. */
+function tiebreakServerFor(pointNumber: number, firstServer: Side): Side {
+  return Math.floor(pointNumber / 2) % 2 === 0 ? firstServer : other(firstServer);
 }
 
 /** The set after `setsPlayed` completed sets is the deciding match tiebreak. */
@@ -133,7 +148,14 @@ function awardPoint(state: MatchState, side: Side, format: MatchFormat): void {
   state.faultPending = false;
 
   if (state.tiebreak) {
-    if (!pointWinsTiebreak(state.points, side, state.tiebreakTarget ?? 7)) return;
+    if (!pointWinsTiebreak(state.points, side, state.tiebreakTarget ?? 7)) {
+      if (state.tiebreakServer === null) {
+        throw new Error("A tiebreak is in play without a recorded first server.");
+      }
+      const nextPoint = state.points.top + state.points.bottom + 1;
+      state.server = tiebreakServerFor(nextPoint, state.tiebreakServer);
+      return;
+    }
     // The tiebreak game is the set: record it 7–6 with the tiebreak points.
     state.sets.push({
       games: {
@@ -160,20 +182,22 @@ function awardPoint(state: MatchState, side: Side, format: MatchFormat): void {
   state.server = other(state.server);
   if (state.games.top === format.gamesPerSet && state.games.bottom === format.gamesPerSet) {
     // 6–6: the next game is a tiebreak.
-    state.tiebreak = true;
-    state.tiebreakTarget = isDecidingTiebreakSet(state.sets.length, format)
-      ? MATCH_TIEBREAK_POINTS
-      : format.tiebreakPoints;
+    startTiebreak(
+      state,
+      isDecidingTiebreakSet(state.sets.length, format) ? MATCH_TIEBREAK_POINTS : format.tiebreakPoints,
+    );
   }
 }
 
 /** After a set lands: match win, or start the next set (match tiebreak or games). */
 function afterSet(state: MatchState, side: Side, format: MatchFormat): void {
+  // After a tiebreak, the side that received its first point serves next.
+  state.server = other(state.tiebreakServer ?? state.server);
   state.games = zeroScore();
   state.points = zeroScore();
   state.tiebreak = false;
   state.tiebreakTarget = null;
-  state.server = other(state.server);
+  state.tiebreakServer = null;
 
   if (setsWon(state, side) === format.setsToWin) {
     state.status = "completed";
@@ -181,8 +205,7 @@ function afterSet(state: MatchState, side: Side, format: MatchFormat): void {
     return;
   }
   if (isDecidingTiebreakSet(state.sets.length, format)) {
-    state.tiebreak = true;
-    state.tiebreakTarget = MATCH_TIEBREAK_POINTS;
+    startTiebreak(state, MATCH_TIEBREAK_POINTS);
   }
 }
 
