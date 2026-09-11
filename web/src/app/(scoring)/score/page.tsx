@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ConnectionNotice } from "./connection-notice";
 import { signOutAction } from "@/auth/actions";
 import { canAccessAdmin, requireScorer } from "@/auth/require";
 import { getDb } from "@/db/client";
@@ -55,6 +56,7 @@ export default async function ScoringListPage() {
       </header>
 
       <main className="flex flex-col gap-6 px-5 py-5">
+        <ConnectionNotice />
         {groups === null ? (
           <p className="card p-4 text-[13px] text-muted" role="status">
             No tournament has been set up.

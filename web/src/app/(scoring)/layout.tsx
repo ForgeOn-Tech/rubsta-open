@@ -1,3 +1,4 @@
+import { OfflineSupport } from "./offline-support";
 import { requireScorer } from "@/auth/require";
 
 export const dynamic = "force-dynamic";
@@ -9,5 +10,10 @@ export default async function ScoringLayout({
   children: React.ReactNode;
 }) {
   await requireScorer();
-  return <div className="min-h-screen bg-surface-0">{children}</div>;
+  return (
+    <div className="min-h-screen bg-surface-0">
+      <OfflineSupport />
+      {children}
+    </div>
+  );
 }
