@@ -128,7 +128,9 @@ export default async function RegisterPage() {
         />
       )}
 
-      <p className="text-[11px] text-dim">{PROVISIONAL_SCHEDULE_NOTE}</p>
+      {tournament.scheduleConfirmed ? null : (
+        <p className="text-[11px] text-dim">{PROVISIONAL_SCHEDULE_NOTE}</p>
+      )}
     </div>
   );
 }

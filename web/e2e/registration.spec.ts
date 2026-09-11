@@ -83,5 +83,19 @@ test.describe.serial("registration", () => {
     expect(body).toContain("Payment reference");
     expect(body).toContain("Demo Player");
     expect(body).toContain("Men's singles");
+
+    await page.goto("/admin/settings");
+    await page.getByLabel("Start date").fill("2026-09-25");
+    await page.getByLabel("End date").fill("2026-09-27");
+    await page.getByLabel("Venue").fill("Deccan Gymkhana, Pune");
+    await page.getByLabel("Schedule confirmed").check();
+    await page.getByRole("button", { name: "Save settings" }).click();
+    await expect(page.getByRole("status")).toHaveText("Settings saved.");
+
+    await page.goto("/home");
+    const tournament = page.getByRole("region", { name: "Rubsta Open 2026" });
+    await expect(tournament).toContainText("Deccan Gymkhana, Pune");
+    await expect(tournament).toContainText(/25–27 Sept? 2026/);
+    await expect(page.getByText(/provisional until the organisers confirm/)).toHaveCount(0);
   });
 });

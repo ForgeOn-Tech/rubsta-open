@@ -14,7 +14,7 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
   { label: "Players", href: null },
   { label: "Certificates", href: null },
   { label: "Sponsors", href: null },
-  { label: "Settings", href: null },
+  { label: "Settings", href: "/admin/settings" },
 ];
 
 const ADMIN_ROOT = "/admin";

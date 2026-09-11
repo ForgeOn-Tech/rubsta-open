@@ -7,7 +7,12 @@ import { StatusBadge } from "@/components/status-badge";
 import { db } from "@/db/client";
 import { CATEGORIES, entries, profiles, tournaments } from "@/db/schema";
 import { CATEGORY_LABELS, entriesOpen } from "@/lib/entries";
-import { formatDate, formatEntryCloses, formatFee } from "@/lib/format";
+import {
+  formatDate,
+  formatEntryCloses,
+  formatFee,
+  formatTournamentDates,
+} from "@/lib/format";
 import { UPCOMING_FEATURES, greetingName, nextStep } from "@/lib/home";
 import { PROVISIONAL_SCHEDULE_NOTE } from "@/lib/tournament";
 
@@ -143,8 +148,13 @@ export default async function HomePage() {
           <>
             <dl className="mt-6 grid border-l border-t border-club-line sm:grid-cols-2">
               {[
-                { label: "When", value: "Dates coming soon" },
-                { label: "Where", value: "Venue coming soon" },
+                {
+                  label: "When",
+                  value:
+                    formatTournamentDates(tournament.startsOn, tournament.endsOn) ??
+                    "Dates coming soon",
+                },
+                { label: "Where", value: tournament.venue ?? "Venue coming soon" },
                 {
                   label: "Entries close",
                   value: `${formatEntryCloses(tournament.entryClosesAt)} IST`,
@@ -164,7 +174,9 @@ export default async function HomePage() {
                 </div>
               ))}
             </dl>
-            <p className="mt-3 text-[12px] text-club-muted">{PROVISIONAL_SCHEDULE_NOTE}</p>
+            {tournament.scheduleConfirmed ? null : (
+              <p className="mt-3 text-[12px] text-club-muted">{PROVISIONAL_SCHEDULE_NOTE}</p>
+            )}
           </>
         ) : (
           <p className="mt-6 border-t border-club-line pt-5 text-[13px] text-club-muted">

@@ -120,6 +120,13 @@ export const tournaments = sqliteTable("tournaments", {
   status: text("status", { enum: TOURNAMENT_STATUSES })
     .notNull()
     .default("open"),
+  startsOn: text("starts_on"), // YYYY-MM-DD
+  endsOn: text("ends_on"), // YYYY-MM-DD
+  venue: text("venue"),
+  // False until an organiser confirms dates, venue and fee in /admin/settings.
+  scheduleConfirmed: integer("schedule_confirmed", { mode: "boolean" })
+    .notNull()
+    .default(false),
 });
 
 export const CATEGORIES = ["MS", "WS", "MD", "WD"] as const;
@@ -171,6 +178,8 @@ export const entries = sqliteTable(
       .notNull()
       .default("submitted"),
     paymentRef: text("payment_ref"),
+    // Seed in this event's draw. One entry per user and event, so one seed per draw.
+    seed: integer("seed"),
     createdAt: integer("created_at")
       .notNull()
       .default(sql`(unixepoch() * 1000)`),
@@ -178,7 +187,49 @@ export const entries = sqliteTable(
   (table) => [uniqueIndex("entries_user_category").on(table.userId, table.category)],
 );
 
+export const DRAW_STATUSES = ["draft", "published"] as const;
+export type DrawStatus = (typeof DRAW_STATUSES)[number];
+
+export const draws = sqliteTable(
+  "draws",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    tournamentId: text("tournament_id")
+      .notNull()
+      .references(() => tournaments.id, { onDelete: "cascade" }),
+    category: text("category", { enum: CATEGORIES }).notNull(),
+    status: text("status", { enum: DRAW_STATUSES }).notNull().default("draft"),
+    size: integer("size").notNull(),
+    generatedAt: integer("generated_at")
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+    publishedAt: integer("published_at"),
+  },
+  (table) => [uniqueIndex("draws_tournament_category").on(table.tournamentId, table.category)],
+);
+
+export const drawSlots = sqliteTable(
+  "draw_slots",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    drawId: text("draw_id")
+      .notNull()
+      .references(() => draws.id, { onDelete: "cascade" }),
+    position: integer("position").notNull(), // 1..size, top to bottom
+    // Null is a bye. The app never deletes entries, so set null only follows a user deletion.
+    entryId: text("entry_id").references(() => entries.id, { onDelete: "set null" }),
+    seed: integer("seed"),
+  },
+  (table) => [uniqueIndex("draw_slots_draw_position").on(table.drawId, table.position)],
+);
+
 export type User = typeof users.$inferSelect;
 export type Profile = typeof profiles.$inferSelect;
 export type Tournament = typeof tournaments.$inferSelect;
 export type Entry = typeof entries.$inferSelect;
+export type Draw = typeof draws.$inferSelect;
+export type DrawSlot = typeof drawSlots.$inferSelect;

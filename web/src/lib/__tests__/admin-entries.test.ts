@@ -30,6 +30,7 @@ function row(
       partnerEmail: null,
       status,
       paymentRef: null,
+      seed: null,
       createdAt: CREATED_AT,
     },
     email: `${id}@example.com`,

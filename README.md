@@ -96,6 +96,7 @@ npm run dev                  # http://localhost:3100
 | `/admin/entries` | Admins | Every entry, with event and status filters and status actions (`/entries` redirects here) |
 | `/admin/entries/<entry id>` | Admins | Player and entry details, with status actions |
 | `/admin/entries/export` | Admins | CSV of entries; takes the same `status` and `category` filters |
+| `/admin/settings` | Admins | Name, dates, venue, closing time (IST), fee, entries open or closed, schedule confirmed |
 
 Entry status moves submitted → confirmed → paid. Any live entry can be cancelled,
 and a cancelled entry can be reinstated as submitted. Marking an entry paid by hand
@@ -116,7 +117,9 @@ Only emails listed in `ADMIN_EMAILS` can open `/admin`, and demo mode does not
 change that. To use the admin interface locally, add `demo@rubstaopen.local`
 to `ADMIN_EMAILS` in `.env.local`. The database migrates and seeds Rubsta Open 2026 on
 first use. The seeded fee (₹1,500) and closing time (22 Sep, 18:00 IST) come
-from the design artboard, not a confirmed schedule.
+from the design artboard, not a confirmed schedule. Player pages call the fee and
+closing time provisional until an admin ticks "Schedule confirmed" in
+`/admin/settings`, which needs a start date and venue.
 
 Checks, from `web/`:
 

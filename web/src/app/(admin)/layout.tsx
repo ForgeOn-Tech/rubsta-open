@@ -5,7 +5,7 @@ import { signOutAction } from "@/auth/actions";
 import { requireAdmin } from "@/auth/require";
 import { db } from "@/db/client";
 import { tournaments } from "@/db/schema";
-import { formatEntryCloses } from "@/lib/format";
+import { formatEntryCloses, formatTournamentDates } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +43,18 @@ export default async function AdminLayout({
           </div>
           {tournament ? (
             <div className="mono mt-1 text-[10.5px] text-dim">
-              Entries close {formatEntryCloses(tournament.entryClosesAt)} IST
+              <div>
+                {[
+                  formatTournamentDates(tournament.startsOn, tournament.endsOn) ??
+                    "Dates to be confirmed",
+                  tournament.venue,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </div>
+              <div className="mt-0.5">
+                Entries close {formatEntryCloses(tournament.entryClosesAt)} IST
+              </div>
             </div>
           ) : null}
           <div className="mt-4 truncate text-[11px] text-dim">{user.email}</div>
