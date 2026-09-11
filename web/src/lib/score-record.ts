@@ -163,16 +163,20 @@ export function scoreRecordOf(match: StoredScoreColumns): ScoreRecord | null {
 }
 
 /**
- * Picks the score to show when the scoring page opens. Unsaved device changes
- * win while the server is still at their base version. They are dropped when
- * the server already holds the same record, and conflict otherwise.
+ * Picks the score to show when the scoring page opens. A device record built
+ * on a newer version than the page wins, saved or not: the page is an older
+ * copy, such as one kept for use without a connection. Otherwise unsaved
+ * device changes win while the server is still at their base version. They are
+ * dropped when the server already holds the same record, and conflict otherwise.
  */
 export function reconcileScore(
   serverVersion: number,
   serverRecord: ScoreRecord | null,
   device: DeviceScore | null,
 ): LoadedScore {
-  if (device === null || !device.unsaved) return { kind: "server" };
+  if (device === null) return { kind: "server" };
+  if (device.baseVersion > serverVersion) return { kind: "device", device };
+  if (!device.unsaved) return { kind: "server" };
   if (device.baseVersion === serverVersion) return { kind: "device", device };
   if (serverRecord !== null && sameScore(serverRecord, device.record)) return { kind: "server" };
   return { kind: "conflict", device };

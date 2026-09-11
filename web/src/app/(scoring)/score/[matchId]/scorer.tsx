@@ -168,10 +168,10 @@ function LiveScorer({
   );
   const unsaved = hasUnsavedChanges(state);
 
-  // Keep the record on the device until the server holds the finished match.
+  // Keep the record on the device, finished matches too: a page reopened from
+  // the offline cache can carry an older score, and this record corrects it.
   useEffect(() => {
-    const settled = state.status === "completed" && !hasUnsavedChanges(state);
-    writeDeviceScore(matchId, settled ? null : deviceScoreOf(state));
+    writeDeviceScore(matchId, deviceScoreOf(state));
   }, [matchId, state]);
 
   const sendNextSave = useEffectEvent(() => {

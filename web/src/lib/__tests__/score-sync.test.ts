@@ -109,6 +109,15 @@ describe("initialScorerState", () => {
     expect(pendingSave(state)).toEqual({ revision: 1, baseVersion: 2, record: device.record });
   });
 
+  it("opens a saved device record newer than the page as saved", () => {
+    const device = { baseVersion: 5, record: record([point("top"), point("top")]), unsaved: false };
+
+    const state = initialScorerState(snapshot(3, [point("top")]), device);
+
+    expect(state).toMatchObject({ baseVersion: 5, record: device.record, conflict: null });
+    expect(hasUnsavedChanges(state)).toBe(false);
+  });
+
   it("opens in conflict when the server moved on and differs", () => {
     const server = snapshot(3, [point("bottom")]);
     const device = { baseVersion: 2, record: record([point("top")]), unsaved: true };

@@ -187,6 +187,19 @@ describe("Scorer", () => {
     );
   });
 
+  it("shows the newer score kept on the device when the page is an older copy", () => {
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ baseVersion: 4, unsaved: false, record: record([point("bottom"), point("bottom")]) }),
+    );
+
+    renderScorer(snapshot(2, [point("bottom")]));
+
+    expect(scoreRow("Bela Rao")).toHaveTextContent("30");
+    expect(screen.getByRole("status")).toHaveTextContent("Saved");
+    expect(mockedSave).not.toHaveBeenCalled();
+  });
+
   it("holds the match point for confirmation before saving it", async () => {
     mockedSave.mockImplementation(savedAsSent);
     // Top leads 6–0 5–0 40–0.

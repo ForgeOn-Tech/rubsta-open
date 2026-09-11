@@ -131,7 +131,7 @@ export function initialScorerState(server: MatchSnapshot, device: DeviceScore | 
         ...common,
         baseVersion: loaded.device.baseVersion,
         record: loaded.device.record,
-        revision: 1,
+        revision: loaded.device.unsaved ? 1 : 0,
         savedRevision: 0,
         conflict: null,
         status: "in_progress",

@@ -138,6 +138,14 @@ describe("reconcileScore", () => {
     expect(reconcileScore(5, record([point]), device(4, [point], true))).toEqual({ kind: "server" });
   });
 
+  it("prefers a device record built on a newer version than the page, saved or not", () => {
+    const saved = device(6, [point], false);
+    const unsaved = device(6, [point, point], true);
+
+    expect(reconcileScore(4, record([]), saved)).toEqual({ kind: "device", device: saved });
+    expect(reconcileScore(4, null, unsaved)).toEqual({ kind: "device", device: unsaved });
+  });
+
   it("reports a conflict when both changed", () => {
     const stored = device(4, [point], true);
     expect(reconcileScore(5, record([{ type: "let" }]), stored)).toEqual({ kind: "conflict", device: stored });
