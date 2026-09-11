@@ -100,6 +100,8 @@ npm run dev                  # http://localhost:3100
 | `/admin/draws/<event>` | Admins | Seed entrants, generate a draw, publish it or move it back to draft |
 | `/admin/order-of-play` | Admins | Each day's matches and sessions by court, with times and umpires; publish a day for umpires |
 | `/admin/order-of-play/print` | Admins | A day's published order of play as a sheet to print |
+| `/admin/results` | Admins | Matches in progress and completed, by event, with scores |
+| `/admin/results/<match id>` | Admins | One match's score and statistics |
 | `/admin/players` | Admins | Everyone with a profile or entry, their entries, and search by name, email, club or mobile |
 | `/admin/settings` | Admins | Name, dates, venue, closing time (IST), fee, entries open or closed, schedule confirmed, courts |
 | `/score` | Admins and umpires | Matches in progress, ready to start, waiting on earlier results, and completed |
@@ -165,6 +167,19 @@ signed-in umpire, and each scheduled match shows its day, court and time.
 `/score/schedule/<day>` shows a published day. The day is part of the path,
 because the service worker keeps pages by path. When courts exist, the scoring
 screen offers them as a list and picks the scheduled court.
+
+### Match statistics
+
+Statistics come from the events the umpire records: who won each point,
+faults, double faults and lets. `src/lib/match-stats.ts` replays them and counts
+points won, first serves in, points won on first and second serve, double
+faults, break points won, service games held, tiebreak points won and the
+longest run of points. The umpire does not record how a point ended, so there
+are no aces, winners or unforced errors. Doubles statistics are for each team.
+A retired match has statistics up to the retirement.
+
+The statistics show under the result on the scoring screen when a match ends,
+and on each match's page in `/admin/results`.
 
 Entry status moves submitted → confirmed → paid. Any live entry can be cancelled,
 and a cancelled entry can be reinstated as submitted. Marking an entry paid by hand
