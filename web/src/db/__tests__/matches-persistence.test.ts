@@ -13,10 +13,12 @@ import {
   getScoringMatch,
   listScoringMatches,
   materializeMatches,
+  publishDraw,
   resetMatch,
   retireMatch,
   startMatch,
   undoLastMatchEvent,
+  unpublishDraw,
 } from "@/db/matches";
 import * as schema from "@/db/schema";
 import { SEED_TOURNAMENT } from "@/db/seed";
@@ -73,7 +75,7 @@ function lines(order: readonly (string | null)[]): DrawLine[] {
 
 type Db = ReturnType<typeof setup>;
 
-/** Draw in the given line order, materialized into matches. */
+/** Draw in the given line order, published so its matches exist. */
 function materializedDraw(database: Db, order: readonly (string | null)[]) {
   const drawId = saveGeneratedDraw(database, {
     tournamentId: TOURNAMENT_ID,
@@ -81,7 +83,7 @@ function materializedDraw(database: Db, order: readonly (string | null)[]) {
     lines: lines(order),
   });
   const current = getDrawWithSlots(database, TOURNAMENT_ID, "MS")!;
-  materializeMatches(database, current.draw, current.slots);
+  publishDraw(database, current.draw, current.slots);
   const rows = database.select().from(schema.matches).where(eq(schema.matches.drawId, drawId)).all();
   return { draw: current.draw, matches: rows };
 }
@@ -357,6 +359,50 @@ describe("retireMatch", () => {
     expect(row).toMatchObject({ status: "completed", winnerEntryId: "c" });
     expect(row.startedAt).toEqual(expect.any(Number));
     expect(row.completedAt).toEqual(expect.any(Number));
+  });
+});
+
+describe("publishDraw", () => {
+  it("leaves the draw in draft when its matches cannot be built", () => {
+    const database = setup();
+    saveGeneratedDraw(database, {
+      tournamentId: TOURNAMENT_ID,
+      category: "MS",
+      lines: lines(["a", "b", null, null]),
+    });
+    const current = getDrawWithSlots(database, TOURNAMENT_ID, "MS")!;
+
+    expect(() => publishDraw(database, current.draw, current.slots)).toThrow(/two byes/);
+
+    expect(getDrawWithSlots(database, TOURNAMENT_ID, "MS")!.draw.status).toBe("draft");
+    expect(database.select().from(schema.matches).all()).toHaveLength(0);
+  });
+});
+
+describe("unpublishDraw", () => {
+  it("moves an unplayed draw back to draft and deletes its matches", () => {
+    const database = setup();
+    const { draw } = materializedDraw(database, ["a", null, "b", "c"]);
+
+    unpublishDraw(database, draw.id);
+
+    expect(getDrawWithSlots(database, TOURNAMENT_ID, "MS")!.draw.status).toBe("draft");
+    expect(database.select().from(schema.matches).all()).toHaveLength(0);
+  });
+
+  it("refuses once a match has started, keeping the draw and its matches", () => {
+    const database = setup();
+    const { draw, matches } = materializedDraw(database, ["a", null, "b", "c"]);
+    startMatch(database, matchByNumber(matches, 2).id, {
+      firstServer: "top",
+      court: 1,
+      decidingSet: "set",
+    });
+
+    expect(() => unpublishDraw(database, draw.id)).toThrow(/have started/);
+
+    expect(getDrawWithSlots(database, TOURNAMENT_ID, "MS")!.draw.status).toBe("published");
+    expect(database.select().from(schema.matches).all()).toHaveLength(3);
   });
 });
 

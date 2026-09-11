@@ -1,6 +1,6 @@
-import { and, eq, gt, inArray } from "drizzle-orm";
+import { and, eq, gt, inArray, isNotNull } from "drizzle-orm";
 
-import type { Database } from "./draws";
+import { setDrawStatus, type Database } from "./draws";
 import {
   CATEGORIES,
   draws,
@@ -292,6 +292,41 @@ export function retireMatch(database: Database, matchId: string, retiringSide: S
 /** Removes every match of a draw (when it moves back to draft). */
 export function deleteMatchesForDraw(database: Database, drawId: string): void {
   database.delete(matches).where(eq(matches.drawId, drawId)).run();
+}
+
+/**
+ * Publishes a draft draw and creates its matches in one transaction, so a
+ * bracket that cannot be built leaves the draw in draft.
+ */
+export function publishDraw(database: Database, draw: Draw, slots: DrawSlot[]): void {
+  database.transaction((tx) => {
+    setDrawStatus(tx, draw.id, "draft", "published");
+    materializeMatches(tx, draw, slots);
+  });
+}
+
+/** True once any match in the draw has started, including retirements. */
+export function hasPlayedMatches(database: Database, drawId: string): boolean {
+  const played = database
+    .select({ id: matches.id })
+    .from(matches)
+    .where(and(eq(matches.drawId, drawId), isNotNull(matches.startedAt)))
+    .get();
+  return played !== undefined;
+}
+
+/**
+ * Moves a published draw back to draft and deletes its matches, in one
+ * transaction. Refuses once play has started, so no score is lost.
+ */
+export function unpublishDraw(database: Database, drawId: string): void {
+  database.transaction((tx) => {
+    if (hasPlayedMatches(tx, drawId)) {
+      throw new Error(`Draw ${drawId} has matches that have started.`);
+    }
+    deleteMatchesForDraw(tx, drawId);
+    setDrawStatus(tx, drawId, "published", "draft");
+  });
 }
 
 /** Player details for each `{ kind: "entry" }` slot among `slots`. */
