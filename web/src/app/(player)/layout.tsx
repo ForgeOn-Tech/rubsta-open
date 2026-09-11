@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { signOutAction } from "@/auth/actions";
-import { canViewEntries, requireUser } from "@/auth/require";
+import { canAccessAdmin, requireUser } from "@/auth/require";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +12,7 @@ export default async function PlayerLayout({
   children: React.ReactNode;
 }) {
   const user = await requireUser();
-  const organiser = canViewEntries(user.email);
+  const admin = canAccessAdmin(user.email);
   const demoMode = process.env.DEMO_AUTH === "true";
 
   return (
@@ -56,7 +56,7 @@ export default async function PlayerLayout({
           <span className="font-serif text-[22px]">Rubsta Open</span>
           <div className="flex flex-wrap items-center gap-4 text-[10px] font-medium uppercase tracking-[1.5px] text-club-muted">
             <span>Powered by ForgeLabs</span>
-            {organiser ? <Link href="/entries">Organiser view</Link> : null}
+            {admin ? <Link href="/admin">Admin</Link> : null}
             {demoMode ? (
               <span className="badge badge-submitted">Demo mode</span>
             ) : null}

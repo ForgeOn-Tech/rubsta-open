@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { auth } from "./auth";
-import { isEntriesAdmin } from "@/lib/access";
+import { isAdmin } from "@/lib/access";
 
 export interface SessionUser {
   id: string;
@@ -27,20 +27,16 @@ export async function requireUser(): Promise<SessionUser> {
 }
 
 /**
- * Who may open the organiser entries view (/entries): any signed-in user when
- * DEMO_AUTH=true (prototype), otherwise only emails in ENTRIES_ADMIN_EMAILS.
+ * Admin access comes only from ADMIN_EMAILS. Demo mode grants nothing extra;
+ * list demo@rubstaopen.local to use /admin locally.
  */
-export function canViewEntries(email: string): boolean {
-  if (process.env.DEMO_AUTH === "true") return true;
-  return isEntriesAdmin(email, process.env.ENTRIES_ADMIN_EMAILS ?? "");
+export function canAccessAdmin(email: string): boolean {
+  return isAdmin(email, process.env.ADMIN_EMAILS ?? "");
 }
 
-/**
- * Guard for /entries. Signed-out visitors go to /signin; signed-in players
- * without access go to their player home.
- */
-export async function requireEntriesAccess(): Promise<SessionUser> {
+/** Guard for /admin. Signed-out visitors go to /signin; players without access go home. */
+export async function requireAdmin(): Promise<SessionUser> {
   const user = await requireUser();
-  if (!canViewEntries(user.email)) redirect("/home");
+  if (!canAccessAdmin(user.email)) redirect("/home");
   return user;
 }

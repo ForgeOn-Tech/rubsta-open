@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { signOutAction } from "@/auth/actions";
 import { auth } from "@/auth/auth";
-import { canViewEntries } from "@/auth/require";
+import { canAccessAdmin } from "@/auth/require";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +16,7 @@ export default async function AppLayout({
   if (!session?.user?.id) redirect("/signin");
 
   const demoMode = process.env.DEMO_AUTH === "true";
-  const organiser = canViewEntries(session.user.email ?? "");
+  const admin = canAccessAdmin(session.user.email ?? "");
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -57,9 +57,9 @@ export default async function AppLayout({
         <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-4 px-5 py-4">
           <span className="eyebrow">Powered by ForgeLabs</span>
           <div className="flex items-center gap-4">
-            {organiser ? (
-              <Link href="/entries" className="caps">
-                Organiser view
+            {admin ? (
+              <Link href="/admin" className="caps">
+                Admin
               </Link>
             ) : null}
             {demoMode ? (

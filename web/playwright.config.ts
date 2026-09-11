@@ -31,6 +31,7 @@ export default defineConfig({
     env: {
       DATABASE_PATH,
       DEMO_AUTH: "true",
+      ADMIN_EMAILS: "demo@rubstaopen.local",
       AUTH_SECRET: "e2e-test-secret-not-for-production-0123456789",
       AUTH_TRUST_HOST: "true",
     },

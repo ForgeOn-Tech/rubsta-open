@@ -44,17 +44,25 @@ test.describe.serial("registration", () => {
     await expect(page.getByRole("radio", { name: "Men's singles", exact: true })).toBeDisabled();
   });
 
-  test("the organiser sees the entry and filters by status", async ({ page }) => {
+  test("an admin sees the entry in the overview and the entries table", async ({ page }) => {
     await signInAsDemo(page);
     await expect(page).toHaveURL(/\/home$/);
 
+    await page.getByRole("link", { name: "Admin" }).click();
+    await expect(page).toHaveURL(/\/admin$/);
+    await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
+    const events = page.getByRole("region", { name: "Entries by event" });
+    await expect(events.getByRole("row", { name: /Men's singles/ })).toContainText("1");
+
+    // The old organiser URL redirects into the admin interface.
     await page.goto("/entries");
+    await expect(page).toHaveURL(/\/admin\/entries$/);
     const row = page.getByRole("row", { name: /Demo Player/ });
     await expect(row).toContainText("Men's singles");
     await expect(row).toContainText("Submitted");
 
     await page.getByRole("link", { name: /^Paid/ }).click();
-    await expect(page).toHaveURL(/status=paid/);
+    await expect(page).toHaveURL(/\/admin\/entries\?status=paid$/);
     await expect(page.getByText("No paid entries.")).toBeVisible();
   });
 });

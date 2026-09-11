@@ -92,7 +92,8 @@ npm run dev                  # http://localhost:3100
 | `/profile` | Players | Name, date of birth, gender, mobile, club, best ranking, past tournaments |
 | `/register` | Players | Choose an event (MS, WS, MD, WD); doubles need a partner name and email |
 | `/register/<entry id>` | Players | Entry confirmation, visible only to the player who entered |
-| `/entries` | Organisers | Every entry, with status filters and counts |
+| `/admin` | Admins | Overview: entries by status and event, time to close, latest entries |
+| `/admin/entries` | Admins | Every entry, with status filters and counts (`/entries` redirects here) |
 
 Sign-in lands on `/home`, which uses the landing page's club theme. Its player
 card marks matches, win–loss, player ID, handedness, certificates and card
@@ -105,8 +106,9 @@ Payments are off by default, and an entry is stored as `submitted`. With
 `NEXT_PUBLIC_PAYMENTS_ENABLED=true`, a stub checkout stores the entry as `paid`
 with `paymentRef: razorpay-stub`. No money moves in either mode.
 
-In demo mode any signed-in user can open `/entries`. Otherwise only emails in
-`ENTRIES_ADMIN_EMAILS` can. The database migrates and seeds Rubsta Open 2026 on
+Only emails listed in `ADMIN_EMAILS` can open `/admin`, and demo mode does not
+change that. To use the admin interface locally, add `demo@rubstaopen.local`
+to `ADMIN_EMAILS` in `.env.local`. The database migrates and seeds Rubsta Open 2026 on
 first use. The seeded fee (₹1,500) and closing time (22 Sep, 18:00 IST) come
 from the design artboard, not a confirmed schedule.
 
