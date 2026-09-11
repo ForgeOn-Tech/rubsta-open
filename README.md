@@ -96,6 +96,7 @@ npm run dev                  # http://localhost:3100
 | `/admin/entries` | Admins | Every entry, with event and status filters and status actions (`/entries` redirects here) |
 | `/admin/entries/<entry id>` | Admins | Player and entry details, with status actions |
 | `/admin/entries/export` | Admins | CSV of entries; takes the same `status` and `category` filters |
+| `/admin/players` | Admins | Everyone with a profile or entry, their entries, and search by name, email, club or mobile |
 | `/admin/settings` | Admins | Name, dates, venue, closing time (IST), fee, entries open or closed, schedule confirmed |
 
 Entry status moves submitted → confirmed → paid. Any live entry can be cancelled,

@@ -11,7 +11,7 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
   { label: "Draws", href: null },
   { label: "Order of play", href: null },
   { label: "Results", href: null },
-  { label: "Players", href: null },
+  { label: "Players", href: "/admin/players" },
   { label: "Certificates", href: null },
   { label: "Sponsors", href: null },
   { label: "Settings", href: "/admin/settings" },

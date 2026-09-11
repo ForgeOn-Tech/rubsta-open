@@ -84,6 +84,12 @@ test.describe.serial("registration", () => {
     expect(body).toContain("Demo Player");
     expect(body).toContain("Men's singles");
 
+    await page.goto("/admin/players?q=demo");
+    await expect(page.getByRole("row", { name: /Demo Player/ })).toContainText("Men's singles");
+    await page.getByLabel("Search players").fill("nobody-here");
+    await page.getByRole("button", { name: "Search" }).click();
+    await expect(page.getByText("No players match")).toBeVisible();
+
     await page.goto("/admin/settings");
     await page.getByLabel("Start date").fill("2026-09-25");
     await page.getByLabel("End date").fill("2026-09-27");

@@ -3,6 +3,30 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "./client";
 import { entries, profiles, tournaments, users, type Tournament } from "./schema";
 import type { AdminEntryRow } from "@/lib/admin-entries";
+import type { PlayerAccount, PlayerEntrySummary } from "@/lib/players";
+
+/** Every user account with its profile, if any. */
+export function listPlayerAccounts(): PlayerAccount[] {
+  return db
+    .select({ userId: users.id, email: users.email, accountName: users.name, profile: profiles })
+    .from(users)
+    .leftJoin(profiles, eq(profiles.userId, users.id))
+    .all();
+}
+
+/** The id, player, event and status of every entry for a tournament. */
+export function listEntrySummaries(tournamentId: string): PlayerEntrySummary[] {
+  return db
+    .select({
+      id: entries.id,
+      userId: entries.userId,
+      category: entries.category,
+      status: entries.status,
+    })
+    .from(entries)
+    .where(eq(entries.tournamentId, tournamentId))
+    .all();
+}
 
 /** The app runs one tournament at a time: the seeded row. */
 export function getCurrentTournament(): Tournament | null {
