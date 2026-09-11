@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { saveScore, type SaveOutcome } from "../save-score";
@@ -83,8 +83,15 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  // Unmount first: a late effect must not write to storage after the stub is gone.
+  cleanup();
+  vi.useRealTimers();
   vi.unstubAllGlobals();
 });
+
+function keptScore(): unknown {
+  return JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "null");
+}
 
 describe("Scorer", () => {
   it("starts the match on the device and saves it", async () => {
@@ -122,11 +129,13 @@ describe("Scorer", () => {
 
     expect(scoreRow("Asha Anand")).toHaveTextContent("15");
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Offline"));
-    expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY)!)).toMatchObject({
-      baseVersion: 1,
-      unsaved: true,
-      record: { events: [point("top")] },
-    });
+    await waitFor(() =>
+      expect(keptScore()).toMatchObject({
+        baseVersion: 1,
+        unsaved: true,
+        record: { events: [point("top")] },
+      }),
+    );
   });
 
   it("saves again as soon as the browser reports it is back online", async () => {
@@ -141,10 +150,26 @@ describe("Scorer", () => {
 
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Saved"));
     expect(mockedSave).toHaveBeenCalledTimes(2);
-    expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY)!)).toMatchObject({
-      baseVersion: 2,
-      unsaved: false,
-    });
+    await waitFor(() => expect(keptScore()).toMatchObject({ baseVersion: 2, unsaved: false }));
+  });
+
+  it("keeps retrying with backoff while the signal stays bad", async () => {
+    // No online event: the browser still reports a connection, but saves fail.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    mockedSave
+      .mockResolvedValueOnce({ kind: "failed" })
+      .mockResolvedValueOnce({ kind: "failed" })
+      .mockImplementation(savedAsSent);
+    renderScorer(snapshot(1, []));
+
+    fireEvent.click(screen.getByRole("button", { name: /^Point — Asha Anand/ }));
+    await waitFor(() => expect(mockedSave).toHaveBeenCalledTimes(1));
+    await act(() => vi.advanceTimersByTimeAsync(1_000));
+    await waitFor(() => expect(mockedSave).toHaveBeenCalledTimes(2));
+    await act(() => vi.advanceTimersByTimeAsync(2_000));
+
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Saved"));
+    expect(mockedSave).toHaveBeenCalledTimes(3);
   });
 
   it("resumes unsaved points kept on the device after a reload", async () => {
