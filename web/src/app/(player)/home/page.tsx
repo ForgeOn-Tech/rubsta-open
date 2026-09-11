@@ -6,8 +6,9 @@ import { requireUser } from "@/auth/require";
 import { PartnerStatusBadge } from "@/components/partner-status-badge";
 import { StatusBadge } from "@/components/status-badge";
 import { db, getDb } from "@/db/client";
-import { listScoringMatches } from "@/db/matches";
+import { listScoringMatches, type ScoringMatchRow } from "@/db/matches";
 import { listPartneredEntries, listPendingInvitations, listTeamEntryIds } from "@/db/partners";
+import { listPublishedDays } from "@/db/schedule";
 import { CATEGORIES, entries, profiles, tournaments } from "@/db/schema";
 import { CATEGORY_LABELS, entriesOpen } from "@/lib/entries";
 import {
@@ -18,7 +19,16 @@ import {
 } from "@/lib/format";
 import { UPCOMING_FEATURES, greetingName, nextStep } from "@/lib/home";
 import { partnerInvitationPath } from "@/lib/partners";
+import { other } from "@/lib/match";
 import { formatPlayerId, matchRecord } from "@/lib/player-card";
+import {
+  PLAYER_DRAWS_PATH,
+  PLAYER_ORDER_OF_PLAY_PATH,
+  nextMatch,
+  teamSide,
+} from "@/lib/player-matches";
+import { placeLabel, publishedPlaces, type PublishedPlace } from "@/lib/schedule";
+import { matchSummary, sideLabel } from "@/lib/scoring-display";
 import { PROVISIONAL_SCHEDULE_NOTE } from "@/lib/tournament";
 
 export const dynamic = "force-dynamic";
@@ -46,6 +56,12 @@ export default async function HomePage() {
     tournamentMatches.map((row) => row.match),
     teamEntryIds,
   );
+  const publishedDays = tournament ? listPublishedDays(getDb(), tournament.id) : [];
+  const places = publishedPlaces(
+    publishedDays,
+    new Map(tournamentMatches.map((row) => [row.match.id, row.match.matchNumber])),
+  );
+  const upcoming = nextMatch(tournamentMatches, teamEntryIds, places);
 
   const step = nextStep({
     hasProfile: profile !== null,
@@ -185,8 +201,30 @@ export default async function HomePage() {
         )}
       </section>
 
+      <section aria-labelledby="next-match-heading">
+        <SectionHeading id="next-match-heading" eyebrow="02 / Next match" title="Your next match">
+          <div className="flex flex-wrap gap-3">
+            <Link href={PLAYER_DRAWS_PATH} className="pill pill-outline">
+              Draws
+            </Link>
+            {publishedDays.length > 0 ? (
+              <Link href={PLAYER_ORDER_OF_PLAY_PATH} className="pill pill-outline">
+                Order of play
+              </Link>
+            ) : null}
+          </div>
+        </SectionHeading>
+        {upcoming === null ? (
+          <p className="mt-6 border-t border-club-line pt-5 text-[13px] text-club-muted">
+            No match is waiting for you. Your matches appear here once your draw is published.
+          </p>
+        ) : (
+          <NextMatch row={upcoming} team={teamEntryIds} place={places.get(upcoming.match.id) ?? null} />
+        )}
+      </section>
+
       <section aria-labelledby="card-heading">
-        <SectionHeading id="card-heading" eyebrow="02 / Player card" title="Your record">
+        <SectionHeading id="card-heading" eyebrow="03 / Player card" title="Your record">
           {profile ? (
             <Link href="/profile" className="pill pill-outline">
               Edit profile
@@ -212,7 +250,7 @@ export default async function HomePage() {
       <section aria-labelledby="tournament-heading">
         <SectionHeading
           id="tournament-heading"
-          eyebrow="03 / Tournament"
+          eyebrow="04 / Tournament"
           title={tournamentName}
         />
         {tournament ? (
@@ -259,7 +297,7 @@ export default async function HomePage() {
       <section aria-labelledby="coming-heading">
         <SectionHeading
           id="coming-heading"
-          eyebrow="04 / Coming soon"
+          eyebrow="05 / Coming soon"
           title="More of the tournament"
         />
         <ul className="mt-6 grid gap-8 md:grid-cols-3">
@@ -310,6 +348,50 @@ function SectionHeading({
         </h2>
       </div>
       {children}
+    </div>
+  );
+}
+
+/** The player's next match: event, opponent, and when and where it plays. */
+function NextMatch({
+  row,
+  team,
+  place,
+}: {
+  row: ScoringMatchRow;
+  team: ReadonlySet<string>;
+  place: PublishedPlace | null;
+}) {
+  const { match } = row;
+  const side = teamSide(row, team);
+  if (side === null) throw new Error(`Match ${match.id} is not one of this player's matches.`);
+  const opponentSide = other(side);
+  const opponent = sideLabel(
+    opponentSide === "top" ? row.top : row.bottom,
+    opponentSide === "top" ? match.topSlot : match.bottomSlot,
+  );
+  const summary = matchSummary(row);
+  const when =
+    match.status === "in_progress"
+      ? `Live now${summary === null ? "" : ` · ${summary}`}`
+      : place === null
+        ? "Time to be announced"
+        : placeLabel(place);
+
+  return (
+    <div className="mt-6 grid gap-6 border-t border-club-line pt-6 sm:grid-cols-[2fr_1fr]">
+      <div className="min-w-0">
+        <p className="text-[10px] font-medium uppercase tracking-[2px] text-club-muted">
+          {CATEGORY_LABELS[row.category]} · {match.roundName} · M{match.matchNumber}
+        </p>
+        <p className="mt-2 truncate font-serif text-[34px] leading-tight">v {opponent.name}</p>
+        <p className="mt-2 text-[13px] text-club-muted">{when}</p>
+      </div>
+      <div className="flex items-end sm:justify-end">
+        <Link href={`${PLAYER_DRAWS_PATH}/${row.category}`} className="pill pill-primary">
+          See the draw <span aria-hidden="true">→</span>
+        </Link>
+      </div>
     </div>
   );
 }
