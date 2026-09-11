@@ -35,6 +35,8 @@ const screens = {
   'ChallengeKit.dc.html': ['Challenge Kit', 390, 844],
   'FanZone.dc.html': ['Fan Zone', 390, 844]
 };
+// Resolve from this script's own URL so previews load from any page folder.
+const screensBase = new URL('../design/screens/', document.currentScript.src);
 let requestId = 0;
 document.querySelectorAll('[data-preview]').forEach(link => link.addEventListener('click', async event => {
   event.preventDefault();
@@ -46,7 +48,7 @@ document.querySelectorAll('[data-preview]').forEach(link => link.addEventListene
   frame.srcdoc = '<p style="font-family:system-ui;padding:24px">Loading preview…</p>';
   dialog.showModal();
   try {
-    const response = await fetch(`design/screens/${file}`);
+    const response = await fetch(new URL(file, screensBase));
     if (!response.ok) throw new Error('Preview unavailable');
     const html = await response.text();
     if (id !== requestId) return;

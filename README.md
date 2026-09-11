@@ -49,12 +49,15 @@ Canvas: https://claude.ai/code/artifact/03717cab-8b12-4a02-be17-7394af9dae09
 
 ## Landing page
 
-The Rubsta Open landing page leads with “Powered by ForgeLabs” and marks event
-dates, venue, categories and registration details as coming soon. It uses the AMS
-layout and typography with powder-green
-accents. It includes keyboard-accessible tournament phase tabs and modal previews
-of the existing screen designs. All scores are illustrative; this is a frontend
-prototype with no registration, payment or live-scoring backend.
+The public page at the repository root is the Rubsta Open waitlist. It lists the
+five planned categories with their draw sizes and shows the six courts. Its one call
+to action, “Show interest”, leads to a form for name, email, an optional mobile
+number, the categories a player wants and a free-text category request. A request
+with no category ticked is a valid submission.
+
+The earlier full landing page now lives at `preview/`. It keeps the gallery,
+technology catalogue, phase tabs and screen-design previews, and asks search engines
+not to index it. All scores there are illustrative.
 
 Run from the repository root:
 
@@ -62,9 +65,50 @@ Run from the repository root:
 python3 -m http.server 3000 --bind 127.0.0.1
 ```
 
-Open http://127.0.0.1:3000. Serve over HTTP so the screen previews can load.
-Edit `index.html`, `assets/landing.css` and `assets/landing.js`.
+Open http://127.0.0.1:3000 for the waitlist and http://127.0.0.1:3000/preview/ for
+the full page. Serve over HTTP so the form script and the screen previews load.
 Fonts use Google Fonts with local system fallbacks.
+
+| Files | Purpose |
+| --- | --- |
+| `index.html`, `assets/waitlist.css`, `assets/waitlist.js` | Waitlist page and form behaviour |
+| `assets/waitlist-form.js` | Form checks, used by the page and the tests |
+| `apps-script/waitlist.gs` | Google Apps Script that saves interest to a Google Sheet |
+| `preview/index.html`, `assets/landing.css`, `assets/club.css`, `assets/landing.js` | Full landing page |
+
+### Waitlist form setup
+
+Submissions go to a Google Sheet through an Apps Script web app. Until the form has
+an `action` URL, it tells visitors that the list is not open yet.
+
+1. Create a Google Sheet that only the organisers can open.
+2. In the sheet, open **Extensions > Apps Script**. Replace the editor contents with
+   `apps-script/waitlist.gs` and save.
+3. Select **Deploy > New deployment > Web app**. Set **Execute as** to *Me* and
+   **Who has access** to *Anyone*. Deploy and approve the permissions.
+4. Copy the web app URL, which ends in `/exec`. Open it in a browser to check it: it
+   shows `{"ok":true,"service":"rubsta-open-interest"}`.
+5. In `index.html`, add the URL to the form tag as
+   `action="https://script.google.com/macros/s/…/exec"`.
+
+The script creates an “Interest” tab on the first submission and keeps one row per
+email address. A second submission from the same address updates that row, so a
+retry never adds a duplicate. The script checks every field again, stores text that
+looks like a formula as plain text, and drops submissions that fill the hidden
+bot-trap field. After you change the script, publish it under **Deploy > Manage
+deployments** as a new version of the same deployment, so the URL stays the same.
+
+With *Anyone* access, anyone who has the URL can post to the script, and the URL is
+visible in the page source. The field checks limit what a post can write.
+
+Run the form tests with Node.js (tested with Node 26). They need no install:
+
+```sh
+node --test tests/*.test.mjs
+```
+
+The tests also check that the script accepts exactly the categories on the page and
+uses the same limits and messages as the browser checks.
 
 ## Stack
 
@@ -219,8 +263,10 @@ labelled. Nothing in this update connects production services.
 
 ### Public hosting
 
-Production uses Sites; the original GitHub repository stays private. GitHub Pages
-was unavailable for this account's private-repository plan. `.openai/hosting.json`
-records the Sites project. `python3 scripts/build-site.py` assembles only public
-website assets into `dist/`, excluding the original large PNG and repository files.
-Publish a saved version from the exact source commit pushed to the Sites repository.
+GitHub Pages publishes the root of `main` at https://forgeon-tech.github.io/rubsta-open/.
+Every push to `main` redeploys the site, so the waitlist becomes the public page with
+the next push. `_config.yml` keeps `web/`, `apps-script/` and `tests/` out of the Pages
+build. After a push, check the “pages build and deployment” run in GitHub Actions.
+
+`python3 scripts/build-site.py` assembles the public files, including `preview/`, into
+`dist/` for other static hosts. It leaves out the original large PNG and repository files.
