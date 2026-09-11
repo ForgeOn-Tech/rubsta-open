@@ -26,6 +26,7 @@ import {
 } from "@/db/schedule";
 import * as schema from "@/db/schema";
 import { SEED_TOURNAMENT } from "@/db/seed";
+import { hasUnpublishedChanges, scheduleEntryOf } from "@/lib/schedule";
 
 const TOURNAMENT_ID = "tournament-1";
 const DAY = "2026-09-26";
@@ -336,6 +337,22 @@ describe("publishDay", () => {
       { id: item.id, timing: "notBefore", time: "15:30" },
     ]);
     expect(listPublishedDays(database, TOURNAMENT_ID)).toHaveLength(1);
+  });
+
+  it("has nothing new to publish after an item moves and moves back", () => {
+    const { database, semi } = setup();
+    placeMatch(database, semi.id, 1);
+    const block = placeBlock(database, 1);
+    const published = publishDay(database, TOURNAMENT_ID, DAY);
+
+    moveItem(database, block.id, "up");
+    const working = () => listScheduleItems(database, TOURNAMENT_ID, DAY).map(scheduleEntryOf);
+
+    expect(hasUnpublishedChanges(working(), published.items)).toBe(true);
+
+    moveItem(database, block.id, "down");
+
+    expect(hasUnpublishedChanges(working(), published.items)).toBe(false);
   });
 
   it("is null for a day never published", () => {

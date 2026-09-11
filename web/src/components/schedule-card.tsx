@@ -4,7 +4,7 @@ import type { ScoringMatchRow } from "@/db/matches";
 import { CATEGORY_LABELS, type MatchStatus } from "@/db/schema";
 import { SIDES, type Side } from "@/lib/match";
 import { SCHEDULE_STATUS_LABELS, timingLabel, type ScheduleEntry } from "@/lib/schedule";
-import { setGamesBySide, sideLabel } from "@/lib/scoring-display";
+import { setGamesBySide, shortRoundName, sideLabel } from "@/lib/scoring-display";
 
 export interface ScheduleCardProps {
   entry: ScheduleEntry;
@@ -55,14 +55,17 @@ export function ScheduleCard({ entry, row, previousName, umpireName, children }:
   const sides = { top: sideLabel(row.top, match.topSlot), bottom: sideLabel(row.bottom, match.bottomSlot) };
   const games = setGamesBySide(row);
   const winner = winnerSide(row);
-  const event = `${CATEGORY_LABELS[row.category]} · ${match.roundName}`;
+  const event = CATEGORY_LABELS[row.category];
 
   return (
-    <article aria-label={`M${match.matchNumber} ${event}`} className="card p-3.5">
+    <article aria-label={`M${match.matchNumber} ${event} · ${match.roundName}`} className="card p-3.5">
       <div className="mb-[9px] flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-baseline gap-[7px]">
           <span className="mono text-[10px] text-dim">M{match.matchNumber}</span>
-          <span className="caps truncate text-[10px]">{event}</span>
+          {/* Short round names fit a court column, as on the artboard. */}
+          <span className="caps truncate text-[10px]">
+            {event} · {shortRoundName(match.roundName)}
+          </span>
         </div>
         <span
           className={`mono inline-flex h-[19px] flex-none items-center px-[7px] text-[9.5px] uppercase tracking-[0.08em] ${STATUS_STYLES[match.status]}`}

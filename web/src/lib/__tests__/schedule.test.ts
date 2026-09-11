@@ -120,6 +120,10 @@ describe("hasUnpublishedChanges", () => {
   it("sees a removed item", () => {
     expect(hasUnpublishedChanges([], [entry({})])).toBe(true);
   });
+
+  it("ignores an item removed and added back in the same place", () => {
+    expect(hasUnpublishedChanges([entry({ id: "added-back" })], [entry({ id: "original" })])).toBe(false);
+  });
 });
 
 describe("timingLabel", () => {

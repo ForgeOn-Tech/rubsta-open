@@ -149,9 +149,9 @@ export function sortEntries<Item extends Pick<ScheduleEntry, "courtNumber" | "po
   return [...items].sort((a, b) => a.courtNumber - b.courtNumber || a.position - b.position);
 }
 
+/** What umpires would see of an entry. The id is left out: a removed item added back in place looks the same. */
 function entryKey(entry: ScheduleEntry): string {
   return JSON.stringify([
-    entry.id,
     entry.day,
     entry.courtNumber,
     entry.position,

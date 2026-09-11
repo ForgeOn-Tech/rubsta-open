@@ -37,6 +37,21 @@ export const SCORING_GROUP_TITLES: Record<ScoringGroup, string> = {
 
 const MS_PER_MINUTE = 60_000;
 const MINUTES_PER_HOUR = 60;
+const SHORT_ROUND_NAMES = new Map([
+  ["Final", "Final"],
+  ["Semi-finals", "SF"],
+  ["Quarter-finals", "QF"],
+]);
+const ROUND_OF = /^Round of (\d+)$/;
+
+/** A round name from lib/draws short enough for a narrow card, e.g. "QF" or "R16". */
+export function shortRoundName(roundName: string): string {
+  const short = SHORT_ROUND_NAMES.get(roundName);
+  if (short !== undefined) return short;
+  const roundOf = ROUND_OF.exec(roundName);
+  if (roundOf === null) throw new Error(`"${roundName}" is not a round name from lib/draws.`);
+  return `R${roundOf[1]}`;
+}
 
 export function sideLabel(info: MatchSideInfo | null, slot: MatchSlot): SideLabel {
   switch (slot.kind) {

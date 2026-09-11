@@ -9,6 +9,7 @@ import {
   matchSummary,
   scoringGroupOf,
   setGamesBySide,
+  shortRoundName,
   sideLabel,
   situationLabel,
 } from "@/lib/scoring-display";
@@ -48,6 +49,20 @@ function row(match: Partial<Match>): ScoringMatchRow {
 function started(events: MatchEvent[], status: Match["status"], winnerEntryId: string | null) {
   return row({ firstServer: "top", startedAt: STARTED_AT, events, status, winnerEntryId });
 }
+
+describe("shortRoundName", () => {
+  it("shortens each round name that draws use", () => {
+    expect(shortRoundName("Final")).toBe("Final");
+    expect(shortRoundName("Semi-finals")).toBe("SF");
+    expect(shortRoundName("Quarter-finals")).toBe("QF");
+    expect(shortRoundName("Round of 16")).toBe("R16");
+    expect(shortRoundName("Round of 128")).toBe("R128");
+  });
+
+  it("rejects a name that draws never use", () => {
+    expect(() => shortRoundName("Playoff")).toThrow(/not a round name/);
+  });
+});
 
 describe("setGamesBySide", () => {
   it("is null before the match starts", () => {
