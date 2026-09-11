@@ -47,6 +47,102 @@ Canvas: https://claude.ai/code/artifact/03717cab-8b12-4a02-be17-7394af9dae09
 `design/tools/` regenerates the artboards. Run each generator from
 `design/screens/` with `design/tools` on the path.
 
+## Landing page
+
+The Rubsta Open landing page leads with “Powered by ForgeLabs” and marks event
+dates, venue, categories and registration details as coming soon. It uses the AMS
+layout and typography with powder-green
+accents. It includes keyboard-accessible tournament phase tabs and modal previews
+of the existing screen designs. All scores are illustrative; this is a frontend
+prototype with no registration, payment or live-scoring backend.
+
+Run from the repository root:
+
+```sh
+python3 -m http.server 3000 --bind 127.0.0.1
+```
+
+Open http://127.0.0.1:3000. Serve over HTTP so the screen previews can load.
+Edit `index.html`, `assets/landing.css` and `assets/landing.js`.
+Fonts use Google Fonts with local system fallbacks.
+
 ## Stack
 
-Not chosen yet.
+The landing page is plain HTML, CSS and JavaScript, with no build dependencies.
+The application stack is not chosen yet.
+
+### Event images and sponsors
+
+Six local SVG image placeholders live in `assets/images/`. In `index.html`, replace
+an image's `src` with the real photo path and update its `alt` text:
+
+- `hero-court.svg`, `hero-action.svg`, `hero-community.svg`: three hero slides;
+  use landscape photos, ideally at least 1600 px wide. Images crop with `object-fit: cover`.
+- `story-players.svg`, `story-venue.svg`, `story-moments.svg`: story images;
+  use 4:3 photos, ideally at least 1200 px wide.
+
+Adjust `object-position` on individual images to keep faces in frame. The hero
+slider uses arrows and slide selectors, supports keyboard arrows, and does not
+auto-advance. No external image service is required.
+
+The sponsors section contains five fictional text logos in presenting, equipment,
+hydration, community and wellness slots. Replace each `.dummy-logo` with an actual
+logo image (with the sponsor name as alt text) once confirmed. Remove the placeholder
+labels only when the corresponding partnerships and assets are confirmed.
+
+### Club theme
+
+The current event theme is `assets/club.css`, loaded after the original layout
+styles. It uses forest green, warm cream, a serif wordmark and court markings,
+inspired by the supplied tennis-club reference. The hero keeps real HTML text
+("Rubsta Open" / "Powered by ForgeLabs") over an original AI-generated backdrop.
+The three hero slides currently use different crops of that concept image;
+replace their `src` and `alt` attributes independently with real event photos.
+The three story-image placeholders and five dummy sponsor slots remain editable.
+
+The entrance has a tennis-ball animation with a bounded dismissal (1.65 seconds).
+Section navigation uses an 800 ms court wipe, moves keyboard focus to the target,
+and preserves ordinary anchor navigation without JavaScript. Reduced-motion
+preferences disable the loader, wipes and slide fades. The top court-line indicator
+tracks reading progress. The existing screen previews remain design prototypes.
+
+Hero asset: `assets/images/club-court.jpg` (web version), with the original saved as
+`assets/images/club-court.png`. Generated using the built-in imagegen tool, not a
+photograph of the confirmed Rubsta Open venue. Generation prompt:
+
+> Use case: photorealistic-natural. Asset: full-width website hero background for an elegant tennis tournament. Generate an original editorial architectural photograph, wide 1536x1024 composition: a perfectly symmetrical secluded outdoor green tennis court, viewed from behind the near baseline, net across the lower middle, a tall unmarked dark forest-green windscreen across the center background, lush mature trees above and around it. Pale limestone surround, afternoon natural soft sunlight, refined private tennis club atmosphere, rich forest greens and olive court. Keep the center windscreen dark and visually quiet to overlay very large cream website typography. Realistic court lines and net. No people, no text, no letters, no logos, no watermark. This is an atmospheric concept image, not a real venue.
+
+### Current visual direction and scroll interactions
+
+The current theme returns to the tennis-club reference: rich court greens, ivory,
+oversized serif type and a lightly shaded photograph. Pastel blocks, rotated sponsor
+cards and rounded feature tiles were removed. Tennis yellow is limited to the ball,
+progress indicator and small interaction accents.
+
+A shorter scroll sequence moves a ball along a drawn court path. Hero drift is capped
+at 35 px and reveal travel at 14 px. Scroll updates use the shared passive,
+requestAnimationFrame-throttled handler. Reduced-motion preferences disable the sticky
+sequence, drift and reveals, including changes while the page is open. Content stays
+visible without JavaScript.
+
+### AI and technology section
+
+`#technology` highlights planned ForgeLabs AI use cases: match review and player
+learning, candidate highlight discovery, and editorially reviewed tournament recaps.
+The court-analysis graphic is illustrative. Copy explicitly labels the capabilities
+as planned, dependent on available footage, data and event setup; no AI service or
+tracking backend is connected. This section is linked from the desktop navigation
+and uses the existing reduced-motion-aware reveal behavior.
+
+### Gallery and full technology catalogue
+
+The former scroll-rally section is now `#gallery`: four replaceable image slots,
+an enlarged modal view, previous/next controls and keyboard navigation. Its first
+image is the AI concept court; the remaining slots are clearly labelled placeholders.
+Edit the images and captions in `.gallery-item` elements in `index.html`.
+The obsolete rally animation is no longer run; gentle hero drift and reveals remain.
+
+The technology section now covers Tournament OS, LiveScore, Player Card, Capture &
+Highlights, Challenge Kit and Fan Zone, followed by the planned AI capabilities.
+Available product previews open the existing artboards, with sample data clearly
+labelled. Nothing in this update connects production services.
