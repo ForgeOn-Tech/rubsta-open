@@ -129,6 +129,13 @@ export function EntryForm({
         </div>
       ) : null}
 
+      {isDoubles(category) ? (
+        <p className="-mt-2 text-[12px] text-muted">
+          Your partner signs in with this email to accept. The entry goes into the draw once they
+          accept.
+        </p>
+      ) : null}
+
       {checkoutOpen ? (
         <section className="card p-4" aria-labelledby="checkout-title">
           <div className="flex items-center justify-between gap-3">

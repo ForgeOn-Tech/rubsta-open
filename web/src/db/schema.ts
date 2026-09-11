@@ -160,6 +160,15 @@ export const ENTRY_STATUS_LABELS: Record<EntryStatus, string> = {
   cancelled: "Cancelled",
 };
 
+/** A doubles partner's answer to the entry. Singles entries have none. */
+export const PARTNER_STATUSES = ["pending", "accepted", "declined"] as const;
+export type PartnerStatus = (typeof PARTNER_STATUSES)[number];
+export const PARTNER_STATUS_LABELS: Record<PartnerStatus, string> = {
+  pending: "Awaiting partner",
+  accepted: "Partner confirmed",
+  declined: "Partner declined",
+};
+
 export const entries = sqliteTable(
   "entries",
   {
@@ -177,7 +186,11 @@ export const entries = sqliteTable(
       .notNull()
       .default("main"),
     partnerName: text("partner_name"),
-    partnerEmail: text("partner_email"),
+    partnerEmail: text("partner_email"), // lower case
+    // Doubles only: the partner signs in with partnerEmail and accepts or declines.
+    partnerStatus: text("partner_status", { enum: PARTNER_STATUSES }),
+    partnerUserId: text("partner_user_id").references(() => users.id, { onDelete: "set null" }),
+    partnerRespondedAt: integer("partner_responded_at"),
     status: text("status", { enum: ENTRY_STATUSES })
       .notNull()
       .default("submitted"),

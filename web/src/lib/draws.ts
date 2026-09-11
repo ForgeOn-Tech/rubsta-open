@@ -1,4 +1,5 @@
 import type { Category, Entry, EntryStatus } from "@/db/schema";
+import { partnerReady } from "@/lib/partners";
 
 export const ADMIN_DRAWS_PATH = "/admin/draws";
 export const MIN_DRAW_ENTRANTS = 2;
@@ -333,11 +334,16 @@ export function parseSeedInput(value: string): number | null {
 }
 
 /** Rows whose entry is accepted in the given event. */
-export function eligibleRows<Row extends { entry: Pick<Entry, "category" | "status"> }>(
-  rows: readonly Row[],
-  category: Category,
-): Row[] {
-  return rows.filter((row) => row.entry.category === category && isDrawEligible(row.entry.status));
+/** Confirmed or paid entries in the event. A doubles entry also needs its partner to have accepted. */
+export function eligibleRows<
+  Row extends { entry: Pick<Entry, "category" | "status" | "partnerStatus"> },
+>(rows: readonly Row[], category: Category): Row[] {
+  return rows.filter(
+    (row) =>
+      row.entry.category === category &&
+      isDrawEligible(row.entry.status) &&
+      partnerReady(row.entry.partnerStatus),
+  );
 }
 
 export function toDrawEntrant(row: { entry: Pick<Entry, "id" | "seed"> }): DrawEntrant {

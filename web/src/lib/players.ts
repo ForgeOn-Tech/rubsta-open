@@ -28,7 +28,8 @@ export interface AdminPlayerRow {
 /**
  * Accounts with a profile or at least one entry, each with its entries,
  * sorted by player name. Accounts with neither (e.g. an admin who only
- * signed in) are left out. Doubles partners have no account and never appear.
+ * signed in) are left out. A doubles partner appears through their own
+ * account; the entries they joined as a partner are not listed under it.
  */
 export function buildPlayerRows(
   accounts: readonly PlayerAccount[],

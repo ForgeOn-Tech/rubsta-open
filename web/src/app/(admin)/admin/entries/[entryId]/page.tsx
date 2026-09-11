@@ -5,6 +5,7 @@ import { changeEntryStatus } from "../actions";
 import { EntryStatusActions } from "../entry-status-actions";
 import { requireAdmin } from "@/auth/require";
 import { AdminPageHeader } from "@/components/admin-page-header";
+import { PartnerStatusBadge } from "@/components/partner-status-badge";
 import { StatusBadge } from "@/components/status-badge";
 import { getAdminEntry } from "@/db/queries";
 import { ENTRY_STATUS_LABELS, GENDER_LABELS } from "@/db/schema";
@@ -55,7 +56,14 @@ export default async function AdminEntryPage({
     { label: "Event", value: `${eventLabel} · Main draw` },
     {
       label: "Partner",
-      value: entry.partnerName ? `${entry.partnerName} · ${entry.partnerEmail}` : EMPTY_VALUE,
+      value: entry.partnerName ? (
+        <span className="flex flex-col items-end gap-1">
+          {`${entry.partnerName} · ${entry.partnerEmail}`}
+          {entry.partnerStatus === null ? null : <PartnerStatusBadge status={entry.partnerStatus} />}
+        </span>
+      ) : (
+        EMPTY_VALUE
+      ),
     },
     { label: "Status", value: <StatusBadge status={entry.status} /> },
     { label: "Payment reference", value: entry.paymentRef ?? EMPTY_VALUE },

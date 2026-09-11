@@ -3,8 +3,10 @@ import Link from "next/link";
 
 import { PlayerCard } from "./player-card";
 import { requireUser } from "@/auth/require";
+import { PartnerStatusBadge } from "@/components/partner-status-badge";
 import { StatusBadge } from "@/components/status-badge";
-import { db } from "@/db/client";
+import { db, getDb } from "@/db/client";
+import { listPartneredEntries, listPendingInvitations } from "@/db/partners";
 import { CATEGORIES, entries, profiles, tournaments } from "@/db/schema";
 import { CATEGORY_LABELS, entriesOpen } from "@/lib/entries";
 import {
@@ -14,6 +16,7 @@ import {
   formatTournamentDates,
 } from "@/lib/format";
 import { UPCOMING_FEATURES, greetingName, nextStep } from "@/lib/home";
+import { partnerInvitationPath } from "@/lib/partners";
 import { PROVISIONAL_SCHEDULE_NOTE } from "@/lib/tournament";
 
 export const dynamic = "force-dynamic";
@@ -33,11 +36,13 @@ export default async function HomePage() {
     .where(eq(entries.userId, user.id))
     .orderBy(desc(entries.createdAt))
     .all();
+  const invitations = listPendingInvitations(getDb(), user.email);
+  const partnered = listPartneredEntries(getDb(), user.id);
 
   const step = nextStep({
     hasProfile: profile !== null,
     entriesOpen: tournament ? entriesOpen(tournament) : null,
-    enteredCount: myEntries.length,
+    enteredCount: myEntries.length + partnered.length,
     categoryCount: CATEGORIES.length,
   });
   const name = greetingName(profile?.fullName ?? null, user.name);
@@ -86,9 +91,37 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {invitations.length === 0 ? null : (
+        <section aria-labelledby="invitations-heading">
+          <SectionHeading id="invitations-heading" eyebrow="Doubles" title="Partner invitations" />
+          <ul className="mt-6 border-t border-club-line">
+            {invitations.map(({ entry, inviterName }) => (
+              <li key={entry.id} className="border-b border-club-line">
+                <Link
+                  href={partnerInvitationPath(entry.id)}
+                  className="flex items-center justify-between gap-4 py-4 hover:bg-club-paper sm:px-2"
+                >
+                  <span className="min-w-0">
+                    <span className="block font-serif text-[24px] leading-tight">
+                      {CATEGORY_LABELS[entry.category]}
+                    </span>
+                    <span className="mt-1 block truncate text-[12px] text-club-muted">
+                      {inviterName} wants you as their partner
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-[11px] font-medium uppercase tracking-[1.5px] text-club-deep">
+                    Answer <span aria-hidden="true">→</span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section aria-labelledby="entries-heading">
         <SectionHeading id="entries-heading" eyebrow="01 / Entries" title="Your entries" />
-        {myEntries.length === 0 ? (
+        {myEntries.length + partnered.length === 0 ? (
           <p className="mt-6 border-t border-club-line pt-5 text-[13px] text-club-muted">
             You have not entered an event yet.
           </p>
@@ -113,6 +146,29 @@ export default async function HomePage() {
                         .join(" · ")}
                     </span>
                   </span>
+                  <span className="flex shrink-0 flex-col items-end gap-1.5">
+                    <StatusBadge status={entry.status} />
+                    {entry.partnerStatus === null ? null : (
+                      <PartnerStatusBadge status={entry.partnerStatus} />
+                    )}
+                  </span>
+                </Link>
+              </li>
+            ))}
+            {partnered.map(({ entry, inviterName }) => (
+              <li key={entry.id} className="border-b border-club-line">
+                <Link
+                  href={partnerInvitationPath(entry.id)}
+                  className="flex items-center justify-between gap-4 py-4 hover:bg-club-paper sm:px-2"
+                >
+                  <span className="min-w-0">
+                    <span className="block font-serif text-[24px] leading-tight">
+                      {CATEGORY_LABELS[entry.category]}
+                    </span>
+                    <span className="mt-1 block truncate text-[12px] text-club-muted">
+                      With {inviterName} · You joined as partner
+                    </span>
+                  </span>
                   <StatusBadge status={entry.status} />
                 </Link>
               </li>
@@ -130,7 +186,7 @@ export default async function HomePage() {
           ) : null}
         </SectionHeading>
         {profile ? (
-          <PlayerCard profile={profile} entryCount={myEntries.length} />
+          <PlayerCard profile={profile} entryCount={myEntries.length + partnered.length} />
         ) : (
           <p className="mt-6 border-t border-club-line pt-5 text-[13px] text-club-muted">
             Your player card starts when you create your profile.

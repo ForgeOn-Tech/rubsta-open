@@ -1,10 +1,12 @@
 "use server";
 
 import { eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireUser } from "@/auth/require";
-import { db } from "@/db/client";
+import { db, getDb } from "@/db/client";
+import { PartnerRejectedError, changePartner, listPlayedCategories } from "@/db/partners";
 import { entries, profiles, tournaments } from "@/db/schema";
 import {
   CATEGORY_LABELS,
@@ -14,6 +16,8 @@ import {
   validateEntryInput,
   type EntryFormState,
 } from "@/lib/entries";
+import type { ActionState } from "@/lib/form-state";
+import { normaliseEmail } from "@/lib/partners";
 
 export async function submitEntry(
   _prev: EntryFormState,
@@ -40,19 +44,13 @@ export async function submitEntry(
     .get();
   if (!tournament) return { error: "This tournament is not available." };
 
-  // Not filtered by tournament: the unique index is on (user, category).
-  const existingCategories = db
-    .select({ category: entries.category })
-    .from(entries)
-    .where(eq(entries.userId, user.id))
-    .all()
-    .map((row) => row.category);
-
   const validation = validateEntryInput({
     category,
     partnerName,
     partnerEmail,
-    existingCategories,
+    ownEmail: user.email,
+    // Not filtered by tournament: the unique index is on (user, category).
+    existingCategories: listPlayedCategories(getDb(), user.id),
     entryClosesAt: tournament.entryClosesAt,
     tournamentStatus: tournament.status,
   });
@@ -73,7 +71,8 @@ export async function submitEntry(
         tournamentId: tournament.id,
         category: validation.category,
         partnerName: doubles ? partnerName : null,
-        partnerEmail: doubles ? partnerEmail.toLowerCase() : null,
+        partnerEmail: doubles ? normaliseEmail(partnerEmail) : null,
+        partnerStatus: doubles ? "pending" : null,
         status: outcome.status,
         paymentRef: outcome.paymentRef,
       })
@@ -89,4 +88,32 @@ export async function submitEntry(
   }
 
   redirect(`/register/${id}`);
+}
+
+/** Names a new doubles partner, who then has to accept. */
+export async function changePartnerAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const user = await requireUser();
+  const entryId = String(formData.get("entryId") ?? "");
+
+  try {
+    changePartner(
+      getDb(),
+      entryId,
+      { userId: user.id, email: user.email },
+      {
+        name: String(formData.get("partnerName") ?? ""),
+        email: String(formData.get("partnerEmail") ?? ""),
+      },
+    );
+  } catch (error) {
+    if (error instanceof PartnerRejectedError) return { error: error.message, savedAt: null };
+    throw error;
+  }
+
+  revalidatePath(`/register/${entryId}`);
+  revalidatePath("/home");
+  return { error: null, savedAt: Date.now() };
 }

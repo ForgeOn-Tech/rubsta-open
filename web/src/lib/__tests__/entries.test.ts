@@ -18,6 +18,7 @@ const AFTER_CLOSE = new Date("2026-09-23T00:00:00+05:30");
 
 const base = {
   category: "MS",
+  ownEmail: "player@example.com",
   existingCategories: [] as string[],
   entryClosesAt: CLOSES_AT,
   tournamentStatus: "open" as const,
@@ -53,6 +54,17 @@ describe("entriesClosed", () => {
 });
 
 describe("validateEntryInput", () => {
+  it("refuses the player's own email as the partner's", () => {
+    expect(
+      validateEntryInput({
+        ...base,
+        category: "WD",
+        partnerName: "Me Again",
+        partnerEmail: " Player@Example.com ",
+      }),
+    ).toEqual({ ok: false, error: "Enter your partner's email, not your own." });
+  });
+
   it("accepts a singles entry before the deadline", () => {
     expect(validateEntryInput(base)).toEqual({ ok: true, category: "MS" });
   });
