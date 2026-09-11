@@ -10,7 +10,7 @@ import {
   validateInterest,
 } from '../assets/waitlist-form.js';
 
-const ALLOWED = ['open-singles', 'womens-30-plus', 'u15-juniors', 'doubles', 'singles-40-plus'];
+const ALLOWED = ['open-singles', 'womens-30-plus', 'u15-juniors', 'open-doubles', 'singles-40-plus'];
 
 /** @param {Partial<import('../assets/waitlist-form.js').Interest>} overrides */
 function interest(overrides) {
@@ -35,7 +35,7 @@ describe('normaliseInterest', () => {
       name: '  Asha   Rao ',
       email: ' Asha@Example.COM ',
       mobile: ' +91  98765 43210 ',
-      categories: ['doubles', 'doubles', ' open-singles', ''],
+      categories: ['open-doubles', 'open-doubles', ' open-singles', ''],
       request: '  mixed   doubles ',
     };
 
@@ -45,7 +45,7 @@ describe('normaliseInterest', () => {
       name: 'Asha Rao',
       email: 'asha@example.com',
       mobile: '+91 98765 43210',
-      categories: ['doubles', 'open-singles'],
+      categories: ['open-doubles', 'open-singles'],
       request: 'mixed doubles',
     });
   });
@@ -105,11 +105,11 @@ describe('validateInterest', () => {
 
 describe('toFormBody', () => {
   it('sends each category as its own pair', () => {
-    const body = toFormBody(interest({ categories: ['doubles', 'u15-juniors'] }));
+    const body = toFormBody(interest({ categories: ['open-doubles', 'u15-juniors'] }));
 
     assert.equal(
       body.toString(),
-      'name=Asha+Rao&email=asha%40example.com&mobile=&request=&categories=doubles&categories=u15-juniors',
+      'name=Asha+Rao&email=asha%40example.com&mobile=&request=&categories=open-doubles&categories=u15-juniors',
     );
   });
 });

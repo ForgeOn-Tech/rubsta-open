@@ -6,6 +6,7 @@ import {
   validateInterest,
 } from './waitlist-form.js';
 
+const dialog = document.querySelector('#interest-dialog');
 const form = document.querySelector('#interest-form');
 const statusLine = document.querySelector('#interest-status');
 const done = document.querySelector('#interest-done');
@@ -14,6 +15,8 @@ const submitLabel = submitButton.querySelector('[data-label]');
 const categoryInputs = [...form.querySelectorAll('input[name="categories"]')];
 const allowedCategories = categoryInputs.map((input) => input.value);
 
+// Links elsewhere (such as the preview page's header button) open the form with this hash.
+const OPEN_HASH = '#interest';
 // Each field's error message has the id `${id}-error`.
 const FIELD_IDS = {
   name: 'interest-name',
@@ -32,6 +35,30 @@ const MESSAGES = {
 };
 
 let sending = false;
+
+document.querySelectorAll('[data-open-interest]').forEach((button) => {
+  button.addEventListener('click', () => dialog.showModal());
+});
+dialog.querySelectorAll('[data-close-interest]').forEach((button) => {
+  button.addEventListener('click', () => dialog.close());
+});
+// A click on the backdrop lands on the dialog element itself.
+dialog.addEventListener('click', (event) => {
+  if (event.target === dialog) dialog.close();
+});
+// A hash change within the page does not reload it, so listen for it too.
+window.addEventListener('hashchange', openFromHash);
+// Clear the hash on close so the same link opens the form again.
+dialog.addEventListener('close', () => {
+  if (window.location.hash === OPEN_HASH) {
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+  }
+});
+openFromHash();
+
+function openFromHash() {
+  if (window.location.hash === OPEN_HASH && !dialog.open) dialog.showModal();
+}
 
 // The script checks the fields, so turn off the browser's own messages.
 form.noValidate = true;

@@ -49,11 +49,15 @@ Canvas: https://claude.ai/code/artifact/03717cab-8b12-4a02-be17-7394af9dae09
 
 ## Landing page
 
-The public page at the repository root is the Rubsta Open waitlist. It lists the
-five planned categories with their draw sizes and shows the six courts. Its one call
-to action, “Show interest”, leads to a form for name, email, an optional mobile
-number, the categories a player wants and a free-text category request. A request
-with no category ticked is a valid submission.
+The public page at the repository root is the Rubsta Open waitlist. The first fold
+shows the tournament at a glance: October dates, cash prizes, six courts and five
+categories. Exact dates and prize amounts are marked as coming soon.
+
+Every “Show interest” button opens the form in a pop-up, and so does a link to
+`#interest`. The form takes a name, an email, an optional mobile number, the
+categories a player wants and a free-text category request. A request with no
+category ticked is a valid submission. Below the first fold, “Be the first to hear”
+lists the five categories with their planned draw sizes.
 
 The earlier full landing page now lives at `preview/`. It keeps the gallery,
 technology catalogue, phase tabs and screen-design previews, and asks search engines

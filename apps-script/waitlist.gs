@@ -16,7 +16,7 @@ const CATEGORY_LABELS = {
   'open-singles': 'Open singles',
   'womens-30-plus': "Women's 30+",
   'u15-juniors': 'U-15 juniors',
-  doubles: 'Doubles',
+  'open-doubles': 'Open doubles',
   'singles-40-plus': '40+ singles',
 };
 const LIMITS = { name: 80, email: 254, mobile: 20, request: 120 };

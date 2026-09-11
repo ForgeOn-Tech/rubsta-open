@@ -1,21 +1,40 @@
 /* Waitlist page. Loads after landing.css and club.css. */
+button.button{border:0}
+button.nav-cta{background:transparent;color:inherit}
+button.nav-cta:hover{color:var(--lime)}
+
+/* First fold: grows with its content so the facts are never clipped. */
+.hero.wrap{height:auto;min-height:max(800px,100svh);padding-bottom:90px}
+.hero-copy button{pointer-events:auto}
 .hero-concept{position:absolute;right:4vw;bottom:28px;z-index:3;margin:0;font:8px var(--mono);letter-spacing:1px;color:#fffbedcc}
+.hero-facts{list-style:none;margin:44px auto 0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));max-width:880px;border-block:1px solid #fffbed55;background:#0d1d1266}
+.hero-facts li{display:flex;flex-direction:column;align-items:center;gap:6px;padding:20px 14px;text-align:center}
+.hero-facts li+li{border-left:1px solid #fffbed33}
+.fact-icon{width:26px;height:26px;margin-bottom:4px;fill:none;stroke:var(--lime);stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.fact-label{font:9px var(--mono);letter-spacing:2px;text-transform:uppercase;color:#fffbedcc}
+.hero-facts strong{font:26px/1.1 var(--serif);font-weight:500;color:#fffbed}
+.hero-facts small{font-size:10px;line-height:1.5;color:#fffbedcc}
 
 /* Categories */
+.section-aside{max-width:360px;display:flex;flex-direction:column;align-items:flex-start;gap:22px}
+.section-aside p{margin:0;font-size:13px;line-height:1.8;color:var(--muted)}
 .category-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,1fr);gap:28px}
 .category-list li{border-top:1px solid #a2b28e;padding-top:22px}
 .category-number{font:9px var(--mono);letter-spacing:1px;color:var(--muted)}
 .category-list h3{font:31px/1.05 var(--serif);font-weight:400;letter-spacing:-.5px;margin:18px 0 10px}
 .category-list p{margin:0;font-size:12px;line-height:1.7;color:var(--muted)}
+.category-note{margin:34px 0 0;font-size:12px;color:var(--muted)}
 
-/* Interest form */
-.interest{background:#294f35;color:#f3f1df;padding:90px 0}
-.interest-grid{display:grid;grid-template-columns:.8fr 1.2fr;gap:64px;align-items:start}
-.interest-copy .eyebrow{color:#ced6bd}
-.interest-copy h2{font-size:55px;color:#fffbed}
-.interest-copy h2 em{color:var(--lime)}
-.interest-copy>p:not(.eyebrow){font-size:13px;line-height:1.9;color:#ced6bd;max-width:360px}
-.interest-card{background:var(--bg);color:var(--ink);padding:36px}
+/* Pop-up */
+.interest-dialog{width:min(640px,calc(100vw - 32px));max-width:none;max-height:calc(100dvh - 32px);overflow:auto;border:0}
+.interest-dialog-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:28px 32px 0}
+.interest-dialog-head h2{font-size:42px;margin:10px 0 0}
+.dialog-close{flex:none;width:40px;height:40px;border:1px solid #b3bda7;border-radius:50%;background:transparent;color:var(--ink);font-size:20px;line-height:1}
+.dialog-close:hover{background:#eef2dc}
+.interest-dialog-body{padding:14px 32px 32px}
+.interest-dialog-intro{margin:0 0 24px;font-size:13px;line-height:1.8;color:var(--muted)}
+
+/* Form */
 .interest-form{display:grid;gap:24px}
 .interest-form[hidden]{display:none}
 .field{display:grid;gap:8px;margin:0;padding:0;border:0;min-width:0}
@@ -37,29 +56,34 @@
 .category-option small{display:block;font:10px var(--mono);color:var(--muted);margin-top:5px}
 .trap{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
 .form-footer{display:flex;align-items:center;justify-content:space-between;gap:18px 24px;flex-wrap:wrap}
-.interest-form .button{border:0}
 .interest-form .button:disabled{opacity:.65;cursor:progress}
-.form-note{margin:0;font-size:11px;line-height:1.6;color:var(--muted);max-width:280px}
+.form-note{margin:0;font-size:11px;line-height:1.6;color:var(--muted);max-width:260px}
 .form-status{margin:0;font-size:12px;line-height:1.6}
 .form-status:empty{display:none}
-.interest-done{outline:none}
+.interest-done{outline:none;padding-top:8px}
 .interest-done h3{font:44px/1.05 var(--serif);font-weight:400;letter-spacing:-1px;margin:16px 0}
 .interest-done p:not(.eyebrow){font-size:13px;line-height:1.8;color:var(--muted);margin:0}
 .interest-done strong{color:var(--ink);font-weight:600;overflow-wrap:anywhere}
+.interest-done .button{margin-top:26px}
 
 footer a{text-decoration:underline;text-underline-offset:3px}
 
 @media(max-width:1050px){
 .category-list{grid-template-columns:repeat(3,1fr)}
-.interest-grid{grid-template-columns:1fr;gap:36px}
-.interest-copy>p:not(.eyebrow){max-width:520px}
 }
 @media(max-width:760px){
+.hero.wrap{height:auto;min-height:max(760px,100svh);max-height:none;padding-bottom:70px}
 .hero-concept{right:auto;left:22px;bottom:22px;font-size:6px}
+.hero-facts{grid-template-columns:1fr 1fr;margin-top:32px}
+.hero-facts li{padding:16px 10px}
+.hero-facts li:nth-child(3){border-left:0}
+.hero-facts li:nth-child(n+3){border-top:1px solid #fffbed33}
+.hero-facts strong{font-size:22px}
+.section-aside{margin-top:20px}
 .category-list{grid-template-columns:1fr 1fr;gap:22px}
 .category-list h3{font-size:26px}
-.interest{padding:60px 0}
-.interest-copy h2{font-size:43px}
-.interest-card{padding:24px 18px}
+.interest-dialog-head{padding:22px 20px 0}
+.interest-dialog-head h2{font-size:34px}
+.interest-dialog-body{padding:12px 20px 24px}
 .category-options{grid-template-columns:1fr}
 }

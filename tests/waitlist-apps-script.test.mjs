@@ -104,7 +104,7 @@ describe('toRow_', () => {
     const submittedAt = new Date('2026-09-11T10:00:00Z');
     const updatedAt = new Date('2026-09-12T10:00:00Z');
     const interest = script('normaliseInterest_')(
-      raw({ mobile: '+91 98765 43210', categories: ['doubles', 'womens-30-plus'], request: 'Mixed doubles' }),
+      raw({ mobile: '+91 98765 43210', categories: ['open-doubles', 'womens-30-plus'], request: 'Mixed doubles' }),
     );
 
     const row = script('toRow_')(interest, submittedAt, updatedAt);
@@ -115,7 +115,7 @@ describe('toRow_', () => {
       'Asha Rao',
       'asha@example.com',
       "'+91 98765 43210",
-      "Doubles, Women's 30+",
+      "Open doubles, Women's 30+",
       'Mixed doubles',
     ]);
     assert.equal(row.length, script('HEADER').length);
