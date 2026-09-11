@@ -8,6 +8,8 @@ import {
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 
+import type { MatchEvent, Side } from "@/lib/match";
+
 // ── Auth.js adapter tables (shape per @auth/drizzle-adapter docs) ─────────
 
 export const users = sqliteTable("users", {
@@ -231,9 +233,53 @@ export const drawSlots = sqliteTable(
   (table) => [uniqueIndex("draw_slots_draw_position").on(table.drawId, table.position)],
 );
 
+export const MATCH_STATUSES = ["scheduled", "in_progress", "completed"] as const;
+export type MatchStatus = (typeof MATCH_STATUSES)[number];
+
+/** Who fills a match slot: a drawn entry, the winner of an earlier match, or a bye. */
+export type MatchSlot =
+  | { kind: "entry"; entryId: string }
+  | { kind: "winner"; matchNumber: number }
+  | { kind: "bye" };
+
+export const matches = sqliteTable(
+  "matches",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    drawId: text("draw_id")
+      .notNull()
+      .references(() => draws.id, { onDelete: "cascade" }),
+    matchNumber: integer("match_number").notNull(), // bracket number, shown as "M21"
+    roundIndex: integer("round_index").notNull(), // 0 = first round; final has the highest
+    roundName: text("round_name").notNull(), // from lib/draws roundName()
+    topSlot: text("top_slot", { mode: "json" }).$type<MatchSlot>().notNull(),
+    bottomSlot: text("bottom_slot", { mode: "json" }).$type<MatchSlot>().notNull(),
+    events: text("events", { mode: "json" }).$type<MatchEvent[]>().notNull().default([]),
+    decidingSet: text("deciding_set", { enum: ["set", "matchTiebreak"] })
+      .notNull()
+      .default("set"),
+    firstServer: text("first_server", { enum: ["top", "bottom"] }).$type<Side>(),
+    status: text("status", { enum: MATCH_STATUSES }).notNull().default("scheduled"),
+    winnerEntryId: text("winner_entry_id").references(() => entries.id),
+    court: integer("court"),
+    startedAt: integer("started_at"),
+    completedAt: integer("completed_at"),
+    createdAt: integer("created_at")
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+    updatedAt: integer("updated_at")
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+  },
+  (table) => [uniqueIndex("matches_draw_number").on(table.drawId, table.matchNumber)],
+);
+
 export type User = typeof users.$inferSelect;
 export type Profile = typeof profiles.$inferSelect;
 export type Tournament = typeof tournaments.$inferSelect;
 export type Entry = typeof entries.$inferSelect;
 export type Draw = typeof draws.$inferSelect;
 export type DrawSlot = typeof drawSlots.$inferSelect;
+export type Match = typeof matches.$inferSelect;
