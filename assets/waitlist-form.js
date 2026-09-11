@@ -117,6 +117,38 @@ export function firstName(name) {
 }
 
 /**
+ * Copy for the confirmation screen, built from what the player sent.
+ * @param {Interest} interest A normalised, valid interest.
+ * @param {Readonly<Record<string, string>>} categoryLabels The label for each checkbox value.
+ * @returns {{ heading: string, lines: string[] }}
+ */
+export function confirmationCopy(interest, categoryLabels) {
+  const chosen = interest.categories.map((category) => categoryLabels[category]);
+  const lines = [
+    chosen.length === 0
+      ? `We’ll email ${interest.email} as soon as entries open.`
+      : `We’ll email ${interest.email} as soon as entries open for ${categoryPhrase(chosen, Object.keys(categoryLabels).length)}.`,
+  ];
+  if (interest.request) {
+    lines.push(`We’ve ${chosen.length === 0 ? '' : 'also '}noted your request for “${interest.request}”.`);
+  }
+  lines.push('Keep an eye on your inbox, and keep your serve sharp until October.');
+  return { heading: `You’re on the list, ${firstName(interest.name)}.`, lines };
+}
+
+/**
+ * Names the chosen categories: "A", "A and B", "A, B and C", or "all 5 categories".
+ * @param {readonly string[]} labels
+ * @param {number} total How many categories the form offers.
+ * @returns {string}
+ */
+export function categoryPhrase(labels, total) {
+  if (labels.length > 1 && labels.length === total) return `all ${total} categories`;
+  if (labels.length <= 2) return labels.join(' and ');
+  return `${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}`;
+}
+
+/**
  * @param {string} value
  * @returns {string}
  */

@@ -49,10 +49,11 @@
 </div><p class="field-error" id="interest-categories-error" hidden></p></fieldset>
 <div class="field"><label for="interest-request">Request a category <span class="optional">(optional)</span></label><input class="text-input" id="interest-request" name="request" type="text" maxlength="120" placeholder="For example, mixed doubles" aria-describedby="interest-request-hint interest-request-error"><p class="field-hint" id="interest-request-hint">Tell us what you would like added. You can send a request without ticking a category.</p><p class="field-error" id="interest-request-error" hidden></p></div>
 <div class="trap" aria-hidden="true"><label for="interest-website">Leave this field empty</label><input id="interest-website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
-<div class="form-footer"><button class="button primary" type="submit"><span data-label>Show interest</span><span aria-hidden="true">↗</span></button><p class="form-note">We use these details only to contact you about Rubsta Open.</p></div>
+<div class="form-footer"><button class="button primary" type="submit">Send <span aria-hidden="true">↗</span></button><p class="form-note">We use these details only to contact you about Rubsta Open.</p></div>
 <p class="form-status" id="interest-status" role="status"></p>
 </form>
-<div class="interest-done" id="interest-done" tabindex="-1" hidden><p class="eyebrow">YOU’RE ON THE LIST</p><h3>Thanks, <span data-first-name></span>.</h3><p>We’ll email <strong data-email></strong> when entries open.</p><button class="button primary" type="button" data-close-interest>Close</button></div>
+<div class="interest-sending" id="interest-sending" tabindex="-1" hidden><div class="send-court" aria-hidden="true"><span class="send-rally"><span class="tennis-ball"></span></span></div><p role="status">Sending your details…</p></div>
+<div class="interest-done" id="interest-done" tabindex="-1" hidden><div class="done-badge" aria-hidden="true"><span class="done-circle"></span><svg class="done-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="tennis-ball"></span></div><p class="eyebrow">INTEREST RECEIVED</p><h3 id="interest-done-title" data-done-heading></h3><div class="done-lines" data-done-lines></div><button class="button primary" type="button" data-close-interest>Done</button></div>
 </div>
 </dialog>
 </body></html>

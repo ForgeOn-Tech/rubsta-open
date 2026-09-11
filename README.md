@@ -56,8 +56,13 @@ categories. Exact dates and prize amounts are marked as coming soon.
 Every “Show interest” button opens the form in a pop-up, and so does a link to
 `#interest`. The form takes a name, an email, an optional mobile number, the
 categories a player wants and a free-text category request. A request with no
-category ticked is a valid submission. Below the first fold, “Be the first to hear”
-lists the five categories with their planned draw sizes.
+category ticked is a valid submission. While the details go to Google, the Send
+button's pop-up shows a tennis ball rallying across a small court. A confirmation
+screen then names the player's categories and any request. Both skip their animation
+when the visitor prefers reduced motion.
+
+Below the first fold, “Be the first to hear” lists the five categories with their
+planned draw sizes.
 
 The earlier full landing page now lives at `preview/`. It keeps the gallery,
 technology catalogue, phase tabs and screen-design previews, and asks search engines
