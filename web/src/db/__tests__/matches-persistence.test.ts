@@ -7,6 +7,8 @@ import { describe, expect, it } from "vitest";
 
 import { getDrawWithSlots, saveGeneratedDraw } from "@/db/draws";
 import {
+  MatchNotFoundError,
+  ScoreRejectedError,
   advanceWinnerToNextMatch,
   deleteMatchesForDraw,
   getScoringMatch,
@@ -285,6 +287,13 @@ describe("saveMatchScore", () => {
     expect(() => saveMatchScore(database, final.id, 0, record([]))).toThrow(
       "Match 3 is waiting on an earlier result.",
     );
+    expect(() => saveMatchScore(database, final.id, 0, record([]))).toThrow(ScoreRejectedError);
+  });
+
+  it("throws a not-found error for an unknown match", () => {
+    const database = setup();
+
+    expect(() => saveMatchScore(database, "no-such-match", 0, record([]))).toThrow(MatchNotFoundError);
   });
 
   it("refuses events that carry on past the end of the match", () => {
@@ -294,6 +303,7 @@ describe("saveMatchScore", () => {
     const events = [...setEvents("top", 6, 0), ...setEvents("top", 6, 0), point("top")];
 
     expect(() => saveMatchScore(database, match.id, 0, record(events))).toThrow(/already complete/);
+    expect(() => saveMatchScore(database, match.id, 0, record(events))).toThrow(ScoreRejectedError);
     expect(loadRow(database, match.id)).toMatchObject({ status: "scheduled", version: 0 });
   });
 

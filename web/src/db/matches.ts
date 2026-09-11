@@ -15,7 +15,7 @@ import {
   type MatchSlot,
 } from "./schema";
 import { buildBracket, type BracketSlot } from "@/lib/draws";
-import { deriveState, standardFormat, type Side } from "@/lib/match";
+import { deriveState, standardFormat, type MatchState, type Side } from "@/lib/match";
 import { extendsScore, sameScore, scoreRecordOf, type ScoreRecord } from "@/lib/score-record";
 
 export interface MatchSideInfo {
@@ -36,6 +36,22 @@ export type SaveScoreResult =
   | { kind: "saved"; match: Match }
   | { kind: "conflict"; match: Match };
 
+/** No match has the given id. */
+export class MatchNotFoundError extends Error {
+  constructor(matchId: string) {
+    super(`Match ${matchId} does not exist.`);
+    this.name = "MatchNotFoundError";
+  }
+}
+
+/** A score breaks a rule of the match, so sending it again cannot succeed. */
+export class ScoreRejectedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ScoreRejectedError";
+  }
+}
+
 function slotFor(bracket: BracketSlot): MatchSlot {
   switch (bracket.kind) {
     case "entry":
@@ -49,8 +65,17 @@ function slotFor(bracket: BracketSlot): MatchSlot {
 
 function loadMatch(database: Database, matchId: string): Match {
   const row = database.select().from(matches).where(eq(matches.id, matchId)).get();
-  if (!row) throw new Error(`Match ${matchId} does not exist.`);
+  if (!row) throw new MatchNotFoundError(matchId);
   return row;
+}
+
+function deriveRecordState(record: ScoreRecord, matchNumber: number): MatchState {
+  try {
+    return deriveState(record.events, standardFormat(record.decidingSet), record.firstServer);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new ScoreRejectedError(`The score for match ${matchNumber} is not valid: ${reason}`);
+  }
 }
 
 function entryIdOf(slot: MatchSlot, matchNumber: number): string {
@@ -171,13 +196,13 @@ export function saveMatchScore(
       if (!addsToStored) return { kind: "conflict", match: row };
     }
     if (row.status === "completed") {
-      throw new Error(`Match ${row.matchNumber} is already complete.`);
+      throw new ScoreRejectedError(`Match ${row.matchNumber} is already complete.`);
     }
     if (row.topSlot.kind !== "entry" || row.bottomSlot.kind !== "entry") {
-      throw new Error(`Match ${row.matchNumber} is waiting on an earlier result.`);
+      throw new ScoreRejectedError(`Match ${row.matchNumber} is waiting on an earlier result.`);
     }
 
-    const state = deriveState(record.events, standardFormat(record.decidingSet), record.firstServer);
+    const state = deriveRecordState(record, row.matchNumber);
     const completed = state.status === "completed";
     const winnerSlot = state.winner === "top" ? row.topSlot : row.bottomSlot;
     const now = Date.now();

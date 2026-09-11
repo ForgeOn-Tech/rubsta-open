@@ -1,6 +1,7 @@
 import type { Match, MatchStatus } from "@/db/schema";
-import { deriveState, standardFormat, type MatchEvent, type Side } from "@/lib/match";
+import { SIDES, deriveState, standardFormat, type MatchEvent, type Side } from "@/lib/match";
 import {
+  parseScoreRecord,
   reconcileScore,
   scoreRecordOf,
   type DeviceScore,
@@ -56,6 +57,7 @@ export type ScorerAction =
   | { type: "rejected"; revision: number; message: string }
   | { type: "conflicted"; revision: number; match: MatchSnapshot }
   | { type: "retryNow" }
+  | { type: "online" }
   | { type: "keepDevice" }
   | { type: "replaceWithServer"; match: MatchSnapshot };
 
@@ -67,6 +69,30 @@ export interface PendingSave {
 
 /** Wait before each save attempt, by failures so far. The first attempt goes at once. */
 const RETRY_DELAYS_MS = [0, 1_000, 2_000, 5_000, 10_000] as const;
+
+// The client bundle cannot import MATCH_STATUSES from db/schema, which pulls in drizzle.
+const SNAPSHOT_STATUSES: readonly MatchStatus[] = ["scheduled", "in_progress", "completed"];
+
+/** Checks a match snapshot that came back over the network. */
+export function parseMatchSnapshot(value: unknown): MatchSnapshot {
+  if (typeof value !== "object" || value === null) {
+    throw new Error("The match snapshot must be an object.");
+  }
+  const { version, status, winner, record } = value as Record<string, unknown>;
+  if (typeof version !== "number" || !Number.isInteger(version) || version < 0) {
+    throw new Error("The match snapshot's version must be a whole number.");
+  }
+  const knownStatus = SNAPSHOT_STATUSES.find((candidate) => candidate === status);
+  if (knownStatus === undefined) throw new Error(`Unknown match status ${JSON.stringify(status)}.`);
+  const knownWinner = winner === null ? null : SIDES.find((side) => side === winner);
+  if (knownWinner === undefined) throw new Error(`Unknown winner ${JSON.stringify(winner)}.`);
+  return {
+    version,
+    status: knownStatus,
+    winner: knownWinner,
+    record: record === null ? null : parseScoreRecord(record),
+  };
+}
 
 export function snapshotOf(match: Match): MatchSnapshot {
   const topWon =
@@ -180,6 +206,9 @@ export function scorerReducer(state: ScorerState, action: ScorerAction): ScorerS
       return { ...state, sendingRevision: null, conflict: action.match };
     case "retryNow":
       return { ...state, failures: 0, error: null };
+    case "online":
+      // The network is back: skip the backoff wait, but keep any refusal.
+      return { ...state, failures: 0 };
     case "keepDevice": {
       if (state.conflict === null) throw new Error("There is no conflict to resolve.");
       if (state.conflict.status === "completed") {

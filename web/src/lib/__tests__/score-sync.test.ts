@@ -7,6 +7,7 @@ import {
   deviceScoreOf,
   hasUnsavedChanges,
   initialScorerState,
+  parseMatchSnapshot,
   pendingSave,
   retryDelayMs,
   scorerReducer,
@@ -73,6 +74,21 @@ describe("snapshotOf", () => {
   it("names the winning side from the winner's entry", () => {
     expect(snapshotOf({ ...MATCH, status: "completed", winnerEntryId: "c" }).winner).toBe("bottom");
     expect(snapshotOf({ ...MATCH, status: "completed", winnerEntryId: "b" }).winner).toBe("top");
+  });
+});
+
+describe("parseMatchSnapshot", () => {
+  it("reads a snapshot sent as JSON", () => {
+    const sent: MatchSnapshot = { ...snapshot(3, [point("top")]), status: "completed", winner: "top" };
+    expect(parseMatchSnapshot(JSON.parse(JSON.stringify(sent)))).toEqual(sent);
+    expect(parseMatchSnapshot(snapshot(0, null))).toEqual(snapshot(0, null));
+  });
+
+  it("rejects a bad version, status or winner", () => {
+    expect(() => parseMatchSnapshot({ ...snapshot(0, null), version: -1 })).toThrow(/version/);
+    expect(() => parseMatchSnapshot({ ...snapshot(0, null), status: "paused" })).toThrow(/status/);
+    expect(() => parseMatchSnapshot({ ...snapshot(0, null), winner: "left" })).toThrow(/winner/);
+    expect(() => parseMatchSnapshot("saved")).toThrow(/must be an object/);
   });
 });
 
@@ -178,6 +194,27 @@ describe("scorerReducer", () => {
 
     state = run(state, { type: "retryNow" });
     expect(retryDelayMs(state.failures)).toBe(0);
+  });
+
+  it("skips the backoff when the network returns, but keeps a refusal", () => {
+    const failed = run(
+      initialScorerState(snapshot(1, []), null),
+      { type: "score", event: point("top") },
+      { type: "sendStarted", revision: 1 },
+      { type: "sendFailed", revision: 1 },
+      { type: "online" },
+    );
+    expect(failed.failures).toBe(0);
+
+    const refused = run(
+      initialScorerState(snapshot(1, []), null),
+      { type: "score", event: point("top") },
+      { type: "sendStarted", revision: 1 },
+      { type: "rejected", revision: 1, message: "Not allowed." },
+      { type: "online" },
+    );
+    expect(refused.error).toBe("Not allowed.");
+    expect(pendingSave(refused)).toBeNull();
   });
 
   it("caps the retry delay", () => {
