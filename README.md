@@ -69,7 +69,51 @@ Fonts use Google Fonts with local system fallbacks.
 ## Stack
 
 The landing page is plain HTML, CSS and JavaScript, with no build dependencies.
-The application stack is not chosen yet.
+The registration app in `web/` uses Next.js 16, Auth.js v5, Drizzle ORM and SQLite.
+
+## Registration app
+
+`web/` holds the first Tournament OS surface: sign-in, player profile, event entry
+and the organiser entries table. It needs a Node server, so GitHub Pages cannot
+host it.
+
+Run it from `web/`:
+
+```sh
+npm install
+cp .env.example .env.local   # DEMO_AUTH=true enables the demo sign-in
+npm run dev                  # http://localhost:3100
+```
+
+| Route | Who | What |
+|---|---|---|
+| `/signin` | Everyone | Google sign-in when configured; demo account when `DEMO_AUTH=true` |
+| `/profile` | Players | Name, date of birth, gender, mobile, club, best ranking, past tournaments |
+| `/register` | Players | Choose an event (MS, WS, MD, WD); doubles need a partner name and email |
+| `/register/<entry id>` | Players | Entry confirmation, visible only to the player who entered |
+| `/entries` | Organisers | Every entry, with status filters and counts |
+
+`/register` sends players to `/profile` until they save a profile. A player can
+enter each event once. A unique index on user and category enforces this.
+
+Payments are off by default, and an entry is stored as `submitted`. With
+`NEXT_PUBLIC_PAYMENTS_ENABLED=true`, a stub checkout stores the entry as `paid`
+with `paymentRef: razorpay-stub`. No money moves in either mode.
+
+In demo mode any signed-in user can open `/entries`. Otherwise only emails in
+`ENTRIES_ADMIN_EMAILS` can. The database migrates and seeds Rubsta Open 2026 on
+first use. The seeded fee (₹1,500) and closing time (22 Sep, 18:00 IST) come
+from the design artboard, not a confirmed schedule.
+
+Checks, from `web/`:
+
+```sh
+npm run lint
+npx tsc --noEmit
+npm test                         # Vitest unit and component tests
+npx playwright install chromium  # once
+npm run test:e2e                 # starts its own dev server with a fresh database
+```
 
 ### Event images and sponsors
 

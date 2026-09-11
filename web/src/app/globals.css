@@ -1,0 +1,164 @@
+@import "tailwindcss";
+
+/* ── AMS tokens (from design/screens/Registration.dc.html) ─────────────── */
+@theme {
+  --color-surface-0: #f6f8fb;
+  --color-surface-1: #ffffff;
+  --color-surface-2: #eef2f6;
+  --color-line: #dce2e8;
+  --color-ink: #0b1620;
+  --color-muted: #46586a;
+  --color-dim: #5e7082;
+  --color-accent: #2f698e;
+  --color-accent-fg: #ffffff;
+  --color-accent-deep: #1c587c;
+  --color-good: #2e7d55;
+  --color-warn: #8a6200;
+  --color-bad: #b23a3a;
+
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+
+/* Sharp corners everywhere (AMS house rule). */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  border-radius: 0;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-surface-0);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--color-accent-deep);
+}
+
+@layer components {
+  /* Type helpers from the artboard */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-dim);
+  }
+  .caps {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-dim);
+  }
+  .thead {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-dim);
+  }
+  .mono {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Form primitives (artboard: 48px sharp fields) */
+  .field {
+    height: 48px;
+    width: 100%;
+    margin-top: 7px;
+    border: 1px solid var(--color-line);
+    background: var(--color-surface-1);
+    padding: 0 13px;
+    font-size: 14px;
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+  .field:focus {
+    outline: 2px solid var(--color-accent);
+    outline-offset: -1px;
+  }
+  select.field {
+    appearance: none;
+  }
+  textarea.field {
+    height: auto;
+    padding: 12px 13px;
+  }
+
+  .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 52px;
+    padding: 0 20px;
+    font-size: 14px;
+    font-weight: 600;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-family: var(--font-sans);
+  }
+  .btn-primary {
+    background: var(--color-accent);
+    color: var(--color-accent-fg);
+  }
+  .btn-primary:hover {
+    background: var(--color-accent-deep);
+    color: var(--color-accent-fg);
+  }
+  .btn-outline {
+    background: var(--color-surface-1);
+    color: var(--color-ink);
+    border-color: var(--color-line);
+  }
+  .btn-outline:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent-deep);
+  }
+  .btn[disabled] {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .card {
+    background: var(--color-surface-1);
+    border: 1px solid var(--color-line);
+  }
+
+  /* Status badges — the only place status colors appear */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border: 1px solid currentColor;
+    white-space: nowrap;
+  }
+  .badge-submitted {
+    color: var(--color-warn);
+  }
+  .badge-confirmed {
+    color: var(--color-accent);
+  }
+  .badge-paid {
+    color: var(--color-good);
+  }
+  .badge-cancelled {
+    color: var(--color-bad);
+  }
+}
