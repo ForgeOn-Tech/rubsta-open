@@ -1,0 +1,4 @@
+# GitHub Pages (Jekyll) settings for the static landing page.
+# web/ is the Node registration app; it is not part of the static site.
+exclude:
+  - web/
