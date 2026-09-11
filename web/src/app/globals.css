@@ -95,6 +95,11 @@ a:hover {
   background: var(--color-club-lime);
   color: var(--color-club-deep);
 }
+/* The base ring uses currentColor, which is cream here and vanishes on the
+   cream next-step card. */
+.club .pill-primary:focus-visible {
+  outline-color: var(--color-club-deep);
+}
 .club .pill-outline {
   border-color: var(--color-club-line);
   color: var(--color-club-ink);

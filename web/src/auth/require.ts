@@ -37,10 +37,10 @@ export function canViewEntries(email: string): boolean {
 
 /**
  * Guard for /entries. Signed-out visitors go to /signin; signed-in players
- * without access go back to their own entry page.
+ * without access go to their player home.
  */
 export async function requireEntriesAccess(): Promise<SessionUser> {
   const user = await requireUser();
-  if (!canViewEntries(user.email)) redirect("/register");
+  if (!canViewEntries(user.email)) redirect("/home");
   return user;
 }
