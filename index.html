@@ -35,8 +35,8 @@
 <div class="interest-dialog-head"><div><p class="eyebrow">RUBSTA OPEN</p><h2 id="interest-dialog-title">Show your interest</h2></div><button class="dialog-close" type="button" data-close-interest aria-label="Close">×</button></div>
 <div class="interest-dialog-body">
 <p class="interest-dialog-intro">Tell us which categories you want to play. We’ll email you when entries open. Showing interest does not reserve a place in a draw.</p>
-<!-- To open the list, add action="…/exec" with the Apps Script web app URL. See README.md. -->
-<form id="interest-form" class="interest-form" method="post">
+<!-- The Apps Script web app that saves entries to the Rubsta Open interest sheet. See README.md. -->
+<form id="interest-form" class="interest-form" method="post" action="https://script.google.com/macros/s/AKfycbxUgItBTEyWIj98a0nlNGq_HbcmP-cgCqNn9B4Dy-CoXGwgj5QLnD1I2rtnRg-fDzG1/exec">
 <div class="field"><label for="interest-name">Full name</label><input class="text-input" id="interest-name" name="name" type="text" autocomplete="name" maxlength="80" required autofocus aria-describedby="interest-name-error"><p class="field-error" id="interest-name-error" hidden></p></div>
 <div class="field"><label for="interest-email">Email</label><input class="text-input" id="interest-email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" required aria-describedby="interest-email-error"><p class="field-error" id="interest-email-error" hidden></p></div>
 <div class="field"><label for="interest-mobile">Mobile <span class="optional">(optional)</span></label><input class="text-input" id="interest-mobile" name="mobile" type="tel" autocomplete="tel" maxlength="20" aria-describedby="interest-mobile-hint interest-mobile-error"><p class="field-hint" id="interest-mobile-hint">Only if you would like a call or message about entries.</p><p class="field-error" id="interest-mobile-error" hidden></p></div>
