@@ -15,6 +15,8 @@ const CARD_HEIGHT = 630;
 const NAME_SIZE = 76;
 const LONG_NAME_SIZE = 54;
 const LONG_NAME_LENGTH = 22;
+const STAT_SIZE = 36;
+const PLAYER_ID_COLUMN_GROW = 1.6;
 const PRIVATE_NO_STORE = "private, no-store";
 
 // Club theme colours from globals.css.
@@ -106,10 +108,14 @@ export async function GET(): Promise<Response> {
           </div>
         </div>
         <div style={{ display: "flex", borderTop: `2px solid ${MIST}`, paddingTop: 28 }}>
-          {stats.map(([label, value]) => (
-            <div key={label} style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+          {stats.map(([label, value], index) => (
+            <div
+              key={label}
+              // The player ID is the longest value, so its column is wider.
+              style={{ display: "flex", flexDirection: "column", flex: index === 0 ? PLAYER_ID_COLUMN_GROW : 1, paddingRight: 24 }}
+            >
               <span style={{ fontSize: 18, letterSpacing: 3 }}>{label.toUpperCase()}</span>
-              <span style={{ fontSize: 40, marginTop: 8 }}>{value}</span>
+              <span style={{ fontSize: STAT_SIZE, marginTop: 8 }}>{value}</span>
             </div>
           ))}
         </div>
