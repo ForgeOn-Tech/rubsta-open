@@ -7,6 +7,34 @@
 <link rel="preload" as="image" href="assets/images/club-court.jpg"><link rel="stylesheet" href="assets/landing.css"><link rel="stylesheet" href="assets/club.css"><link rel="stylesheet" href="assets/waitlist.css"><script type="module" src="assets/waitlist.js"></script>
 </head>
 <body>
+<div class="entrance" id="entrance" aria-hidden="true"><div class="entrance-court"><span class="entrance-shadow"></span><span class="entrance-ball"><span class="tennis-ball"></span></span></div><p class="entrance-wordmark">Rubsta <i>Open</i></p><p class="entrance-label">ENTRIES OPEN SOON</p></div>
+<script>
+// Play the entrance once per visit. Runs before first paint so the page never flashes first.
+(() => {
+  const entrance = document.getElementById('entrance');
+  const SEEN_KEY = 'rubsta-entrance-seen';
+  // The CSS fade ends at 2.2 s and the page settles by 2.65 s.
+  const REMOVE_AFTER_MS = 3000;
+  // Skip for reduced motion, and for links that open the form (the pop-up would sit above it).
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches || location.hash === '#interest') {
+    entrance.remove();
+    return;
+  }
+  let seen = false;
+  try {
+    seen = sessionStorage.getItem(SEEN_KEY) === '1';
+    sessionStorage.setItem(SEEN_KEY, '1');
+  } catch {
+    // Storage is blocked: play the entrance on every visit.
+  }
+  if (seen) {
+    entrance.remove();
+    return;
+  }
+  entrance.classList.add('is-playing');
+  setTimeout(() => entrance.remove(), REMOVE_AFTER_MS);
+})();
+</script>
 <a class="skip" href="#main">Skip to content</a>
 <header class="site-header wrap"><a class="brand" href="#" aria-label="Rubsta Open home"><span class="club-monogram" aria-hidden="true">R<span>O</span></span><span class="brand-lockup">Rubsta Open<span class="brand-by">Powered by ForgeLabs</span></span></a><nav aria-label="Main navigation"><a href="#categories">Categories</a><a href="preview/">The experience</a><button class="nav-cta" type="button" data-open-interest aria-haspopup="dialog">Show interest <span aria-hidden="true">↗</span></button></nav></header>
 <main id="main">

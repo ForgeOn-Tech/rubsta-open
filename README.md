@@ -61,6 +61,10 @@ button's pop-up shows a tennis ball rallying across a small court. A confirmatio
 screen then names the player's categories and any request. Both skip their animation
 when the visitor prefers reduced motion.
 
+On the first page load of a browser session, a short entrance plays: a tennis ball
+bounces onto a court, then the page fades in. It skips when the visitor prefers
+reduced motion and when a link opens the form directly.
+
 Below the first fold, “Be the first to hear” lists the five categories with their
 planned draw sizes.
 
