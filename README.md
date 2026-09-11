@@ -88,10 +88,13 @@ npm run dev                  # http://localhost:3100
 | Route | Who | What |
 |---|---|---|
 | `/signin` | Everyone | Google sign-in when configured; demo account when `DEMO_AUTH=true` |
-| `/home` | Players | Next step, entries, player card summary, tournament details and upcoming features |
+| `/home` | Players | Next step, partner invitations, entries, next match, player card with record and certificates, tournament details |
 | `/profile` | Players | Name, date of birth, gender, mobile, club, best ranking, past tournaments |
 | `/register` | Players | Choose an event (MS, WS, MD, WD); doubles need a partner name and email |
-| `/register/<entry id>` | Players | Entry confirmation, visible only to the player who entered |
+| `/register/<entry id>` | Players | Entry confirmation, visible only to the player who entered; for doubles, the partner link and a way to change partner |
+| `/partner/<entry id>` | Invited partners | Accept or decline a doubles invitation, visible only to the invited email |
+| `/draws` and `/draws/<event>` | Players | Published draws with scores, marking the player's own lines |
+| `/order-of-play` | Players | A published day's order of play, marking the player's own matches |
 | `/admin` | Admins | Overview: entries by status and event, time to close, latest entries |
 | `/admin/entries` | Admins | Every entry, with event and status filters and status actions (`/entries` redirects here) |
 | `/admin/entries/<entry id>` | Admins | Player and entry details, with status actions |
@@ -114,7 +117,7 @@ take the top and bottom lines, and later seed groups draw lots, so seeds 1–4 o
 32-line draw sit on lines 1, 16, 17 and 32. Byes go to seeds in seed order. A
 published draw is locked; move it back to draft to change seeds or generate it
 again. Once any match in the draw has started, it cannot go back to draft, because
-that would delete scores. Players do not see draws yet.
+that would delete scores. Players see published draws at `/draws`.
 
 ### Scoring
 
@@ -185,12 +188,37 @@ Entry status moves submitted → confirmed → paid. Any live entry can be cance
 and a cancelled entry can be reinstated as submitted. Marking an entry paid by hand
 records the payment reference `manual`.
 
-Sign-in lands on `/home`, which uses the landing page's club theme. Its player
-card marks matches, win–loss, player ID, handedness, certificates and card
-sharing as coming soon, because the app does not record them yet.
+### Player pages
+
+Sign-in lands on `/home`, which uses the landing page's club theme, as do
+`/draws` and `/order-of-play`. `/home` leads with the player's next match: one
+in play, then the earliest on the published order of play, then the earliest
+round still to play.
+
+The player card shows a player ID such as `FL-2026-0117`. A new profile takes
+the next player number, and existing profiles were numbered in the order they
+were made. Players can add the hand they play with. Matches and win–loss count
+completed matches with points played, so byes and walkovers are left out.
+
+A player who played a match can download a participation certificate for that
+event as a PDF, and the winner of a final also gets a winner's certificate. The
+PDFs use the standard PDF fonts, which print Latin letters only; a name in
+another script gets a "cannot be made yet" message instead of a certificate.
+"Share card" makes a PNG of the card. It shows the name, player ID, hand, club,
+ranking and match record, not the date of birth, mobile or email. Where the
+browser can share files, it opens the share sheet; otherwise it saves the image.
+Both downloads serve only the signed-in player's own certificates and card.
 
 `/register` sends players to `/profile` until they save a profile. A player can
-enter each event once. A unique index on user and category enforces this.
+enter each event once, including an event they joined as a doubles partner. A
+unique index on user and category guards the player's own entries.
+
+A doubles entry waits for its partner. The entry page gives the player a link
+to send. The partner signs in with the email the player gave, then accepts or
+declines at `/partner/<entry id>`, and `/home` lists their open invitations. The
+app sends no email. A doubles entry goes into a draw only after the partner
+accepts. After a decline, or while waiting, the player can name a new partner,
+unless the entry is already in a published draw.
 
 Payments are off by default, and an entry is stored as `submitted`. With
 `NEXT_PUBLIC_PAYMENTS_ENABLED=true`, a stub checkout stores the entry as `paid`
