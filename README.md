@@ -127,9 +127,16 @@ tap shows at once and stays in the browser's localStorage. Saves run in the
 background and retry until the connection returns. The header shows Saved,
 Saving, Offline or Conflict. Each save carries the match version it builds on, so
 when another device changed the match, the umpire chooses which score to keep.
-Retire and reset need a connection. Open the scoring page before the signal
-drops: there is no service worker yet, so a page opened with no signal does not
-load.
+Retire and reset need a connection.
+
+A service worker (`public/sw.js`) keeps each scoring page an umpire opens, with
+the app files it needs, so the page reopens or reloads with no signal. It
+controls only `/score` pages and fetches from the network first. It waits up to
+5 seconds for a page before it falls back to a kept copy. A scoring page never
+opened on the phone shows a "No connection" notice instead. The sign-in page
+deletes the kept pages, so the next person on a shared phone cannot open them
+offline. Scores kept in localStorage stay, because they may not have reached
+the server yet.
 
 Entry status moves submitted → confirmed → paid. Any live entry can be cancelled,
 and a cancelled entry can be reinstated as submitted. Marking an entry paid by hand
@@ -162,7 +169,12 @@ npx tsc --noEmit
 npm test                         # Vitest unit and component tests
 npx playwright install chromium  # once
 npm run test:e2e                 # starts its own dev server with a fresh database
+npm run test:e2e:production      # the same tests against next build and next start
 ```
+
+The offline reload test runs only in the production run. Under `next dev`, a
+page reopened with no signal gets its files from the service worker but does not
+hydrate.
 
 ### Event images and sponsors
 
