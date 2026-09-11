@@ -39,19 +39,24 @@ async function savedAsSent(_matchId: string, save: PendingSave): Promise<SaveOut
   };
 }
 
-function renderScorer(initial: MatchSnapshot) {
-  const props: ScorerProps = {
+function scorerProps(initial: MatchSnapshot, courts: ScorerProps["courts"]): ScorerProps {
+  return {
     matchId: MATCH_ID,
     matchNumber: 2,
     heading: "Men's singles · Semi-finals",
     court: 1,
+    courts,
     sides: { top: { name: "Asha Anand", seed: 1 }, bottom: { name: "Bela Rao", seed: null } },
     ready: true,
     initial,
     retireAction: vi.fn(),
     resetAction: vi.fn(),
   };
-  return render(<Scorer {...props} />);
+}
+
+/** A tournament without courts, so the umpire types the court number. */
+function renderScorer(initial: MatchSnapshot) {
+  return render(<Scorer {...scorerProps(initial, [])} />);
 }
 
 function scoreRow(name: string): HTMLElement {
@@ -109,6 +114,28 @@ describe("Scorer", () => {
         baseVersion: 0,
         record: expect.objectContaining({ firstServer: "bottom", court: 1, events: [] }),
       }),
+    );
+  });
+
+  it("offers the tournament's courts, starting on the scheduled one", async () => {
+    mockedSave.mockImplementation(savedAsSent);
+    const courts = [
+      { number: 1, label: "Court 1 · Centre" },
+      { number: 3, label: "Court 3" },
+    ];
+    render(<Scorer {...scorerProps(snapshot(0, null), courts)} />);
+
+    const court = screen.getByLabelText(/^Court/);
+    expect(court).toHaveValue("1");
+    fireEvent.change(court, { target: { value: "3" } });
+    fireEvent.click(screen.getByRole("radio", { name: "Asha Anand" }));
+    fireEvent.click(screen.getByRole("button", { name: "Start match" }));
+
+    await waitFor(() =>
+      expect(mockedSave).toHaveBeenCalledWith(
+        MATCH_ID,
+        expect.objectContaining({ record: expect.objectContaining({ court: 3 }) }),
+      ),
     );
   });
 
