@@ -88,10 +88,15 @@ npm run dev                  # http://localhost:3100
 | Route | Who | What |
 |---|---|---|
 | `/signin` | Everyone | Google sign-in when configured; demo account when `DEMO_AUTH=true` |
+| `/home` | Players | Next step, entries, player card summary, tournament details and upcoming features |
 | `/profile` | Players | Name, date of birth, gender, mobile, club, best ranking, past tournaments |
 | `/register` | Players | Choose an event (MS, WS, MD, WD); doubles need a partner name and email |
 | `/register/<entry id>` | Players | Entry confirmation, visible only to the player who entered |
 | `/entries` | Organisers | Every entry, with status filters and counts |
+
+Sign-in lands on `/home`, which uses the landing page's club theme. Its player
+card marks matches, win–loss, player ID, handedness, certificates and card
+sharing as coming soon, because the app does not record them yet.
 
 `/register` sends players to `/profile` until they save a profile. A player can
 enter each event once. A unique index on user and category enforces this.

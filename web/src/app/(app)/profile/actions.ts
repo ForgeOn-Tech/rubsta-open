@@ -60,7 +60,7 @@ export async function saveProfile(
       .run();
   }
 
-  redirect("/register");
+  redirect("/home");
 }
 
 function parsePreviousTournaments(raw: string): PreviousTournament[] {

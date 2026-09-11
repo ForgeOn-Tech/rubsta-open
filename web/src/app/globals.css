@@ -18,6 +18,19 @@
 
   --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  /* Club theme for the player home (from the landing page's assets/club.css) */
+  --color-club-cream: #f8f5eb;
+  --color-club-paper: #eeefe3;
+  --color-club-ink: #203d2a;
+  --color-club-muted: #5d6956;
+  --color-club-line: #d2d7c7;
+  --color-club-deep: #244d32;
+  --color-club-forest: #294f35;
+  --color-club-mist: #f3f1df;
+  --color-club-lime: #dfeb8c;
+
+  --font-serif: "Cormorant Garamond", Baskerville, "Times New Roman", serif;
 }
 
 /* Sharp corners everywhere (AMS house rule). */
@@ -42,6 +55,56 @@ a {
 }
 a:hover {
   color: var(--color-accent-deep);
+}
+
+/* Club theme (player home). The sharp-corner and link rules above are
+   unlayered, so they outrank Tailwind utilities. These overrides are scoped
+   and unlayered too. */
+.club {
+  min-height: 100dvh;
+  background: var(--color-club-cream);
+  color: var(--color-club-ink);
+}
+.club a,
+.club a:hover {
+  color: inherit;
+}
+.club :focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+.club .pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 14px 22px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.club .pill-primary {
+  background: var(--color-club-deep);
+  color: var(--color-club-cream);
+}
+.club .pill-primary:hover {
+  background: var(--color-club-lime);
+  color: var(--color-club-deep);
+}
+.club .pill-outline {
+  border-color: var(--color-club-line);
+  color: var(--color-club-ink);
+}
+.club .pill-outline:hover:not(:disabled) {
+  background: var(--color-club-paper);
+}
+.club .pill:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 @layer components {

@@ -9,8 +9,9 @@ import { StatusBadge } from "@/components/status-badge";
 import { db } from "@/db/client";
 import { entries, profiles, tournaments } from "@/db/schema";
 import { ageFromDob } from "@/lib/age";
-import { CATEGORY_LABELS, entriesClosed } from "@/lib/entries";
+import { CATEGORY_LABELS, entriesOpen } from "@/lib/entries";
 import { formatEntryCloses, formatFee } from "@/lib/format";
+import { PROVISIONAL_SCHEDULE_NOTE } from "@/lib/tournament";
 
 export const dynamic = "force-dynamic";
 
@@ -41,8 +42,7 @@ export default async function RegisterPage() {
     .orderBy(desc(entries.createdAt))
     .all();
 
-  const closed =
-    tournament.status !== "open" || entriesClosed(tournament.entryClosesAt);
+  const closed = !entriesOpen(tournament);
   const feeLabel = formatFee(tournament.feeCents, tournament.currency);
   const closesLabel = `${formatEntryCloses(tournament.entryClosesAt)} IST`;
   const age = ageFromDob(profile.dateOfBirth);
@@ -127,6 +127,8 @@ export default async function RegisterPage() {
           paymentsEnabled={process.env.NEXT_PUBLIC_PAYMENTS_ENABLED === "true"}
         />
       )}
+
+      <p className="text-[11px] text-dim">{PROVISIONAL_SCHEDULE_NOTE}</p>
     </div>
   );
 }

@@ -24,6 +24,14 @@ export function entriesClosed(entryClosesAt: string, now: Date = new Date()): bo
   return now.getTime() > closes.getTime();
 }
 
+/** Entries are open while the tournament is open and its deadline has not passed. */
+export function entriesOpen(
+  tournament: { status: TournamentStatus; entryClosesAt: string },
+  now: Date = new Date(),
+): boolean {
+  return tournament.status === "open" && !entriesClosed(tournament.entryClosesAt, now);
+}
+
 export type EntryValidation =
   | { ok: true; category: Category }
   | { ok: false; error: string };
@@ -58,7 +66,7 @@ export function validateEntryInput(input: {
   if (!isValidCategory(category)) {
     return { ok: false, error: "Choose a valid category." };
   }
-  if (tournamentStatus !== "open" || entriesClosed(entryClosesAt, now)) {
+  if (!entriesOpen({ status: tournamentStatus, entryClosesAt }, now)) {
     return { ok: false, error: "Entries are closed." };
   }
   if (existingCategories.includes(category)) {

@@ -277,8 +277,8 @@ export function ProfileForm({ initial, fallbackName, email }: ProfileFormProps) 
       ) : null}
 
       <div className="flex items-center justify-between gap-3">
-        <Link href="/register" className="caps">
-          Back to entry
+        <Link href="/home" className="caps">
+          Back to home
         </Link>
         <button
           type="submit"

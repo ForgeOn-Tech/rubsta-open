@@ -25,7 +25,7 @@ export default async function AppLayout({
         style={{ borderColor: "var(--color-line)" }}
       >
         <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-4 px-5 py-4">
-          <Link href="/register" className="flex items-baseline gap-3">
+          <Link href="/home" className="flex items-baseline gap-3">
             <span className="text-[15px] font-semibold tracking-[-0.01em] text-ink">
               Rubsta Open
             </span>

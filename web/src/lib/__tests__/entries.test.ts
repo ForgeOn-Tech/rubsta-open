@@ -4,6 +4,7 @@ import {
   CATEGORY_LABELS,
   countByStatus,
   entriesClosed,
+  entriesOpen,
   isDoubles,
   isUniqueViolation,
   parseStatusFilter,
@@ -130,6 +131,19 @@ describe("validateEntryInput", () => {
   it("rejects unknown categories", () => {
     const result = validateEntryInput({ ...base, category: "XD" });
     expect(result.ok).toBe(false);
+  });
+});
+
+describe("entriesOpen", () => {
+  it("is open for an open tournament before the deadline", () => {
+    expect(entriesOpen({ status: "open", entryClosesAt: CLOSES_AT }, BEFORE_CLOSE)).toBe(true);
+  });
+
+  it("is closed after the deadline or once the organiser closes the tournament", () => {
+    expect(entriesOpen({ status: "open", entryClosesAt: CLOSES_AT }, AFTER_CLOSE)).toBe(false);
+    expect(entriesOpen({ status: "closed", entryClosesAt: CLOSES_AT }, BEFORE_CLOSE)).toBe(
+      false,
+    );
   });
 });
 

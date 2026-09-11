@@ -34,7 +34,7 @@ export default async function OrganiserLayout({
             <span className="caps hidden sm:inline">
               {user.name || user.email}
             </span>
-            <Link href="/register" className="caps">
+            <Link href="/home" className="caps">
               Player view
             </Link>
             <form action={signOutAction}>

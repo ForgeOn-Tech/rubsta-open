@@ -96,8 +96,8 @@ export default async function EntryConfirmationPage({
       </dl>
 
       <div className="flex items-center justify-between gap-3">
-        <Link href="/register" className="caps">
-          Back to entry
+        <Link href="/home" className="caps">
+          Back to home
         </Link>
         <Link href="/profile" className="caps">
           Edit profile
