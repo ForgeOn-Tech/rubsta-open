@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   ENTRY_CSV_HEADER,
+  entrantLabel,
   entriesHref,
   entryCsvRows,
   filterEntries,
@@ -93,6 +94,19 @@ describe("playerName", () => {
     expect(playerName({ email: "g@example.com", accountName: null, profile: null })).toBe(
       "g@example.com",
     );
+  });
+});
+
+describe("entrantLabel", () => {
+  it("adds the partner for doubles only", () => {
+    const singles = row("s", "MS", "paid", { accountName: "Arjun Mehta" });
+    const doubles = row("d", "WD", "paid", {
+      accountName: "Riya Singh",
+      entry: { ...ROWS[2].entry, partnerName: "Meera Iyer", partnerEmail: "meera@example.com" },
+    });
+
+    expect(entrantLabel(singles)).toBe("Arjun Mehta");
+    expect(entrantLabel(doubles)).toBe("Riya Singh / Meera Iyer");
   });
 });
 

@@ -3,8 +3,12 @@ import Link from "next/link";
 import { requireAdmin } from "@/auth/require";
 import { AdminNotice } from "@/components/admin-notice";
 import { AdminPageHeader } from "@/components/admin-page-header";
+import { DrawStatusBadge } from "@/components/draw-status-badge";
 import { StatusBadge } from "@/components/status-badge";
+import { getDb } from "@/db/client";
+import { listDrawsWithSlots } from "@/db/draws";
 import { getCurrentTournament, listTournamentEntries } from "@/db/queries";
+import { ADMIN_DRAWS_PATH } from "@/lib/draws";
 import { ENTRY_STATUS_LABELS } from "@/db/schema";
 import { ADMIN_ENTRIES_PATH, entriesHref, playerName } from "@/lib/admin-entries";
 import { CATEGORY_LABELS, STATUS_ORDER, countByStatus } from "@/lib/entries";
@@ -25,6 +29,9 @@ export default async function AdminOverviewPage() {
   const statusCounts = countByStatus(rows.map((row) => row.entry.status));
   const events = summariseByEvent(rows.map((row) => row.entry));
   const recent = rows.slice(0, RECENT_ENTRY_LIMIT);
+  const drawStatus = new Map(
+    listDrawsWithSlots(getDb(), tournament.id).map((item) => [item.draw.category, item.draw.status]),
+  );
 
   return (
     <>
@@ -69,7 +76,7 @@ export default async function AdminOverviewPage() {
             Entries by event
           </h2>
           <div className="card mt-2 overflow-x-auto">
-            <table className="w-full min-w-[520px] border-collapse text-left text-[13px]">
+            <table className="w-full min-w-[620px] border-collapse text-left text-[13px]">
               <thead>
                 <tr className="border-b border-line">
                   <th scope="col" className="thead px-4 py-3 font-normal">
@@ -83,6 +90,9 @@ export default async function AdminOverviewPage() {
                   </th>
                   <th scope="col" className="thead px-4 py-3 text-right font-normal">
                     Accepted
+                  </th>
+                  <th scope="col" className="thead px-4 py-3 font-normal">
+                    Draw
                   </th>
                 </tr>
               </thead>
@@ -102,6 +112,11 @@ export default async function AdminOverviewPage() {
                     <td className="mono px-4 py-3 text-right">{event.active}</td>
                     <td className="mono px-4 py-3 text-right">{event.awaitingReview}</td>
                     <td className="mono px-4 py-3 text-right">{event.accepted}</td>
+                    <td className="px-4 py-3">
+                      <Link href={`${ADMIN_DRAWS_PATH}/${event.category}`}>
+                        <DrawStatusBadge status={drawStatus.get(event.category) ?? null} />
+                      </Link>
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -189,6 +189,10 @@ export const entries = sqliteTable(
 
 export const DRAW_STATUSES = ["draft", "published"] as const;
 export type DrawStatus = (typeof DRAW_STATUSES)[number];
+export const DRAW_STATUS_LABELS: Record<DrawStatus, string> = {
+  draft: "Draft",
+  published: "Published",
+};
 
 export const draws = sqliteTable(
   "draws",

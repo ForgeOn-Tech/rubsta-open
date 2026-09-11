@@ -1,4 +1,5 @@
 import { TOURNAMENT_STATUSES, type TournamentStatus } from "@/db/schema";
+import type { ActionState } from "@/lib/form-state";
 
 const IST_OFFSET = "+05:30";
 const IST_TIME_ZONE = "Asia/Kolkata";
@@ -40,10 +41,7 @@ export type SettingsValidation =
   | { ok: true; settings: TournamentSettings }
   | { ok: false; error: string };
 
-export interface SettingsFormState {
-  error: string | null;
-  savedAt: number | null;
-}
+export type SettingsFormState = ActionState;
 
 /** A real YYYY-MM-DD date (rejects 2026-02-30). */
 export function isCalendarDate(value: string): boolean {

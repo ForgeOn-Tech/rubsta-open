@@ -96,8 +96,17 @@ npm run dev                  # http://localhost:3100
 | `/admin/entries` | Admins | Every entry, with event and status filters and status actions (`/entries` redirects here) |
 | `/admin/entries/<entry id>` | Admins | Player and entry details, with status actions |
 | `/admin/entries/export` | Admins | CSV of entries; takes the same `status` and `category` filters |
+| `/admin/draws` | Admins | Each event's accepted entries, draw size, seeds and draw status |
+| `/admin/draws/<event>` | Admins | Seed entrants, generate a draw, publish it or move it back to draft |
 | `/admin/players` | Admins | Everyone with a profile or entry, their entries, and search by name, email, club or mobile |
 | `/admin/settings` | Admins | Name, dates, venue, closing time (IST), fee, entries open or closed, schedule confirmed |
+
+Draws take an event's confirmed and paid entries. The draw size is the next power
+of two, up to 128 lines, with one seed per four lines (at least two). Seeds 1 and 2
+take the top and bottom lines, and later seed groups draw lots, so seeds 1–4 of a
+32-line draw sit on lines 1, 16, 17 and 32. Byes go to seeds in seed order. A
+published draw is locked; move it back to draft to change seeds or generate it
+again. Players do not see draws yet.
 
 Entry status moves submitted → confirmed → paid. Any live entry can be cancelled,
 and a cancelled entry can be reinstated as submitted. Marking an entry paid by hand

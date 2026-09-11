@@ -8,9 +8,12 @@ const BASE_URL = process.env.BASE_URL ?? `http://localhost:${PORT}`;
 
 // A fresh database per run. A reused file keeps the demo user's entries, and
 // the next run's submit then fails on the (user, category) unique index.
+// Written back to the environment so test workers, which re-read this config,
+// share the path and can add fixtures (see e2e/fixtures.ts).
 const DATABASE_PATH =
   process.env.DATABASE_PATH ??
   path.join(os.tmpdir(), `tournament-e2e-${Date.now()}.db`);
+process.env.DATABASE_PATH = DATABASE_PATH;
 
 export default defineConfig({
   testDir: "./e2e",

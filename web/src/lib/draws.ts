@@ -1,5 +1,6 @@
-import type { EntryStatus } from "@/db/schema";
+import type { Category, Entry, EntryStatus } from "@/db/schema";
 
+export const ADMIN_DRAWS_PATH = "/admin/draws";
 export const MIN_DRAW_ENTRANTS = 2;
 export const MAX_DRAW_SIZE = 128;
 const MIN_SEEDS_WHEN_SEEDED = 2;
@@ -303,4 +304,42 @@ export function drawChanges(
 
 export function hasDrawChanges(changes: DrawChanges): boolean {
   return changes.added.length + changes.removed.length + changes.reseeded.length > 0;
+}
+
+/** e.g. "Since this draw was made: 1 new entry, 2 withdrawn, 1 reseeded." */
+export function describeDrawChanges(changes: DrawChanges): string {
+  const added = changes.added.length;
+  const parts = [
+    added > 0 ? `${added} new ${added === 1 ? "entry" : "entries"}` : null,
+    changes.removed.length > 0 ? `${changes.removed.length} withdrawn` : null,
+    changes.reseeded.length > 0 ? `${changes.reseeded.length} reseeded` : null,
+  ].filter((part): part is string => part !== null);
+  return `Since this draw was made: ${parts.join(", ")}.`;
+}
+
+/** Whether this many accepted entries can form a draw. */
+export function canDraw(entrantCount: number): boolean {
+  return (
+    Number.isInteger(entrantCount) &&
+    entrantCount >= MIN_DRAW_ENTRANTS &&
+    entrantCount <= MAX_DRAW_SIZE
+  );
+}
+
+/** A seed form field: blank is unseeded; anything else goes to validateSeeds as a number. */
+export function parseSeedInput(value: string): number | null {
+  const trimmed = value.trim();
+  return trimmed === "" ? null : Number(trimmed);
+}
+
+/** Rows whose entry is accepted in the given event. */
+export function eligibleRows<Row extends { entry: Pick<Entry, "category" | "status"> }>(
+  rows: readonly Row[],
+  category: Category,
+): Row[] {
+  return rows.filter((row) => row.entry.category === category && isDrawEligible(row.entry.status));
+}
+
+export function toDrawEntrant(row: { entry: Pick<Entry, "id" | "seed"> }): DrawEntrant {
+  return { entryId: row.entry.id, seed: row.entry.seed };
 }

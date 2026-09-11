@@ -56,6 +56,12 @@ export function playerName(row: Pick<AdminEntryRow, "email" | "accountName" | "p
   return row.profile?.fullName ?? row.accountName ?? row.email;
 }
 
+/** Draw label: the player, plus the partner for doubles, e.g. "Riya Singh / Meera Iyer". */
+export function entrantLabel(row: AdminEntryRow): string {
+  const name = playerName(row);
+  return row.entry.partnerName ? `${name} / ${row.entry.partnerName}` : name;
+}
+
 export const ENTRY_CSV_HEADER = [
   "Entry ID",
   "Submitted (IST)",

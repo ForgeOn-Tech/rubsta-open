@@ -8,7 +8,7 @@ export interface AdminNavItem {
 export const ADMIN_NAV: readonly AdminNavItem[] = [
   { label: "Overview", href: "/admin" },
   { label: "Entries", href: "/admin/entries" },
-  { label: "Draws", href: null },
+  { label: "Draws", href: "/admin/draws" },
   { label: "Order of play", href: null },
   { label: "Results", href: null },
   { label: "Players", href: "/admin/players" },

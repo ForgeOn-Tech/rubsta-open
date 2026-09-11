@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { addConfirmedEntrants } from "./fixtures";
+
 async function signInAsDemo(page: Page) {
   await page.goto("/signin");
   await page.getByRole("button", { name: "Continue with demo account" }).click();
@@ -103,5 +105,37 @@ test.describe.serial("registration", () => {
     await expect(tournament).toContainText("Deccan Gymkhana, Pune");
     await expect(tournament).toContainText(/25–27 Sept? 2026/);
     await expect(page.getByText(/provisional until the organisers confirm/)).toHaveCount(0);
+  });
+
+  test("an admin seeds, generates and publishes a draw", async ({ page }) => {
+    // The demo player's paid entry plus four confirmed players: a draw of 8 with 3 byes.
+    addConfirmedEntrants("MS", ["Arjun Mehta", "Kabir Rao", "Rohan Das", "Vikram Shah"]);
+    await signInAsDemo(page);
+
+    await page.goto("/admin/draws");
+    const menSingles = page.getByRole("row", { name: /Men's singles/ });
+    await expect(menSingles).toContainText("8 lines");
+    await menSingles.getByRole("link", { name: "Men's singles" }).click();
+    await expect(page).toHaveURL(/\/admin\/draws\/MS$/);
+
+    await page.getByLabel("Seed for Demo Player").fill("1");
+    await page.getByLabel("Seed for Arjun Mehta").fill("2");
+    await page.getByRole("button", { name: "Save seeds" }).click();
+    await expect(page.getByText("Seeds saved.")).toBeVisible();
+
+    await page.getByRole("button", { name: "Generate draw" }).click();
+    const draw = page.getByRole("region", { name: "Draw", exact: true });
+    await expect(draw.getByText("Bye")).toHaveCount(3);
+    await expect(draw.getByRole("listitem", { name: "Match 1", exact: true })).toContainText(
+      "Demo Player",
+    );
+    await expect(draw.getByRole("listitem", { name: "Match 4", exact: true })).toContainText(
+      "Arjun Mehta",
+    );
+
+    await page.getByRole("button", { name: "Publish draw" }).click();
+    await expect(page.getByRole("button", { name: "Back to draft" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Generate again" })).toHaveCount(0);
+    await expect(page.getByLabel("Seed for Demo Player")).toBeDisabled();
   });
 });

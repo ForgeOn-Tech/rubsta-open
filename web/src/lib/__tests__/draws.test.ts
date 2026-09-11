@@ -1,8 +1,14 @@
 import { describe, expect, it } from "vitest";
 
+import type { EntryStatus } from "@/db/schema";
 import {
   bracketOrder,
   buildBracket,
+  canDraw,
+  describeDrawChanges,
+  eligibleRows,
+  parseSeedInput,
+  toDrawEntrant,
   drawChanges,
   drawSize,
   generateDraw,
@@ -293,5 +299,51 @@ describe("drawChanges", () => {
     ]);
     expect(changes).toEqual({ added: ["c"], removed: ["b"], reseeded: ["a"] });
     expect(hasDrawChanges(changes)).toBe(true);
+  });
+});
+
+describe("describeDrawChanges", () => {
+  it("lists only the kinds of change that happened", () => {
+    expect(describeDrawChanges({ added: ["x"], removed: [], reseeded: [] })).toBe(
+      "Since this draw was made: 1 new entry.",
+    );
+    expect(describeDrawChanges({ added: ["x", "y"], removed: ["z"], reseeded: ["w"] })).toBe(
+      "Since this draw was made: 2 new entries, 1 withdrawn, 1 reseeded.",
+    );
+  });
+});
+
+describe("canDraw", () => {
+  it("needs 2 to 128 entrants", () => {
+    expect([0, 1, 2, 128, 129].map(canDraw)).toEqual([false, false, true, true, false]);
+  });
+});
+
+describe("parseSeedInput", () => {
+  it("treats blank as unseeded and passes anything else on as a number", () => {
+    expect(parseSeedInput("  ")).toBeNull();
+    expect(parseSeedInput(" 3 ")).toBe(3);
+    expect(Number.isNaN(parseSeedInput("first"))).toBe(true);
+  });
+});
+
+describe("eligibleRows", () => {
+  const row = (id: string, category: "MS" | "WS", status: EntryStatus) => ({
+    entry: { id, category, status, seed: id === "paid" ? 1 : null },
+  });
+
+  it("keeps confirmed and paid entries in the event", () => {
+    const rows = [
+      row("submitted", "MS", "submitted"),
+      row("confirmed", "MS", "confirmed"),
+      row("paid", "MS", "paid"),
+      row("cancelled", "MS", "cancelled"),
+      row("other-event", "WS", "paid"),
+    ];
+
+    expect(eligibleRows(rows, "MS").map(toDrawEntrant)).toEqual([
+      { entryId: "confirmed", seed: null },
+      { entryId: "paid", seed: 1 },
+    ]);
   });
 });
