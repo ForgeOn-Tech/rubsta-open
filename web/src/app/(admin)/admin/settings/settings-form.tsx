@@ -139,8 +139,10 @@ export function SettingsForm({ tournamentId, initial, action }: SettingsFormProp
         </select>
       </div>
 
-      <label className="flex items-start gap-3 border border-line bg-surface-0 p-3">
+      {/* The hint sits outside the label so it describes the checkbox without joining its name. */}
+      <div className="flex items-start gap-3 border border-line bg-surface-0 p-3">
         <input
+          id="scheduleConfirmed"
           type="checkbox"
           name="scheduleConfirmed"
           checked={values.scheduleConfirmed}
@@ -148,14 +150,16 @@ export function SettingsForm({ tournamentId, initial, action }: SettingsFormProp
           className="mt-0.5 h-4 w-4 accent-accent"
           aria-describedby="schedule-confirmed-hint"
         />
-        <span>
-          <span className="block text-[13px] font-medium">Schedule confirmed</span>
-          <span id="schedule-confirmed-hint" className="mt-1 block text-[12px] text-muted">
+        <div>
+          <label htmlFor="scheduleConfirmed" className="block text-[13px] font-medium">
+            Schedule confirmed
+          </label>
+          <p id="schedule-confirmed-hint" className="mt-1 text-[12px] text-muted">
             Removes the &ldquo;provisional&rdquo; note from player pages. Needs a start date
             and venue.
-          </span>
-        </span>
-      </label>
+          </p>
+        </div>
+      </div>
 
       {state.error ? (
         <p className="text-[12px] text-bad" role="alert">

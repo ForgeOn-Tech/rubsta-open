@@ -5,6 +5,8 @@ import { addConfirmedEntrants } from "./fixtures";
 async function signInAsDemo(page: Page) {
   await page.goto("/signin");
   await page.getByRole("button", { name: "Continue with demo account" }).click();
+  // Wait for the redirect: navigating away earlier cancels sign-in before the session cookie is set.
+  await expect(page).toHaveURL(/\/home$/);
 }
 
 // Serial: the organiser test reads the entry the player test creates.
