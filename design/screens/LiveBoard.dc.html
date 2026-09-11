@@ -1,0 +1,97 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    :root{
+      --bg0:#0a0b0d; --bg1:#141619; --bg2:#1d2126; --line:#2a2f36;
+      --ink:rgba(255,255,255,.92); --muted:rgba(255,255,255,.62); --dim:rgba(255,255,255,.50);
+      --accent:#7db8e0; --accent-fg:#050505; --accent-deep:#5a9cc9;
+      --good:#6cc294; --warn:#d9b155; --bad:#e08a8a;
+      --sans:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+      --mono:'JetBrains Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
+    }
+    *,*::before,*::after{box-sizing:border-box;border-radius:0;}
+    body{margin:0;font-family:var(--sans);background:var(--bg0);color:var(--ink);-webkit-font-smoothing:antialiased;}
+    a{color:var(--accent);text-decoration:none;} a:hover{color:var(--accent-deep);}
+    .eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);}
+    .caps{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);}
+    .thead{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);}
+    .mono{font-family:var(--mono);font-variant-numeric:tabular-nums;}
+
+  </style>
+</helmet>
+<div style="width:1280px;height:720px;background:var(--bg0);display:flex;flex-direction:column;overflow:hidden;">
+  <div style="height:72px;flex:none;background:var(--bg1);border-bottom:1px solid var(--line);
+       display:flex;align-items:center;justify-content:space-between;padding:0 32px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:26px;height:26px;background:var(--accent);color:var(--accent-fg);font-family:var(--mono);
+             font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;">F</div>
+        <div>
+          <div style="font-size:14px;font-weight:600;letter-spacing:.02em;">Autumn Open 2026</div>
+          <div class="eyebrow" style="margin-top:3px;">ForgeLabs LiveScore</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;"><span style="width:8px;height:8px;background:var(--accent);"></span><span class="mono" style="font-size:12px;letter-spacing:.16em;color:var(--accent);">LIVE</span></div>
+      <div class="mono" style="font-size:12px;color:var(--muted);letter-spacing:.06em;">SAT 26 SEP · 13:12</div>
+    </div>
+  <div style="flex:1;min-height:0;display:flex;">
+    <div style="flex:1;min-width:0;padding:28px 32px;display:flex;flex-direction:column;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <span class="eyebrow">Court 1 · Men's singles · Round of 16</span>
+        <span class="mono" style="font-size:11px;color:var(--dim);letter-spacing:.08em;">M21 · 1:42 ELAPSED</span>
+      </div>
+      <div style="margin-top:18px;border-top:1px solid var(--line);">
+        <div style="display:flex;justify-content:flex-end;gap:0;padding:10px 0 6px;">
+          <span class="thead" style="width:52px;text-align:center;">SET 1</span>
+          <span class="thead" style="width:52px;text-align:center;">SET 2</span>
+          <span class="thead" style="width:76px;text-align:right;">POINTS</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:18px;height:88px;border-bottom:1px solid var(--line);"><span style="width:10px;height:10px;background:var(--accent);"></span><span class="mono" style="font-size:14px;color:var(--dim);width:22px;">3</span><span style="flex:1;min-width:0;font-size:30px;font-weight:600;letter-spacing:-.01em;">Y. Malhotra</span><span class="mono" style="width:52px;text-align:center;font-size:40px;font-weight:600;color:var(--muted);line-height:1;">6</span><span class="mono" style="width:52px;text-align:center;font-size:40px;font-weight:600;color:var(--ink);line-height:1;">3</span><span class="mono" style="width:76px;text-align:right;font-size:44px;font-weight:600;color:var(--accent);line-height:1;">40</span></div>
+        <div style="display:flex;align-items:center;gap:18px;height:88px;border-bottom:1px solid var(--line);"><span style="width:10px;height:10px;"></span><span style="width:22px;"></span><span style="flex:1;min-width:0;font-size:30px;font-weight:600;letter-spacing:-.01em;">G. Pillai</span><span class="mono" style="width:52px;text-align:center;font-size:40px;font-weight:600;color:var(--muted);line-height:1;">4</span><span class="mono" style="width:52px;text-align:center;font-size:40px;font-weight:600;color:var(--ink);line-height:1;">2</span><span class="mono" style="width:76px;text-align:right;font-size:44px;font-weight:600;color:var(--accent);line-height:1;">40</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;margin-top:16px;">
+        <span style="height:26px;padding:0 10px;background:var(--accent);color:var(--accent-fg);
+             font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.1em;display:flex;
+             align-items:center;">DEUCE</span>
+        <span class="mono" style="font-size:11px;color:var(--muted);letter-spacing:.06em;">MALHOTRA SERVING · GAME 6</span>
+      </div>
+      <div style="margin-top:22px;">
+        <div class="thead" style="padding-bottom:4px;">Match statistics</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line);"><span class="mono" style="width:56px;font-size:16px;font-weight:600;">6</span><span class="caps" style="font-size:11px;text-align:center;flex:1;">Aces</span><span class="mono" style="width:56px;text-align:right;font-size:16px;font-weight:600;color:var(--muted);">3</span></div><div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line);"><span class="mono" style="width:56px;font-size:16px;font-weight:600;">1</span><span class="caps" style="font-size:11px;text-align:center;flex:1;">Double faults</span><span class="mono" style="width:56px;text-align:right;font-size:16px;font-weight:600;color:var(--muted);">4</span></div><div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line);"><span class="mono" style="width:56px;font-size:16px;font-weight:600;">68%</span><span class="caps" style="font-size:11px;text-align:center;flex:1;">First serve in</span><span class="mono" style="width:56px;text-align:right;font-size:16px;font-weight:600;color:var(--muted);">54%</span></div><div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line);"><span class="mono" style="width:56px;font-size:16px;font-weight:600;">14</span><span class="caps" style="font-size:11px;text-align:center;flex:1;">Winners</span><span class="mono" style="width:56px;text-align:right;font-size:16px;font-weight:600;color:var(--muted);">9</span></div><div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line);"><span class="mono" style="width:56px;font-size:16px;font-weight:600;">11</span><span class="caps" style="font-size:11px;text-align:center;flex:1;">Unforced errors</span><span class="mono" style="width:56px;text-align:right;font-size:16px;font-weight:600;color:var(--muted);">18</span></div><div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line);"><span class="mono" style="width:56px;font-size:16px;font-weight:600;">2/4</span><span class="caps" style="font-size:11px;text-align:center;flex:1;">Break points won</span><span class="mono" style="width:56px;text-align:right;font-size:16px;font-weight:600;color:var(--muted);">0/2</span></div>
+      </div>
+    </div>
+    <div style="width:392px;flex:none;border-left:1px solid var(--line);padding:28px 32px;
+         display:flex;flex-direction:column;">
+      <div class="thead">Also on court</div>
+      <div style="margin-top:4px;">
+        <div style="padding:13px 0;border-bottom:1px solid var(--line);"><div style="display:flex;align-items:center;justify-content:space-between;"><span class="mono" style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);">Court 4 · Boys U-18 QF</span><span class="mono" style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);">Live · Set 3</span></div><div style="display:flex;justify-content:space-between;margin-top:9px;"><span style="font-size:14px;font-weight:500;">A. Trivedi</span><span class="mono" style="font-size:14px;font-weight:600;">6 4 1</span></div><div style="display:flex;justify-content:space-between;margin-top:5px;"><span style="font-size:14px;font-weight:500;color:var(--muted);">H. Barman</span><span class="mono" style="font-size:14px;color:var(--muted);">3 6 2</span></div></div>
+        <div style="padding:13px 0;border-bottom:1px solid var(--line);"><div style="display:flex;align-items:center;justify-content:space-between;"><span class="mono" style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);">Court 3 · Men's singles R16</span><span class="mono" style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);">14:00</span></div><div style="display:flex;justify-content:space-between;margin-top:9px;"><span style="font-size:14px;font-weight:500;">L. Tandon</span><span class="mono" style="font-size:14px;font-weight:600;">—</span></div><div style="display:flex;justify-content:space-between;margin-top:5px;"><span style="font-size:14px;font-weight:500;color:var(--muted);">F. Ansari</span><span class="mono" style="font-size:14px;color:var(--muted);">—</span></div></div>
+      </div>
+      <div class="thead" style="margin-top:26px;">Latest results</div>
+      <div style="margin-top:4px;">
+        <div style="padding:13px 0;border-bottom:1px solid var(--line);"><div style="display:flex;align-items:center;justify-content:space-between;"><span class="mono" style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);">Court 2 · Men's singles R16</span><span class="mono" style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);">Final</span></div><div style="display:flex;justify-content:space-between;margin-top:9px;"><span style="font-size:14px;font-weight:500;">M. Rathore</span><span class="mono" style="font-size:14px;font-weight:600;">6 6</span></div><div style="display:flex;justify-content:space-between;margin-top:5px;"><span style="font-size:14px;font-weight:500;color:var(--muted);">V. Naidu</span><span class="mono" style="font-size:14px;color:var(--muted);">4 4</span></div></div>
+        <div style="padding:13px 0;border-bottom:1px solid var(--line);"><div style="display:flex;align-items:center;justify-content:space-between;"><span class="mono" style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);">Court 1 · Men's singles R32</span><span class="mono" style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);">Final</span></div><div style="display:flex;justify-content:space-between;margin-top:9px;"><span style="font-size:14px;font-weight:500;">C. Varma</span><span class="mono" style="font-size:14px;font-weight:600;">7 6</span></div><div style="display:flex;justify-content:space-between;margin-top:5px;"><span style="font-size:14px;font-weight:500;color:var(--muted);">Z. Khatri</span><span class="mono" style="font-size:14px;color:var(--muted);">6(5) 4</span></div></div>
+        <div style="padding:13px 0;border-bottom:1px solid var(--line);"><div style="display:flex;align-items:center;justify-content:space-between;"><span class="mono" style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);">Court 2 · Women's singles R16</span><span class="mono" style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);">Final</span></div><div style="display:flex;justify-content:space-between;margin-top:9px;"><span style="font-size:14px;font-weight:500;">T. Bedi</span><span class="mono" style="font-size:14px;font-weight:600;">7 6</span></div><div style="display:flex;justify-content:space-between;margin-top:5px;"><span style="font-size:14px;font-weight:500;color:var(--muted);">A. Rane</span><span class="mono" style="font-size:14px;color:var(--muted);">5 4</span></div></div>
+      </div>
+    </div>
+  </div>
+  <div style="height:56px;flex:none;background:var(--bg1);border-top:1px solid var(--line);
+       display:flex;align-items:center;justify-content:space-between;padding:0 32px;">
+      <span class="mono" style="font-size:11px;color:var(--dim);letter-spacing:.06em;">LIVE SCORES · [TOURNAMENT URL]</span>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="mono" style="font-size:10px;color:var(--dim);letter-spacing:.14em;">PARTNER</span>
+        <div style="width:132px;height:28px;border:1px dashed var(--line);display:flex;align-items:center;
+             justify-content:center;font-family:var(--mono);font-size:10px;color:var(--dim);">[SPONSOR]</div>
+      </div>
+    </div>
+</div>
+</x-dc>
+</body>
+</html>

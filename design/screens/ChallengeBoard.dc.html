@@ -1,0 +1,121 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    :root{
+      --bg0:#0a0b0d; --bg1:#141619; --bg2:#1d2126; --line:#2a2f36;
+      --ink:rgba(255,255,255,.92); --muted:rgba(255,255,255,.62); --dim:rgba(255,255,255,.50);
+      --accent:#7db8e0; --accent-fg:#050505; --accent-deep:#5a9cc9;
+      --good:#6cc294; --warn:#d9b155; --bad:#e08a8a;
+      --sans:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+      --mono:'JetBrains Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
+    }
+    *,*::before,*::after{box-sizing:border-box;border-radius:0;}
+    body{margin:0;font-family:var(--sans);background:var(--bg0);color:var(--ink);-webkit-font-smoothing:antialiased;}
+    a{color:var(--accent);text-decoration:none;} a:hover{color:var(--accent-deep);}
+    .eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);}
+    .caps{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);}
+    .thead{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);}
+    .mono{font-family:var(--mono);font-variant-numeric:tabular-nums;}
+
+  </style>
+</helmet>
+<div style="width:1280px;height:720px;background:var(--bg0);display:flex;flex-direction:column;overflow:hidden;">
+  <div style="height:72px;flex:none;background:var(--bg1);border-bottom:1px solid var(--line);
+       display:flex;align-items:center;justify-content:space-between;padding:0 32px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:26px;height:26px;background:var(--accent);color:var(--accent-fg);font-family:var(--mono);
+             font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;">F</div>
+        <div>
+          <div style="font-size:14px;font-weight:600;letter-spacing:.02em;">Autumn Open 2026</div>
+          <div class="eyebrow" style="margin-top:3px;">ForgeLabs LiveScore</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;"><span style="width:8px;height:8px;background:var(--accent);"></span><span class="mono" style="font-size:12px;letter-spacing:.16em;color:var(--accent);">CHALLENGE KIT</span></div>
+      <div class="mono" style="font-size:12px;color:var(--muted);letter-spacing:.06em;">SAT 26 SEP · 13:12</div>
+    </div>
+  <div style="flex:1;min-height:0;padding:26px 32px;display:flex;flex-direction:column;">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;">
+      <div>
+        <div class="eyebrow">Court 3 · Open session 12:00–14:00</div>
+        <div style="font-size:26px;font-weight:600;letter-spacing:-.02em;margin-top:8px;">Serve speed challenge — men's</div>
+      </div>
+      <span class="mono" style="font-size:11px;color:var(--dim);letter-spacing:.08em;">UPDATED 13:09 · 3 ATTEMPTS EACH</span>
+    </div>
+    <div style="display:flex;gap:16px;margin-top:20px;height:196px;">
+      <div style="flex:1;background:var(--bg1);border:2px solid var(--accent);padding:22px;display:flex;
+         flex-direction:column;justify-content:space-between;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <span class="mono" style="font-size:13px;color:var(--dim);letter-spacing:.1em;">RANK 1</span>
+      </div>
+      <div style="margin-top:20px;">
+        <div style="font-size:20px;font-weight:600;">M. Rathore</div>
+        <div class="mono" style="font-size:11px;color:var(--dim);margin-top:5px;letter-spacing:.06em;
+             text-transform:uppercase;">State Centre · seed 8</div>
+      </div>
+      <div style="display:flex;align-items:baseline;gap:6px;margin-top:22px;">
+        <span class="mono" style="font-size:52px;font-weight:600;line-height:1;letter-spacing:-.03em;color:var(--accent);">182</span>
+        <span class="mono" style="font-size:13px;color:var(--dim);">km/h</span>
+      </div>
+    </div>
+      <div style="flex:1;background:var(--bg1);border:1px solid var(--line);padding:22px;display:flex;
+         flex-direction:column;justify-content:space-between;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <span class="mono" style="font-size:13px;color:var(--dim);letter-spacing:.1em;">RANK 2</span>
+      </div>
+      <div style="margin-top:20px;">
+        <div style="font-size:20px;font-weight:600;">Y. Malhotra</div>
+        <div class="mono" style="font-size:11px;color:var(--dim);margin-top:5px;letter-spacing:.06em;
+             text-transform:uppercase;">City TC · seed 3</div>
+      </div>
+      <div style="display:flex;align-items:baseline;gap:6px;margin-top:22px;">
+        <span class="mono" style="font-size:52px;font-weight:600;line-height:1;letter-spacing:-.03em;color:var(--ink);">176</span>
+        <span class="mono" style="font-size:13px;color:var(--dim);">km/h</span>
+      </div>
+    </div>
+      <div style="flex:1;background:var(--bg1);border:1px solid var(--line);padding:22px;display:flex;
+         flex-direction:column;justify-content:space-between;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <span class="mono" style="font-size:13px;color:var(--dim);letter-spacing:.1em;">RANK 3</span>
+      </div>
+      <div style="margin-top:20px;">
+        <div style="font-size:20px;font-weight:600;">C. Varma</div>
+        <div class="mono" style="font-size:11px;color:var(--dim);margin-top:5px;letter-spacing:.06em;
+             text-transform:uppercase;">[CLUB] · seed 7</div>
+      </div>
+      <div style="display:flex;align-items:baseline;gap:6px;margin-top:22px;">
+        <span class="mono" style="font-size:52px;font-weight:600;line-height:1;letter-spacing:-.03em;color:var(--ink);">171</span>
+        <span class="mono" style="font-size:13px;color:var(--dim);">km/h</span>
+      </div>
+    </div>
+    </div>
+    <div style="margin-top:24px;display:grid;grid-template-columns:64px 1fr 200px 96px 96px 96px 88px;
+         padding-bottom:8px;border-bottom:1px solid var(--line);">
+      <span class="thead">#</span><span class="thead">Player</span><span class="thead">Club</span>
+      <span class="thead" style="text-align:right;">Serve</span>
+      <span class="thead" style="text-align:right;">FH</span>
+      <span class="thead" style="text-align:right;">BH</span>
+      <span class="thead" style="text-align:right;">Att.</span>
+    </div>
+    <div style="display:grid;grid-template-columns:64px 1fr 200px 96px 96px 96px 88px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line);"><span class="mono" style="font-size:14px;color:var(--dim);">4</span><span style="font-size:16px;font-weight:500;">G. Pillai</span><span class="mono" style="font-size:12px;color:var(--dim);">City TC</span><span class="mono" style="font-size:18px;font-weight:600;text-align:right;">168</span><span class="mono" style="font-size:15px;color:var(--muted);text-align:right;">131</span><span class="mono" style="font-size:15px;color:var(--muted);text-align:right;">119</span><span class="mono" style="font-size:13px;color:var(--dim);text-align:right;">3</span></div><div style="display:grid;grid-template-columns:64px 1fr 200px 96px 96px 96px 88px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line);"><span class="mono" style="font-size:14px;color:var(--dim);">5</span><span style="font-size:16px;font-weight:500;">E. Sodhi</span><span class="mono" style="font-size:12px;color:var(--dim);">Riverside Academy</span><span class="mono" style="font-size:18px;font-weight:600;text-align:right;">166</span><span class="mono" style="font-size:15px;color:var(--muted);text-align:right;">128</span><span class="mono" style="font-size:15px;color:var(--muted);text-align:right;">121</span><span class="mono" style="font-size:13px;color:var(--dim);text-align:right;">3</span></div><div style="display:grid;grid-template-columns:64px 1fr 200px 96px 96px 96px 88px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line);"><span class="mono" style="font-size:14px;color:var(--dim);">6</span><span style="font-size:16px;font-weight:500;">L. Tandon</span><span class="mono" style="font-size:12px;color:var(--dim);">[CLUB]</span><span class="mono" style="font-size:18px;font-weight:600;text-align:right;">163</span><span class="mono" style="font-size:15px;color:var(--muted);text-align:right;">134</span><span class="mono" style="font-size:15px;color:var(--muted);text-align:right;">115</span><span class="mono" style="font-size:13px;color:var(--dim);text-align:right;">2</span></div><div style="display:grid;grid-template-columns:64px 1fr 200px 96px 96px 96px 88px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line);"><span class="mono" style="font-size:14px;color:var(--dim);">7</span><span style="font-size:16px;font-weight:500;">I. Bhandari</span><span class="mono" style="font-size:12px;color:var(--dim);">State Centre</span><span class="mono" style="font-size:18px;font-weight:600;text-align:right;">161</span><span class="mono" style="font-size:15px;color:var(--muted);text-align:right;">126</span><span class="mono" style="font-size:15px;color:var(--muted);text-align:right;">118</span><span class="mono" style="font-size:13px;color:var(--dim);text-align:right;">3</span></div><div style="display:grid;grid-template-columns:64px 1fr 200px 96px 96px 96px 88px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line);"><span class="mono" style="font-size:14px;color:var(--dim);">8</span><span style="font-size:16px;font-weight:500;">J. Dsouza</span><span class="mono" style="font-size:12px;color:var(--dim);">[CLUB]</span><span class="mono" style="font-size:18px;font-weight:600;text-align:right;">159</span><span class="mono" style="font-size:15px;color:var(--muted);text-align:right;">129</span><span class="mono" style="font-size:15px;color:var(--muted);text-align:right;">112</span><span class="mono" style="font-size:13px;color:var(--dim);text-align:right;">3</span></div><div style="display:grid;grid-template-columns:64px 1fr 200px 96px 96px 96px 88px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line);"><span class="mono" style="font-size:14px;color:var(--dim);">9</span><span style="font-size:16px;font-weight:500;">H. Barman</span><span class="mono" style="font-size:12px;color:var(--dim);">Riverside Academy</span><span class="mono" style="font-size:18px;font-weight:600;text-align:right;">157</span><span class="mono" style="font-size:15px;color:var(--muted);text-align:right;">122</span><span class="mono" style="font-size:15px;color:var(--muted);text-align:right;">116</span><span class="mono" style="font-size:13px;color:var(--dim);text-align:right;">2</span></div>
+  </div>
+  <div style="height:56px;flex:none;background:var(--bg1);border-top:1px solid var(--line);
+       display:flex;align-items:center;justify-content:space-between;padding:0 32px;">
+      <span class="mono" style="font-size:11px;color:var(--dim);letter-spacing:.06em;">SPEEDS IN KM/H · [RADAR MODEL] BEHIND THE BASELINE · EVENT USE ONLY</span>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="mono" style="font-size:10px;color:var(--dim);letter-spacing:.14em;">PARTNER</span>
+        <div style="width:132px;height:28px;border:1px dashed var(--line);display:flex;align-items:center;
+             justify-content:center;font-family:var(--mono);font-size:10px;color:var(--dim);">[SPONSOR]</div>
+      </div>
+    </div>
+</div>
+</x-dc>
+</body>
+</html>

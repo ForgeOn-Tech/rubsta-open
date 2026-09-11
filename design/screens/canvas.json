@@ -1,0 +1,22 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html",            "x": 0,    "y": 0,    "w": 1440, "h": 900, "title": "Tournament OS — Draw" },
+    { "file": "OrderOfPlay.dc.html",     "x": 1560, "y": 0,    "w": 1440, "h": 900, "title": "Tournament OS — Order of play" },
+    { "file": "LiveBoard.dc.html",       "x": 0,    "y": 1160, "w": 1280, "h": 720, "title": "LiveScore — Venue board" },
+    { "file": "ChallengeBoard.dc.html",  "x": 1400, "y": 1160, "w": 1280, "h": 720, "title": "Challenge Kit — Leaderboard" },
+    { "file": "Registration.dc.html",    "x": 0,    "y": 2100, "w": 390,  "h": 844, "title": "Tournament OS — Registration" },
+    { "file": "Scoring.dc.html",         "x": 490,  "y": 2100, "w": 390,  "h": 844, "title": "LiveScore — Umpire" },
+    { "file": "PlayerCard.dc.html",      "x": 980,  "y": 2100, "w": 390,  "h": 844, "title": "Player Card" },
+    { "file": "ChallengeKit.dc.html",    "x": 1470, "y": 2100, "w": 390,  "h": 844, "title": "Challenge Kit — Serve speed" },
+    { "file": "FanZone.dc.html",         "x": 1960, "y": 2100, "w": 390,  "h": 844, "title": "Fan Zone" }
+  ],
+  "annotations": [
+    { "id": "note-os", "x": 0, "y": -150, "w": 620,
+      "text": "TOURNAMENT OS — organiser desktop.\nThe only part of the platform with nothing existing behind it. 32 draw, 8 seeds, 4 byes to seeds 1-4 on lines 1, 16, 17 and 32." },
+    { "id": "note-live", "x": 0, "y": 960, "w": 620,
+      "text": "LIVESCORE + CHALLENGE KIT — venue and stream boards.\nSame match as the umpire phone below: Malhotra 6-4, 3-2, deuce. Scores flow from one scoring app." },
+    { "id": "note-phones", "x": 0, "y": 1930, "w": 620,
+      "text": "PLAYER AND FAN PHONES.\nRegistration and Player Card use the exact profile fields from the brief. Fan Zone shows predictions and chat only - no coin wallet and no cash payout until the gaming rules are checked." }
+  ],
+  "launch": { "view": "canvas" }
+}
