@@ -28,12 +28,12 @@ Three items from the original brief are not software and do not belong here:
 - **Sponsor and ad platform** — a CMS plus an inventory calendar
 - **Merch and crowdfunding** — buy it off the shelf
 
-## Open question before Fan Zone is built
+## The limit the Fan Zone is built to
 
 Prediction games with prize money and a coin economy carry real-money and
-skill-gaming exposure in India. The designed screens show predictions, reactions
-and chat only; the coin wallet and any cash payout stay out until the rules are
-checked.
+skill-gaming exposure in India. The Fan Zone holds predictions, reactions and
+chat only. There is no entry fee, no coin wallet and no cash payout, and the
+screens say so. Nothing here changes until the rules are checked.
 
 ## Design
 
@@ -95,6 +95,9 @@ npm run dev                  # http://localhost:3100
 | `/partner/<entry id>` | Invited partners | Accept or decline a doubles invitation, visible only to the invited email |
 | `/draws` and `/draws/<event>` | Players | Published draws with scores, marking the player's own lines |
 | `/order-of-play` | Players | A published day's order of play, marking the player's own matches |
+| `/live` | Everyone | Every court, the score on it now, and what follows |
+| `/live/<court number>` | Everyone | One court: the stream, the live score, reactions, set predictions and the chat |
+| `/live/leaderboard` | Everyone | Fans by points from their set predictions |
 | `/admin` | Admins | Overview: entries by status and event, time to close, latest entries |
 | `/admin/entries` | Admins | Every entry, with event and status filters and status actions (`/entries` redirects here) |
 | `/admin/entries/<entry id>` | Admins | Player and entry details, with status actions |
@@ -106,7 +109,8 @@ npm run dev                  # http://localhost:3100
 | `/admin/results` | Admins | Matches in progress and completed, by event, with scores |
 | `/admin/results/<match id>` | Admins | One match's score and statistics |
 | `/admin/players` | Admins | Everyone with a profile or entry, their entries, and search by name, email, club or mobile |
-| `/admin/settings` | Admins | Name, dates, venue, closing time (IST), fee, entries open or closed, schedule confirmed, courts |
+| `/admin/fan` | Admins | Every court chat message with the account behind it; hide a message or mute a fan |
+| `/admin/settings` | Admins | Name, dates, venue, closing time (IST), fee, entries open or closed, schedule confirmed, courts, stream links |
 | `/score` | Admins and umpires | Matches in progress, ready to start, waiting on earlier results, and completed |
 | `/score/<match id>` | Admins and umpires | Umpire scoring screen, which keeps working when the signal drops |
 | `/score/schedule/<day>` | Admins and umpires | A day's published order of play |
@@ -246,6 +250,39 @@ npm run test:e2e:production      # the same tests against next build and next st
 The offline reload test runs only in the production run. Under `next dev`, a
 page reopened with no signal gets its files from the service worker but does not
 hydrate.
+
+### Fan Zone
+
+`/live` is open to everyone, signed in or not, and uses the club colours on a
+dark ground. It lists every court with the score on it now, and a court page
+carries the stream, the scoreboard, reactions, the set prediction and the chat.
+The page asks the server for all of it every five seconds, and stops while the
+tab is in the background.
+
+Signing in is needed only to join in. A fan who signs in without making a
+player profile is named from their account, as "Arjun K.", or simply "Fan"
+when the account carries no name either. Chat messages carry
+a display name and nothing else: no email address and no account id reaches the
+public page.
+
+Admins paste a court's YouTube link in `/admin/settings`. Only a link that reads
+as a YouTube video is shown, so no other site can be framed on the page.
+
+Fans pick who takes the set being played and may change their mind until the set
+reaches five games. A point goes to each correct pick, counted only once the set
+finishes, so a set abandoned by a retirement scores nothing. Points come from
+replaying each match, which means a corrected score corrects the leaderboard.
+Resetting a match drops its predictions and reactions with the score.
+
+A fan sends each reaction once per match. A chat message is refused when it
+carries blocked language, and a fan may post once every five seconds. The word
+list in `src/lib/fan-chat.ts` catches obvious cases only: hiding a message and
+muting the fan at `/admin/fan` are the real protection. Hiding keeps the message
+in the table and takes it off the Fan Zone.
+
+Watching counts are held in memory, not in the database, so that polling never
+slows down the umpires' saves. They start again from zero after a restart, and
+one server holds one count.
 
 ### Event images and sponsors
 

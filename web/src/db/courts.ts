@@ -28,13 +28,19 @@ export function addCourt(database: Database, tournamentId: string, fields: Court
     const number = nextCourtNumber(listCourts(tx, tournamentId));
     return tx
       .insert(courts)
-      .values({ tournamentId, number, name: fields.name, surface: fields.surface })
+      .values({
+        tournamentId,
+        number,
+        name: fields.name,
+        surface: fields.surface,
+        streamUrl: fields.streamUrl,
+      })
       .returning()
       .get();
   });
 }
 
-/** Renames a court or changes its surface. Its number stays. */
+/** Renames a court, changes its surface or its stream link. Its number stays. */
 export function updateCourt(
   database: Database,
   tournamentId: string,
@@ -43,7 +49,7 @@ export function updateCourt(
 ): void {
   const result = database
     .update(courts)
-    .set({ name: fields.name, surface: fields.surface })
+    .set({ name: fields.name, surface: fields.surface, streamUrl: fields.streamUrl })
     .where(and(eq(courts.tournamentId, tournamentId), eq(courts.number, courtNumber)))
     .run();
   if (result.changes === 0) throw new Error(`Court ${courtNumber} does not exist.`);
