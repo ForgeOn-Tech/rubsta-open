@@ -122,7 +122,7 @@ take the top and bottom lines, and later seed groups draw lots, so seeds 1–4 o
 32-line draw sit on lines 1, 16, 17 and 32. Byes go to seeds in seed order. A
 published draw is locked; move it back to draft to change seeds or generate it
 again. Once any match in the draw has started, it cannot go back to draft, because
-that would delete scores. Players see published draws at `/draws`.
+that would delete scores. Published draws show at `/draws`, which anybody can read.
 
 ### Scoring
 
