@@ -7,6 +7,7 @@
 .sponsor-dialog-body{padding:14px 32px 32px}
 #sponsor-intro{margin:0 0 24px;font-size:13px;line-height:1.8;color:var(--muted)}
 #sponsor-form{display:grid;gap:24px}
+#sponsor-form[hidden]{display:none}
 #sponsor-form textarea{resize:vertical;min-height:88px}
 #sponsor-form :focus-visible,.sponsor-close:focus-visible,.sponsor-actions button:focus-visible{outline:3px solid #37794f;outline-offset:2px}
 #sponsor-dialog[data-state=sending] #sponsor-intro,
