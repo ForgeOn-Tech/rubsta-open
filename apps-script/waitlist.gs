@@ -183,7 +183,7 @@ function safeCell_(value) {
 // part of the sheet's URL between /d/ and /edit.
 const SPREADSHEET_ID = '';
 
-/** Returns the named tab of the sponsorship sheet, adding it with its header row. */
+/** Returns the named tab of the Rubsta Open sheet, adding it with its header row. */
 function getSheet_(name, header) {
   const spreadsheet = SPREADSHEET_ID
     ? SpreadsheetApp.openById(SPREADSHEET_ID)
