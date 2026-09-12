@@ -125,6 +125,8 @@ describe('sponsor.gs matches the page', () => {
       raw({}),
       raw({ name: ' ', organisation: '', email: '' }),
       raw({ email: 'asha@' }),
+      // Longer than the limit, which only a hand-made POST can reach.
+      raw({ email: 'a'.repeat(250) + '@example.com' }),
       raw({ mobile: '12345' }),
       raw({ name: 'a'.repeat(81), organisation: 'b'.repeat(121), message: 'c'.repeat(1001) }),
       raw({ mobile: '+91 98765 43210', message: 'Court boards.\n\nAnd the kits.' }),

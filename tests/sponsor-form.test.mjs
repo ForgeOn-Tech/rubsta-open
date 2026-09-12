@@ -22,6 +22,8 @@ function raw(overrides) {
 }
 
 const fields = (errors) => errors.map((error) => error.field);
+// Longer than SPONSOR_LIMITS.email, which only a hand-made POST can reach.
+const LONG_EMAIL = 'a'.repeat(250) + '@example.com';
 
 describe('normaliseSponsor', () => {
   it('trims the fields, folds spaces and lowercases the email', () => {
@@ -62,10 +64,12 @@ describe('validateSponsor', () => {
     assert.deepEqual(fields(errors), ['name', 'organisation', 'email']);
   });
 
-  it('rejects an email address without a domain', () => {
-    const errors = validateSponsor(normaliseSponsor(raw({ email: 'asha@' })));
-
-    assert.deepEqual(fields(errors), ['email']);
+  it('rejects an email address without a domain, and one over the limit', () => {
+    assert.deepEqual(fields(validateSponsor(normaliseSponsor(raw({ email: 'asha@' })))), ['email']);
+    assert.deepEqual(
+      fields(validateSponsor(normaliseSponsor(raw({ email: LONG_EMAIL })))),
+      ['email'],
+    );
   });
 
   it('rejects a mobile number that is too short, and allows an empty one', () => {
