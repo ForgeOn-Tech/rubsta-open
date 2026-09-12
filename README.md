@@ -98,10 +98,13 @@ npm run dev                  # http://localhost:3100
 | `/admin/entries/export` | Admins | CSV of entries; takes the same `status` and `category` filters |
 | `/admin/draws` | Admins | Each event's accepted entries, draw size, seeds and draw status |
 | `/admin/draws/<event>` | Admins | Seed entrants, generate a draw, publish it or move it back to draft |
+| `/admin/order-of-play` | Admins | Each day's matches and sessions by court, with times and umpires; publish a day for umpires |
+| `/admin/order-of-play/print` | Admins | A day's published order of play as a sheet to print |
 | `/admin/players` | Admins | Everyone with a profile or entry, their entries, and search by name, email, club or mobile |
-| `/admin/settings` | Admins | Name, dates, venue, closing time (IST), fee, entries open or closed, schedule confirmed |
+| `/admin/settings` | Admins | Name, dates, venue, closing time (IST), fee, entries open or closed, schedule confirmed, courts |
 | `/score` | Admins and umpires | Matches in progress, ready to start, waiting on earlier results, and completed |
 | `/score/<match id>` | Admins and umpires | Umpire scoring screen, which keeps working when the signal drops |
+| `/score/schedule/<day>` | Admins and umpires | A day's published order of play |
 
 Draws take an event's confirmed and paid entries. The draw size is the next power
 of two, up to 128 lines, with one seed per four lines (at least two). Seeds 1 and 2
@@ -137,6 +140,31 @@ opened on the phone shows a "No connection" notice instead. The sign-in page
 deletes the kept pages, so the next person on a shared phone cannot open them
 offline. Scores kept in localStorage stay, because they may not have reached
 the server yet.
+
+### Order of play
+
+Admins add courts in `/admin/settings`, each with a name and a surface. A court
+keeps its number for the whole tournament, because matches and umpires' phones
+record scores against that number. A court on any order of play cannot be
+deleted.
+
+`/admin/order-of-play` builds one tournament day at a time, with a column for
+each court. A court lists its matches and sessions in playing order. A match
+starts at a time, starts not before a time, or follows the item above it. A
+session is court time that is not a match, such as a Challenge Kit session. It
+has a start time and an optional end time. Each match can have an umpire from
+`UMPIRE_EMAILS` or `ADMIN_EMAILS`. A match has one place across all days, and a
+bye needs none. Times are venue times in India.
+
+Umpires see only what an admin published. Publishing copies the day, so later
+edits wait for the next publish, and the page shows "Unpublished changes" until
+then. The print sheet shows the published day without the admin sidebar.
+
+On `/score`, "Your matches" lists the unfinished matches assigned to the
+signed-in umpire, and each scheduled match shows its day, court and time.
+`/score/schedule/<day>` shows a published day. The day is part of the path,
+because the service worker keeps pages by path. When courts exist, the scoring
+screen offers them as a list and picks the scheduled court.
 
 Entry status moves submitted → confirmed → paid. Any live entry can be cancelled,
 and a cancelled entry can be reinstated as submitted. Marking an entry paid by hand
