@@ -316,6 +316,8 @@ export const courts = sqliteTable(
     number: integer("number").notNull(),
     name: text("name"), // e.g. "Centre"
     surface: text("surface"), // e.g. "Hard"
+    // A YouTube Live link shown in the Fan Zone, or null when nobody films this court.
+    streamUrl: text("stream_url"),
   },
   (table) => [uniqueIndex("courts_tournament_number").on(table.tournamentId, table.number)],
 );
@@ -380,6 +382,97 @@ export const scheduleDays = sqliteTable(
   (table) => [uniqueIndex("schedule_days_tournament_day").on(table.tournamentId, table.day)],
 );
 
+// ── Fan Zone ──────────────────────────────────────────────────────────────
+
+/** What a fan can send while watching a match. One of each kind per fan. */
+export const REACTION_KINDS = ["clap", "shot", "ball"] as const;
+export type ReactionKind = (typeof REACTION_KINDS)[number];
+export const REACTION_LABELS: Record<ReactionKind, string> = {
+  clap: "Applause",
+  shot: "What a shot",
+  ball: "Good ball",
+};
+
+/** One court's chat. A hidden message stays for the record and leaves the page. */
+export const fanMessages = sqliteTable(
+  "fan_messages",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    tournamentId: text("tournament_id")
+      .notNull()
+      .references(() => tournaments.id, { onDelete: "cascade" }),
+    courtNumber: integer("court_number").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    createdAt: integer("created_at")
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+    hiddenAt: integer("hidden_at"),
+    hiddenBy: text("hidden_by"), // the admin's email, lower case
+  },
+  (table) => [index("fan_messages_court").on(table.tournamentId, table.courtNumber, table.createdAt)],
+);
+
+export const fanReactions = sqliteTable(
+  "fan_reactions",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    matchId: text("match_id")
+      .notNull()
+      .references(() => matches.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: text("kind", { enum: REACTION_KINDS }).notNull(),
+    createdAt: integer("created_at")
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+  },
+  (table) => [uniqueIndex("fan_reactions_match_user_kind").on(table.matchId, table.userId, table.kind)],
+);
+
+/**
+ * A fan's pick for who takes one set. Points come from replaying the match
+ * events, so nothing here needs updating when the score changes.
+ */
+export const fanPredictions = sqliteTable(
+  "fan_predictions",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    matchId: text("match_id")
+      .notNull()
+      .references(() => matches.id, { onDelete: "cascade" }),
+    setNumber: integer("set_number").notNull(), // 1 for the first set
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    side: text("side", { enum: ["top", "bottom"] }).$type<Side>().notNull(),
+    createdAt: integer("created_at")
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+  },
+  (table) => [uniqueIndex("fan_predictions_match_set_user").on(table.matchId, table.setNumber, table.userId)],
+);
+
+/** A fan an admin stopped from posting. Their earlier messages are hidden one by one. */
+export const fanMutes = sqliteTable("fan_mutes", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  mutedBy: text("muted_by").notNull(), // the admin's email, lower case
+  mutedAt: integer("muted_at")
+    .notNull()
+    .default(sql`(unixepoch() * 1000)`),
+});
+
 export type User = typeof users.$inferSelect;
 export type Profile = typeof profiles.$inferSelect;
 export type Tournament = typeof tournaments.$inferSelect;
@@ -390,3 +483,7 @@ export type Match = typeof matches.$inferSelect;
 export type Court = typeof courts.$inferSelect;
 export type ScheduleItem = typeof scheduleItems.$inferSelect;
 export type ScheduleDay = typeof scheduleDays.$inferSelect;
+export type FanMessage = typeof fanMessages.$inferSelect;
+export type FanReaction = typeof fanReactions.$inferSelect;
+export type FanPrediction = typeof fanPredictions.$inferSelect;
+export type FanMute = typeof fanMutes.$inferSelect;

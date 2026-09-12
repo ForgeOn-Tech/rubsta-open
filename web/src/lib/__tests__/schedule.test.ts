@@ -50,7 +50,7 @@ function entry(overrides: Partial<ScheduleEntry>): ScheduleEntry {
 }
 
 function court(number: number, name: string | null, surface: string | null): Court {
-  return { id: `court-${number}`, tournamentId: "t", number, name, surface };
+  return { id: `court-${number}`, tournamentId: "t", number, name, surface, streamUrl: null };
 }
 
 describe("tournamentDays", () => {
