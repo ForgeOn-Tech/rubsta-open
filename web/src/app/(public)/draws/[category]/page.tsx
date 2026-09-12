@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { requireUser } from "@/auth/require";
+import { auth } from "@/auth/auth";
 import { getDb } from "@/db/client";
 import { listScoringMatches, type ScoringMatchRow } from "@/db/matches";
 import { listTeamEntryIds } from "@/db/partners";
@@ -21,8 +21,9 @@ export const dynamic = "force-dynamic";
 const MATCH_HEIGHT_PX = 104;
 
 /** A published draw with results so far, marking the signed-in player's lines. */
-export default async function PlayerDrawPage({ params }: { params: Promise<{ category: string }> }) {
-  const user = await requireUser();
+export default async function DrawPage({ params }: { params: Promise<{ category: string }> }) {
+  const session = await auth();
+  const userId = session?.user?.id ?? null;
   const category = parseCategoryFilter((await params).category);
   if (!category) notFound();
 
@@ -37,7 +38,8 @@ export default async function PlayerDrawPage({ params }: { params: Promise<{ cat
         new Map(rows.map((row) => [row.match.id, row.match.matchNumber])),
       )
     : new Map<string, PublishedPlace>();
-  const team = new Set(listTeamEntryIds(database, user.id));
+  // Signed-out visitors have no entries, so no line is marked as theirs.
+  const team = new Set(userId === null ? [] : listTeamEntryIds(database, userId));
   const rounds = drawRounds(rows);
   const firstRoundMatches = rounds[0]?.rows.length ?? 0;
 

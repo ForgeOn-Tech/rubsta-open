@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { requireUser } from "@/auth/require";
+import { auth } from "@/auth/auth";
 import { getDb } from "@/db/client";
 import { listScoringMatches } from "@/db/matches";
 import { listTeamEntryIds } from "@/db/partners";
@@ -10,13 +10,15 @@ import { PLAYER_DRAWS_PATH, teamMatches } from "@/lib/player-matches";
 
 export const dynamic = "force-dynamic";
 
-/** Each event's draw, once an admin publishes it. */
-export default async function PlayerDrawsPage() {
-  const user = await requireUser();
+/** Each event's draw, once an admin publishes it. Open to everyone. */
+export default async function DrawsPage() {
+  const session = await auth();
+  const userId = session?.user?.id ?? null;
   const tournament = getCurrentTournament();
   const database = getDb();
   const rows = tournament ? listScoringMatches(database, tournament.id) : [];
-  const team = new Set(listTeamEntryIds(database, user.id));
+  // Signed-out visitors have no entries, so nothing is marked as theirs.
+  const team = new Set(userId === null ? [] : listTeamEntryIds(database, userId));
   const events = CATEGORIES.map((category) => {
     const inEvent = rows.filter((row) => row.category === category);
     return { category, published: inEvent.length > 0, playing: teamMatches(inEvent, team).length > 0 };

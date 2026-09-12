@@ -93,8 +93,9 @@ npm run dev                  # http://localhost:3100
 | `/register` | Players | Choose an event (MS, WS, MD, WD); doubles need a partner name and email |
 | `/register/<entry id>` | Players | Entry confirmation, visible only to the player who entered; for doubles, the partner link and a way to change partner |
 | `/partner/<entry id>` | Invited partners | Accept or decline a doubles invitation, visible only to the invited email |
-| `/draws` and `/draws/<event>` | Players | Published draws with scores, marking the player's own lines |
-| `/order-of-play` | Players | A published day's order of play, marking the player's own matches |
+| `/draws` and `/draws/<event>` | Everyone | Published draws with scores; a signed-in player's own lines are marked |
+| `/results` and `/results/<match id>` | Everyone | Matches in progress and completed by event, and one match's score and statistics |
+| `/order-of-play` | Everyone | A published day's order of play; a signed-in player's own matches are marked |
 | `/live` | Everyone | Every court, the score on it now, and what follows |
 | `/live/<court number>` | Everyone | One court: the stream, the live score, reactions, set predictions and the chat |
 | `/live/leaderboard` | Everyone | Fans by points from their set predictions |
@@ -195,9 +196,10 @@ records the payment reference `manual`.
 ### Player pages
 
 Sign-in lands on `/home`, which uses the landing page's club theme, as do
-`/draws` and `/order-of-play`. `/home` leads with the player's next match: one
-in play, then the earliest on the published order of play, then the earliest
-round still to play.
+`/draws`, `/results` and `/order-of-play`. Those three are open to everyone:
+signing in adds the "You" markers and nothing else. `/home` leads with the
+player's next match: one in play, then the earliest on the published order of
+play, then the earliest round still to play.
 
 The player card shows a player ID such as `FL-2026-0117`. A new profile takes
 the next player number, and existing profiles were numbered in the order they
