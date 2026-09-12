@@ -240,6 +240,9 @@ describe("Scorer", () => {
     fireEvent.click(screen.getByRole("button", { name: "Confirm result" }));
 
     expect(screen.getByRole("heading", { name: "Asha Anand wins" })).toBeInTheDocument();
+    const stats = screen.getByRole("table", { name: "Match statistics" });
+    expect(within(stats).getByRole("row", { name: /Points won/ })).toHaveTextContent(/^48Points won0$/);
+    expect(within(stats).getByRole("row", { name: /Double faults/ })).toHaveTextContent(/^0Double faults0$/);
     await waitFor(() => expect(mockedSave).toHaveBeenCalledTimes(1));
     expect(mockedSave.mock.calls[0][1].record.events).toHaveLength(48);
   });
