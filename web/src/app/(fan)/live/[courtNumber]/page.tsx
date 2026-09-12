@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { predictAction } from "./actions";
 import { CourtLive } from "./court-live";
 import { auth } from "@/auth/auth";
 import { getDb } from "@/db/client";
@@ -61,6 +62,7 @@ export default async function FanCourtPage({
         courtNumber={courtNumber}
         embedUrl={streamEmbedUrl(court.streamUrl)}
         initialFeed={feed}
+        predictAction={predictAction}
       />
     </div>
   );

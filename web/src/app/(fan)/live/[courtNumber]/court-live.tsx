@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 
+import { PredictionPanel } from "./prediction-panel";
 import { CATEGORY_LABELS } from "@/db/schema";
 import { FAN_FEED_INTERVAL_MS, fanFeedPath, type FanFeed } from "@/lib/fan-feed";
 import type { FanScoreboard } from "@/lib/fan-live";
+import type { FormAction } from "@/lib/form-state";
 import { SIDES } from "@/lib/match";
 
 const VIEWER_KEY = "fan-viewer-id";
@@ -27,10 +29,12 @@ export function CourtLive({
   courtNumber,
   embedUrl,
   initialFeed,
+  predictAction,
 }: {
   courtNumber: number;
   embedUrl: string | null;
   initialFeed: FanFeed;
+  predictAction: FormAction;
 }) {
   const [feed, setFeed] = useState<FanFeed>(initialFeed);
 
@@ -69,6 +73,16 @@ export function CourtLive({
         <p className="border-t border-club-mist/20 pt-5 text-[13px] text-club-mist/70" role="status">
           No match is listed on this court.
         </p>
+      )}
+
+      {feed.live === null || feed.predictions === null ? null : (
+        <PredictionPanel
+          matchId={feed.live.matchId}
+          board={feed.live}
+          prediction={feed.predictions}
+          signedIn={feed.signedIn}
+          action={predictAction}
+        />
       )}
     </div>
   );
