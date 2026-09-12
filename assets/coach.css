@@ -5,3 +5,8 @@
 .coach-section.section{padding-block:40px}.coach-profile{grid-template-columns:minmax(0,1.3fr) minmax(0,.85fr);gap:48px}.coach-story h2{font-size:clamp(34px,3.5vw,50px);margin:12px 0 16px}.coach-story>p:not(.eyebrow){font-size:13px;line-height:1.65;max-width:580px;margin:10px 0}.coach-rankings{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;border-block:1px solid var(--line);padding:14px 0;margin:18px 0 8px}.coach-rankings>div{display:flex;flex-direction:column-reverse;justify-content:flex-end;gap:6px}.coach-rankings dd{margin:0;font:30px/1 var(--serif);color:var(--deep)}.coach-rankings dt{font-size:9px;line-height:1.5;color:var(--muted)}.coach-story>p.coach-ranking-note{font-size:10px;line-height:1.5}.coach-credentials{margin-top:14px;padding-top:0;display:flex;gap:20px;flex-wrap:wrap}.coach-credentials p{margin-top:12px}.coach-carousel{width:100%;max-width:370px;justify-self:end}.coach-controls{padding:8px 14px}.coach-photo-label{bottom:20px;left:20px}
 @media(min-width:761px){.coach-carousel{max-width:min(370px,calc((100svh - 144px)*.8))}}
 @media(max-width:760px){.coach-profile{grid-template-columns:1fr;gap:24px}.coach-carousel{justify-self:center;max-width:340px}.coach-section.section{padding-block:32px}.coach-rankings{gap:10px}.coach-rankings dd{font-size:27px}}
+
+/* A full-width sage backdrop separates the coach from the categories. */
+.coach-section{position:relative;isolation:isolate;background:#e8eddf}
+.coach-section:before{content:'';position:absolute;z-index:-1;inset:0;left:calc((100% - 100vw)/2);right:calc((100% - 100vw)/2);background:#e8eddf}
+.coach-section .coach-rankings,.coach-section .coach-credentials{border-color:#becab2}
