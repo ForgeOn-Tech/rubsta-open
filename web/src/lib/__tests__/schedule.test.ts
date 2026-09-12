@@ -231,14 +231,27 @@ describe("moveInOrder", () => {
 
 describe("validateCourt", () => {
   it("trims values and stores blanks as null", () => {
-    expect(validateCourt({ name: "  Centre ", surface: " " })).toEqual({
+    expect(validateCourt({ name: "  Centre ", surface: " ", streamUrl: " " })).toEqual({
       ok: true,
-      value: { name: "Centre", surface: null },
+      value: { name: "Centre", surface: null, streamUrl: null },
     });
   });
 
+  it("keeps a YouTube stream link and rejects any other link", () => {
+    expect(
+      validateCourt({ name: "Centre", surface: "", streamUrl: "https://youtu.be/dQw4w9WgXcQ" }),
+    ).toMatchObject({ ok: true, value: { streamUrl: "https://youtu.be/dQw4w9WgXcQ" } });
+    expect(
+      validateCourt({ name: "Centre", surface: "", streamUrl: "https://example.com/stream" }),
+    ).toMatchObject({ ok: false });
+  });
+
   it("rejects a long name", () => {
-    const result = validateCourt({ name: "x".repeat(MAX_COURT_NAME_LENGTH + 1), surface: "" });
+    const result = validateCourt({
+      name: "x".repeat(MAX_COURT_NAME_LENGTH + 1),
+      surface: "",
+      streamUrl: "",
+    });
 
     expect(result.ok).toBe(false);
   });

@@ -16,6 +16,7 @@ export interface CourtsCardProps {
 interface CourtValues {
   name: string;
   surface: string;
+  streamUrl: string;
 }
 
 const SMALL_BUTTON = "btn h-9 text-[12px]";
@@ -30,7 +31,7 @@ export function CourtsCard({ courts, addAction, updateAction, deleteAction }: Co
         </h2>
         <p className="mt-1 text-[12px] text-muted">
           The order of play lists matches by court. Each court keeps its number, because
-          umpires&apos; phones record scores against it.
+          umpires&apos; phones record scores against it. A YouTube link plays in the Fan Zone.
         </p>
       </div>
 
@@ -90,6 +91,20 @@ function CourtFields({
           onChange={(event) => onChange({ ...values, surface: event.target.value })}
         />
       </div>
+      <div className="min-w-0 flex-1">
+        <label className="caps" htmlFor={`${idPrefix}-stream`}>
+          Stream link
+        </label>
+        <input
+          id={`${idPrefix}-stream`}
+          name="streamUrl"
+          type="url"
+          className="field"
+          placeholder="https://www.youtube.com/watch?v=…"
+          value={values.streamUrl}
+          onChange={(event) => onChange({ ...values, streamUrl: event.target.value })}
+        />
+      </div>
     </>
   );
 }
@@ -109,6 +124,7 @@ function CourtRow({
   const [values, setValues] = useState<CourtValues>({
     name: court.name ?? "",
     surface: court.surface ?? "",
+    streamUrl: court.streamUrl ?? "",
   });
   const title = courtTitle(court.number);
   const error = updateState.error ?? deleteState.error;
@@ -158,7 +174,7 @@ function AddCourtForm({ action }: { action: FormAction }) {
 }
 
 function NewCourtFields({ pending }: { pending: boolean }) {
-  const [values, setValues] = useState<CourtValues>({ name: "", surface: "" });
+  const [values, setValues] = useState<CourtValues>({ name: "", surface: "", streamUrl: "" });
   return (
     <div className="flex flex-wrap items-end gap-3">
       <CourtFields idPrefix="new-court" values={values} onChange={setValues} />
