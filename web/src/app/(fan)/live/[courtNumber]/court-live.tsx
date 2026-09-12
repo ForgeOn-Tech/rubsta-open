@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { PredictionPanel } from "./prediction-panel";
+import { ReactionsRow } from "./reactions-row";
 import { CATEGORY_LABELS } from "@/db/schema";
 import { FAN_FEED_INTERVAL_MS, fanFeedPath, type FanFeed } from "@/lib/fan-feed";
 import type { FanScoreboard } from "@/lib/fan-live";
@@ -30,11 +31,13 @@ export function CourtLive({
   embedUrl,
   initialFeed,
   predictAction,
+  reactAction,
 }: {
   courtNumber: number;
   embedUrl: string | null;
   initialFeed: FanFeed;
   predictAction: FormAction;
+  reactAction: FormAction;
 }) {
   const [feed, setFeed] = useState<FanFeed>(initialFeed);
 
@@ -73,6 +76,16 @@ export function CourtLive({
         <p className="border-t border-club-mist/20 pt-5 text-[13px] text-club-mist/70" role="status">
           No match is listed on this court.
         </p>
+      )}
+
+      {feed.live === null ? null : (
+        <ReactionsRow
+          matchId={feed.live.matchId}
+          counts={feed.reactions}
+          own={feed.ownReactions}
+          signedIn={feed.signedIn}
+          action={reactAction}
+        />
       )}
 
       {feed.live === null || feed.predictions === null ? null : (
