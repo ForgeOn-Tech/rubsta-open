@@ -369,6 +369,28 @@ test.describe.serial("registration", () => {
     await expect(page.getByRole("region", { name: "Court 2" })).toContainText("Serve Speed Challenge");
   });
 
+  test("anyone reads the draw, the results and the order of play without an account", async ({
+    page,
+  }) => {
+    await page.goto("/draws");
+    await expect(page.getByRole("heading", { name: "Draws", level: 1 })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Sign in" })).toBeVisible();
+    await page.getByRole("link", { name: /Men's singles/ }).click();
+
+    await expect(page).toHaveURL(/\/draws\/MS$/);
+    await expect(page.getByRole("article", { name: "Match 1", exact: true })).toContainText("Bye");
+    // Without a sign-in there is no player to mark lines for.
+    await expect(page.getByText("You", { exact: true })).toHaveCount(0);
+
+    await page.goto("/results");
+    await page.getByRole("region", { name: "Men's singles" }).getByRole("link").first().click();
+    await expect(page).toHaveURL(/\/results\/[^/]+$/);
+    await expect(page.getByRole("table", { name: "Match statistics" })).toBeVisible();
+
+    await page.goto("/order-of-play");
+    await expect(page.getByRole("region", { name: "Court 1" })).toContainText("Not before 15:30");
+  });
+
   test("a fan watches a court, joins in, and an admin hides a message", async ({ page }) => {
     // Signed out. The match the umpire started above is on court 2, in the
     // first game. The production run scores one more point on it than the dev
