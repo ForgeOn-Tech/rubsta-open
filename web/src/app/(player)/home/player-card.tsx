@@ -1,34 +1,46 @@
-import type { Profile } from "@/db/schema";
+import { ShareCardButton } from "./share-card-button";
+import { HAND_LABELS, type Profile } from "@/db/schema";
 import { ageFromDob } from "@/lib/age";
 import { initials } from "@/lib/home";
+import { PLAYER_CARD_FILE_NAME, PLAYER_CARD_IMAGE_PATH, type MatchRecord } from "@/lib/player-card";
 
 const NOT_ADDED = "Not added";
-const CARD_ACTIONS = ["Participation certificate", "Share card"] as const;
+const NOT_ASSIGNED = "Not assigned";
+
+export interface CertificateLink {
+  href: string;
+  label: string;
+}
 
 interface Stat {
   label: string;
-  /** null marks a stat the app does not record yet. */
-  value: string | null;
+  value: string;
 }
 
 export interface PlayerCardProps {
   profile: Pick<
     Profile,
-    "fullName" | "dateOfBirth" | "club" | "bestRanking" | "previousTournaments"
+    "fullName" | "dateOfBirth" | "club" | "bestRanking" | "previousTournaments" | "plays"
   >;
+  /** e.g. "FL-2026-0117"; null for a profile made before player numbers existed. */
+  playerId: string | null;
   entryCount: number;
+  record: MatchRecord;
+  /** Certificate downloads the player has earned. */
+  certificates: readonly CertificateLink[];
 }
 
-export function PlayerCard({ profile, entryCount }: PlayerCardProps) {
+export function PlayerCard({ profile, playerId, entryCount, record, certificates }: PlayerCardProps) {
   const age = ageFromDob(profile.dateOfBirth);
-  const facts = [age === null ? null : `Age ${age}`, profile.club].filter(Boolean);
+  const hand = profile.plays === null ? null : HAND_LABELS[profile.plays];
+  const facts = [age === null ? null : `Age ${age}`, hand, profile.club].filter(Boolean);
   const stats: Stat[] = [
     { label: "Best ranking", value: profile.bestRanking ?? NOT_ADDED },
     { label: "Events entered", value: String(entryCount) },
-    { label: "Matches", value: null },
-    { label: "Win–loss", value: null },
-    { label: "Player ID", value: null },
-    { label: "Plays", value: null },
+    { label: "Matches", value: String(record.played) },
+    { label: "Win–loss", value: `${record.won}–${record.lost}` },
+    { label: "Player ID", value: playerId ?? NOT_ASSIGNED },
+    { label: "Plays", value: hand ?? NOT_ADDED },
   ];
 
   return (
@@ -60,35 +72,31 @@ export function PlayerCard({ profile, entryCount }: PlayerCardProps) {
                 {stat.label}
               </dt>
               <dd className="m-0 mt-2">
-                {stat.value === null ? (
-                  <>
-                    <span
-                      aria-hidden="true"
-                      className="block font-serif text-[26px] leading-none text-club-muted"
-                    >
-                      —
-                    </span>
-                    <span className="mt-1.5 block text-[10px] font-medium uppercase tracking-[1.5px] text-club-muted">
-                      Coming soon
-                    </span>
-                  </>
-                ) : (
-                  <span className="block font-serif text-[26px] leading-none lining-nums">
-                    {stat.value}
-                  </span>
-                )}
+                <span className="block font-serif text-[26px] leading-none lining-nums">
+                  {stat.value}
+                </span>
               </dd>
             </div>
           ))}
         </dl>
 
-        <div className="mt-5 flex flex-wrap gap-3">
-          {CARD_ACTIONS.map((label) => (
-            <button key={label} type="button" className="pill pill-outline" disabled>
-              {label} · Coming soon
-            </button>
+        <div className="mt-5 flex flex-wrap items-start gap-3">
+          {certificates.map((certificate) => (
+            <a key={certificate.href} href={certificate.href} className="pill pill-outline" download>
+              {certificate.label} <span aria-hidden="true">↓</span>
+            </a>
           ))}
+          <ShareCardButton
+            imagePath={PLAYER_CARD_IMAGE_PATH}
+            fileName={PLAYER_CARD_FILE_NAME}
+            title={`${profile.fullName} · Player card`}
+          />
         </div>
+        {certificates.length === 0 ? (
+          <p className="mt-3 text-[12px] text-club-muted">
+            Certificates appear here after your first match.
+          </p>
+        ) : null}
       </div>
 
       <div>

@@ -6,7 +6,8 @@ import { submitEntry } from "./actions";
 import { EntryForm } from "./entry-form";
 import { requireUser } from "@/auth/require";
 import { StatusBadge } from "@/components/status-badge";
-import { db } from "@/db/client";
+import { db, getDb } from "@/db/client";
+import { listPlayedCategories } from "@/db/partners";
 import { entries, profiles, tournaments } from "@/db/schema";
 import { ageFromDob } from "@/lib/age";
 import { CATEGORY_LABELS, entriesOpen } from "@/lib/entries";
@@ -121,7 +122,8 @@ export default async function RegisterPage() {
         <EntryForm
           action={submitEntry}
           tournamentId={tournament.id}
-          enteredCategories={myEntries.map((entry) => entry.category)}
+          // Includes events the player joined as a doubles partner.
+          enteredCategories={listPlayedCategories(getDb(), user.id)}
           feeLabel={feeLabel}
           closesLabel={closesLabel}
           paymentsEnabled={process.env.NEXT_PUBLIC_PAYMENTS_ENABLED === "true"}

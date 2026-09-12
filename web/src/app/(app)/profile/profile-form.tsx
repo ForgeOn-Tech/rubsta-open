@@ -7,14 +7,17 @@ import { saveProfile, type ProfileFormState } from "./actions";
 import {
   GENDERS,
   GENDER_LABELS,
+  HANDS,
+  HAND_LABELS,
   type Gender,
+  type Hand,
   type PreviousTournament,
   type Profile,
 } from "@/db/schema";
 import { ageFromDob } from "@/lib/age";
 
 interface ProfileFormProps {
-  initial: Pick<Profile, "fullName" | "dateOfBirth" | "gender" | "mobile" | "club" | "bestRanking" | "previousTournaments"> | null;
+  initial: Pick<Profile, "fullName" | "dateOfBirth" | "gender" | "mobile" | "club" | "bestRanking" | "previousTournaments" | "plays"> | null;
   fallbackName: string;
   email: string;
 }
@@ -37,6 +40,7 @@ export function ProfileForm({ initial, fallbackName, email }: ProfileFormProps) 
   const [mobile, setMobile] = useState(initial?.mobile ?? "");
   const [club, setClub] = useState(initial?.club ?? "");
   const [bestRanking, setBestRanking] = useState(initial?.bestRanking ?? "");
+  const [plays, setPlays] = useState<Hand | "">(initial?.plays ?? "");
   const [rows, setRows] = useState<TournamentRow[]>(
     (initial?.previousTournaments ?? []).map((t: PreviousTournament) => ({
       name: t.name,
@@ -149,6 +153,26 @@ export function ProfileForm({ initial, fallbackName, email }: ProfileFormProps) 
             onChange={(event) => setBestRanking(event.target.value)}
           />
         </div>
+      </div>
+
+      <div>
+        <label className="caps" htmlFor="plays">
+          Plays
+        </label>
+        <select
+          id="plays"
+          name="plays"
+          className="field"
+          value={plays}
+          onChange={(event) => setPlays(HANDS.find((hand) => hand === event.target.value) ?? "")}
+        >
+          <option value="">Not set</option>
+          {HANDS.map((hand) => (
+            <option key={hand} value={hand}>
+              {HAND_LABELS[hand]}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div>
