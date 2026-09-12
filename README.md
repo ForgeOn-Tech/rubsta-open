@@ -85,23 +85,30 @@ Fonts use Google Fonts with local system fallbacks.
 | Files | Purpose |
 | --- | --- |
 | `index.html`, `assets/waitlist.css`, `assets/waitlist.js` | Waitlist page and form behaviour |
-| `assets/waitlist-form.js` | Form checks, used by the page and the tests |
+| `assets/waitlist-form.js` | Interest form checks, used by the page and the tests |
+| `assets/sponsor.css`, `assets/sponsor.js` | Become a Sponsor pop-up and form behaviour |
+| `assets/sponsor-form.js` | Sponsor form checks, used by the page and the tests |
 | `apps-script/waitlist.gs` | Google Apps Script that saves interest to a Google Sheet |
+| `apps-script/sponsor.gs` | The same script's handler for sponsorship enquiries |
 | `preview/index.html`, `assets/landing.css`, `assets/club.css`, `assets/landing.js` | Full landing page |
 
-### Waitlist form setup
+### Form setup
 
-Submissions go to a Google Sheet through an Apps Script web app. Until the form has
-an `action` URL, it tells visitors that the list is not open yet.
+The Show interest form and the Become a Sponsor form both post to one Apps Script web
+app, which writes them to two tabs of the same Google Sheet. Until a form has an
+`action` URL, it tells visitors that it is not open yet.
 
 1. Create a Google Sheet that only the organisers can open.
 2. In the sheet, open **Extensions > Apps Script**. Replace the editor contents with
-   `apps-script/waitlist.gs` and save.
+   `apps-script/waitlist.gs`. Add a second script file named `sponsor.gs` and paste
+   `apps-script/sponsor.gs` into it. Save.
 3. Select **Deploy > New deployment > Web app**. Set **Execute as** to *Me* and
    **Who has access** to *Anyone*. Deploy and approve the permissions.
 4. Copy the web app URL, which ends in `/exec`. Open it in a browser to check it: it
-   shows `{"ok":true,"service":"rubsta-open-interest"}`.
-5. In `index.html`, add the URL to the form tag as
+   shows `{"ok":true,"service":"rubsta-open-interest","forms":["interest","sponsor"]}`.
+   A reply without `"sponsor"` in `forms` means `sponsor.gs` has not been deployed
+   yet, and sponsorship enquiries will be refused.
+5. In `index.html`, add the URL to both form tags as
    `action="https://script.google.com/macros/s/…/exec"`.
 
 If **Extensions > Apps Script** shows “Sorry, unable to open the file at present”,
@@ -117,6 +124,13 @@ looks like a formula as plain text, and drops submissions that fill the hidden
 bot-trap field. After you change the script, publish it under **Deploy > Manage
 deployments** as a new version of the same deployment, so the URL stays the same.
 
+Sponsorship enquiries carry `type=sponsor`, which sends them to a “Sponsors” tab in
+the same sheet, with the columns *Submitted at*, *Updated at*, *Name*,
+*Organisation*, *Email*, *Mobile* and *Message*. They follow the same rules: one row
+per email address, a second enquiry updates that row, and the message keeps its line
+breaks. A post with no `type` goes to the Interest tab, so an older copy of the page
+keeps working.
+
 With *Anyone* access, anyone who has the URL can post to the script, and the URL is
 visible in the page source. The field checks limit what a post can write.
 
@@ -126,8 +140,9 @@ Run the form tests with Node.js (tested with Node 26). They need no install:
 node --test tests/*.test.mjs
 ```
 
-The tests also check that the script accepts exactly the categories on the page and
-uses the same limits and messages as the browser checks.
+The tests also check that the script accepts exactly the categories on the page, that
+both scripts use the same limits and messages as the browser checks, and that a
+sponsorship enquiry reaches the Sponsors tab without touching the Interest tab.
 
 ## Stack
 

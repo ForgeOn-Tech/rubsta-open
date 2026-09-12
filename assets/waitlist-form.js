@@ -1,5 +1,6 @@
 // Rules for the Show interest form. apps-script/waitlist.gs repeats these checks
-// on the server; change both files together.
+// on the server; change both files together. The name, email and mobile checks are
+// shared with the Become a Sponsor form in sponsor-form.js.
 
 /** @typedef {'name' | 'email' | 'mobile' | 'categories' | 'request'} InterestField */
 
@@ -20,6 +21,7 @@
 
 export const LIMITS = Object.freeze({ name: 80, email: 254, mobile: 20, request: 120 });
 const MOBILE_DIGITS = Object.freeze({ min: 7, max: 15 });
+export const MOBILE_MESSAGE = `Enter a mobile number with ${MOBILE_DIGITS.min} to ${MOBILE_DIGITS.max} digits, or leave it empty.`;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MOBILE_CHARACTERS = /^\+?[\d\s-]+$/;
 
@@ -58,15 +60,12 @@ export function validateInterest(interest, allowedCategories) {
 
   if (!interest.email) {
     errors.push({ field: 'email', message: 'Enter your email address.' });
-  } else if (!EMAIL_PATTERN.test(interest.email) || interest.email.length > LIMITS.email) {
+  } else if (!isEmail(interest.email)) {
     errors.push({ field: 'email', message: 'Enter an email address like name@example.com.' });
   }
 
   if (interest.mobile && !isMobile(interest.mobile)) {
-    errors.push({
-      field: 'mobile',
-      message: `Enter a mobile number with ${MOBILE_DIGITS.min} to ${MOBILE_DIGITS.max} digits, or leave it empty.`,
-    });
+    errors.push({ field: 'mobile', message: MOBILE_MESSAGE });
   }
 
   if (interest.categories.some((category) => !allowedCategories.includes(category))) {
@@ -149,18 +148,27 @@ export function categoryPhrase(labels, total) {
 }
 
 /**
+ * Trims the value and folds every run of whitespace to one space.
  * @param {string} value
  * @returns {string}
  */
-function foldSpaces(value) {
+export function foldSpaces(value) {
   return value.trim().replace(/\s+/g, ' ');
+}
+
+/**
+ * @param {string} value A trimmed, lowercased email address.
+ * @returns {boolean}
+ */
+export function isEmail(value) {
+  return EMAIL_PATTERN.test(value) && value.length <= LIMITS.email;
 }
 
 /**
  * @param {string} value
  * @returns {boolean}
  */
-function isMobile(value) {
+export function isMobile(value) {
   const digits = value.replace(/\D/g, '').length;
   return (
     MOBILE_CHARACTERS.test(value) &&

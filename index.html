@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#294f35"><title>Rubsta Open — Show your interest</title>
 <link rel="preload" as="image" href="assets/images/club-court.jpg"><link rel="stylesheet" href="assets/landing.css"><link rel="stylesheet" href="assets/club.css"><link rel="stylesheet" href="assets/waitlist.css"><script type="module" src="assets/waitlist.js"></script>
 <link rel="stylesheet" href="assets/coach.css"><script src="assets/coach.js" defer></script>
-<link rel="stylesheet" href="assets/sponsor.css"><script src="assets/sponsor.js" defer></script>
+<link rel="stylesheet" href="assets/sponsor.css"><script type="module" src="assets/sponsor.js"></script>
 </head>
 <body>
 <div class="entrance" id="entrance" aria-hidden="true"><div class="entrance-court"><span class="entrance-shadow"></span><span class="entrance-ball"><span class="tennis-ball"></span></span></div><p class="entrance-wordmark">Rubsta <i>Open</i></p><p class="entrance-label">ENTRIES OPEN SOON</p></div>
@@ -110,19 +110,24 @@
 <div class="interest-done" id="interest-done" tabindex="-1" hidden><div class="done-badge" aria-hidden="true"><span class="done-circle"></span><svg class="done-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="tennis-ball"></span></div><p class="eyebrow">INTEREST RECEIVED</p><h3 id="interest-done-title" data-done-heading></h3><div class="done-lines" data-done-lines></div><button class="button primary" type="button" data-close-interest>Done</button></div>
 </div>
 </dialog>
-<dialog id="sponsor-dialog" aria-labelledby="sponsor-title" aria-describedby="sponsor-intro">
-<div class="sponsor-dialog-head"><div><p class="eyebrow">RUBSTA OPEN</p><h2 id="sponsor-title">Become a Sponsor</h2></div><button class="sponsor-close" type="button" aria-label="Close sponsor form">×</button></div>
+<dialog id="sponsor-dialog" aria-labelledby="sponsor-title">
+<div class="sponsor-dialog-head"><div><p class="eyebrow">RUBSTA OPEN</p><h2 id="sponsor-title">Become a Sponsor</h2></div><button class="sponsor-close" type="button" data-close-sponsor aria-label="Close">×</button></div>
 <div class="sponsor-dialog-body">
 <p id="sponsor-intro">Be part of Rubsta Open. Tell us about your brand and how you’d like to support the tournament.</p>
-<form id="sponsor-form">
-<label>Full name<input name="name" autocomplete="name" maxlength="80" required autofocus></label>
-<label>Brand / organisation<input name="organisation" autocomplete="organization" maxlength="120" required></label>
-<label>Email<input name="email" type="email" autocomplete="email" maxlength="254" required></label>
-<label>Mobile <span>(optional)</span><input name="mobile" type="tel" autocomplete="tel" maxlength="20"></label>
-<label>How would you like to get involved? <span>(optional)</span><textarea name="message" rows="3" maxlength="1000" placeholder="Tell us about your sponsorship ideas"></textarea></label>
-<p class="sponsor-form-note">Sponsorship enquiries open soon. This form is a preview; details are not sent yet.</p>
-<button class="button primary" type="submit" disabled>Send enquiry <span aria-hidden="true">↗</span></button>
+<!-- The Apps Script web app that saves enquiries to the Sponsors sheet. See README.md. -->
+<form id="sponsor-form" method="post" action="https://script.google.com/macros/s/AKfycbxUgItBTEyWIj98a0nlNGq_HbcmP-cgCqNn9B4Dy-CoXGwgj5QLnD1I2rtnRg-fDzG1/exec">
+<input type="hidden" name="type" value="sponsor">
+<div class="field"><label for="sponsor-name">Full name</label><input class="text-input" id="sponsor-name" name="name" type="text" autocomplete="name" maxlength="80" required autofocus aria-describedby="sponsor-name-error"><p class="field-error" id="sponsor-name-error" hidden></p></div>
+<div class="field"><label for="sponsor-organisation">Brand or organisation</label><input class="text-input" id="sponsor-organisation" name="organisation" type="text" autocomplete="organization" maxlength="120" required aria-describedby="sponsor-organisation-error"><p class="field-error" id="sponsor-organisation-error" hidden></p></div>
+<div class="field"><label for="sponsor-email">Email</label><input class="text-input" id="sponsor-email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" required aria-describedby="sponsor-email-error"><p class="field-error" id="sponsor-email-error" hidden></p></div>
+<div class="field"><label for="sponsor-mobile">Mobile <span class="optional">(optional)</span></label><input class="text-input" id="sponsor-mobile" name="mobile" type="tel" autocomplete="tel" maxlength="20" aria-describedby="sponsor-mobile-hint sponsor-mobile-error"><p class="field-hint" id="sponsor-mobile-hint">Only if you would like a call or message about sponsorship.</p><p class="field-error" id="sponsor-mobile-error" hidden></p></div>
+<div class="field"><label for="sponsor-message">How would you like to get involved? <span class="optional">(optional)</span></label><textarea class="text-input" id="sponsor-message" name="message" rows="3" maxlength="1000" placeholder="Tell us about your sponsorship ideas" aria-describedby="sponsor-message-error"></textarea><p class="field-error" id="sponsor-message-error" hidden></p></div>
+<div class="trap" aria-hidden="true"><label for="sponsor-website">Leave this field empty</label><input id="sponsor-website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+<div class="form-footer"><button class="button primary" type="submit">Send enquiry <span aria-hidden="true">↗</span></button><p class="form-note">We use these details only to contact you about sponsoring Rubsta Open.</p></div>
+<p class="form-status" id="sponsor-status" role="status"></p>
 </form>
+<div class="sponsor-sending" id="sponsor-sending" tabindex="-1" hidden><div class="send-court" aria-hidden="true"><span class="send-rally"><span class="tennis-ball"></span></span></div><p role="status">Sending your enquiry…</p></div>
+<div class="sponsor-done" id="sponsor-done" tabindex="-1" hidden><div class="done-badge" aria-hidden="true"><span class="done-circle"></span><svg class="done-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="tennis-ball"></span></div><p class="eyebrow">ENQUIRY RECEIVED</p><h3 id="sponsor-done-title" data-done-heading></h3><div class="done-lines" data-done-lines></div><button class="button primary" type="button" data-close-sponsor>Done</button></div>
 </div>
 </dialog>
 </body></html>

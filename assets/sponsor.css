@@ -7,15 +7,22 @@
 .sponsor-dialog-body{padding:14px 32px 32px}
 #sponsor-intro{margin:0 0 24px;font-size:13px;line-height:1.8;color:var(--muted)}
 #sponsor-form{display:grid;gap:24px}
-#sponsor-form label{display:block;font-size:12px;font-weight:600}
-#sponsor-form label span{font-weight:400;color:var(--muted)}
-#sponsor-form input,#sponsor-form textarea{display:block;margin-top:8px;width:100%;font:15px Inter,system-ui,sans-serif;color:var(--ink);background:#fffdf6;border:1px solid #b3bda7;border-radius:0;padding:13px 14px}
-#sponsor-form textarea{resize:vertical}
+#sponsor-form textarea{resize:vertical;min-height:88px}
 #sponsor-form :focus-visible,.sponsor-close:focus-visible,.sponsor-actions button:focus-visible{outline:3px solid #37794f;outline-offset:2px}
-.sponsor-form-note{margin:0;font-size:11px;line-height:1.6;color:var(--muted)}
-#sponsor-form button{justify-self:start}
-#sponsor-form button:disabled{opacity:.55;cursor:not-allowed}
+#sponsor-dialog[data-state=sending] #sponsor-intro,
+#sponsor-dialog[data-state=done] #sponsor-intro,
+#sponsor-dialog[data-state=done] #sponsor-title{display:none}
+
+/* The loader and confirmation reuse the court, badge and keyframes from waitlist.css. */
+.sponsor-sending{display:flex;flex-direction:column;align-items:center;gap:26px;padding:56px 0 44px;text-align:center;outline:none}
+.sponsor-sending[hidden],.sponsor-done[hidden]{display:none}
+.sponsor-sending p{margin:0;font:10px var(--mono);letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+.sponsor-done{display:flex;flex-direction:column;align-items:center;padding:30px 0 6px;text-align:center;outline:none}
+.sponsor-done .eyebrow{margin:0;animation:done-rise .5s ease .45s both}
+.sponsor-done h3{font:40px/1.08 var(--serif);font-weight:400;letter-spacing:-1px;margin:14px 0 14px;animation:done-rise .5s ease .55s both}
+.sponsor-done .button{margin-top:28px;animation:done-rise .5s ease .75s both}
 body:has(#sponsor-dialog[open]){overflow:hidden}
-@media(max-width:760px){.sponsor-dialog-head{padding:22px 20px 0}.sponsor-dialog-head h2{font-size:34px}.sponsor-dialog-body{padding:12px 20px 24px}}
+@media(max-width:760px){.sponsor-dialog-head{padding:22px 20px 0}.sponsor-dialog-head h2{font-size:34px}.sponsor-dialog-body{padding:12px 20px 24px}.sponsor-done h3{font-size:34px}}
+@media(prefers-reduced-motion:reduce){.sponsor-done .eyebrow,.sponsor-done h3,.sponsor-done .button{animation:none}}
 
 .hero .sponsor-hero-cta{pointer-events:auto;background:var(--lime);border:1px solid var(--lime);color:var(--deep)}.hero .sponsor-hero-cta:hover{background:#e4efad;border-color:#e4efad}.hero .sponsor-hero-cta:focus-visible{outline:3px solid #fffbed;outline-offset:4px}
