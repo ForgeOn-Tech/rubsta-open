@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#294f35"><title>Rubsta Open — Show your interest</title>
 <link rel="preload" as="image" href="../assets/images/club-court.jpg"><link rel="stylesheet" href="../assets/landing.css"><link rel="stylesheet" href="../assets/club.css"><link rel="stylesheet" href="../assets/waitlist.css"><script type="module" src="../assets/waitlist.js"></script>
 <link rel="stylesheet" href="../assets/coach.css"><script src="../assets/coach.js" defer></script>
+<link rel="stylesheet" href="../assets/sponsor.css"><script src="../assets/sponsor.js" defer></script>
 </head>
 <body>
 <div class="entrance" id="entrance" aria-hidden="true"><div class="entrance-court"><span class="entrance-shadow"></span><span class="entrance-ball"><span class="tennis-ball"></span></span></div><p class="entrance-wordmark">Rubsta <i>Open</i></p><p class="entrance-label">ENTRIES OPEN SOON</p></div>
@@ -40,7 +41,7 @@
 <header class="site-header wrap"><a class="brand" href="#" aria-label="Rubsta Open home"><span class="club-monogram" aria-hidden="true">R<span>O</span></span><span class="brand-lockup">Rubsta Open<span class="brand-by">Powered by ForgeLabs</span></span></a><nav aria-label="Main navigation"><a href="#categories">Categories</a><a href="#coach">Meet Manvir</a><button class="nav-cta" type="button" data-open-interest aria-haspopup="dialog">Show interest <span aria-hidden="true">↗</span></button></nav></header>
 <main id="main">
 <section class="hero wrap" aria-labelledby="hero-title">
-<div class="hero-copy"><p class="eyebrow">ENTRIES OPEN SOON</p><h1 id="hero-title">Rubsta <em>Open</em></h1><p class="hero-powered">Powered by ForgeLabs</p><div class="actions"><button class="button primary" type="button" data-open-interest aria-haspopup="dialog">Show interest <span aria-hidden="true">↗</span></button></div>
+<div class="hero-copy"><p class="eyebrow">ENTRIES OPEN SOON</p><h1 id="hero-title">Rubsta <em>Open</em></h1><p class="hero-powered">Powered by ForgeLabs</p><div class="actions"><button class="button primary" type="button" data-open-interest aria-haspopup="dialog">Show interest <span aria-hidden="true">↗</span></button><button class="button sponsor-hero-cta" type="button" data-open-sponsor aria-haspopup="dialog" aria-controls="sponsor-dialog">Become a Sponsor <span aria-hidden="true">↗</span></button></div>
 <ul class="hero-facts" aria-label="The tournament at a glance">
 <li><svg class="fact-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="1"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg><span class="fact-label">Dates</span><strong>October</strong><small>Exact dates coming soon</small></li>
 <li><svg class="fact-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0Z"/><path d="M8 6H5v1a3 3 0 0 0 3 3M16 6h3v1a3 3 0 0 1-3 3M12 13v4M9 20h6M10 17h4"/></svg><span class="fact-label">Prizes</span><strong>Cash prizes</strong><small>Amounts coming soon</small></li>
@@ -107,6 +108,21 @@
 </form>
 <div class="interest-sending" id="interest-sending" tabindex="-1" hidden><div class="send-court" aria-hidden="true"><span class="send-rally"><span class="tennis-ball"></span></span></div><p role="status">Sending your details…</p></div>
 <div class="interest-done" id="interest-done" tabindex="-1" hidden><div class="done-badge" aria-hidden="true"><span class="done-circle"></span><svg class="done-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="tennis-ball"></span></div><p class="eyebrow">INTEREST RECEIVED</p><h3 id="interest-done-title" data-done-heading></h3><div class="done-lines" data-done-lines></div><button class="button primary" type="button" data-close-interest>Done</button></div>
+</div>
+</dialog>
+<dialog id="sponsor-dialog" aria-labelledby="sponsor-title" aria-describedby="sponsor-intro">
+<div class="sponsor-dialog-head"><div><p class="eyebrow">RUBSTA OPEN</p><h2 id="sponsor-title">Become a Sponsor</h2></div><button class="sponsor-close" type="button" aria-label="Close sponsor form">×</button></div>
+<div class="sponsor-dialog-body">
+<p id="sponsor-intro">Be part of Rubsta Open. Tell us about your brand and how you’d like to support the tournament.</p>
+<form id="sponsor-form">
+<label>Full name<input name="name" autocomplete="name" maxlength="80" required autofocus></label>
+<label>Brand / organisation<input name="organisation" autocomplete="organization" maxlength="120" required></label>
+<label>Email<input name="email" type="email" autocomplete="email" maxlength="254" required></label>
+<label>Mobile <span>(optional)</span><input name="mobile" type="tel" autocomplete="tel" maxlength="20"></label>
+<label>How would you like to get involved? <span>(optional)</span><textarea name="message" rows="3" maxlength="1000" placeholder="Tell us about your sponsorship ideas"></textarea></label>
+<p class="sponsor-form-note">Sponsorship enquiries open soon. This form is a preview; details are not sent yet.</p>
+<button class="button primary" type="submit" disabled>Send enquiry <span aria-hidden="true">↗</span></button>
+</form>
 </div>
 </dialog>
 </body></html>
