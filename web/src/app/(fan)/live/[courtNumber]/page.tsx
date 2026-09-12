@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { predictAction, reactAction } from "./actions";
+import { postMessageAction, predictAction, reactAction } from "./actions";
 import { CourtLive } from "./court-live";
 import { auth } from "@/auth/auth";
 import { getDb } from "@/db/client";
@@ -64,6 +64,7 @@ export default async function FanCourtPage({
         initialFeed={feed}
         predictAction={predictAction}
         reactAction={reactAction}
+        postMessageAction={postMessageAction}
       />
     </div>
   );

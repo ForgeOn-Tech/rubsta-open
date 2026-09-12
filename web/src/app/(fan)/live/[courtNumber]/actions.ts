@@ -2,10 +2,12 @@
 
 import { auth } from "@/auth/auth";
 import { getDb } from "@/db/client";
-import { FanRejectedError, addReaction, savePrediction } from "@/db/fan";
+import { FanRejectedError, addReaction, postFanMessage, savePrediction } from "@/db/fan";
+import { getCurrentTournament } from "@/db/queries";
 import { REACTION_KINDS, type ReactionKind } from "@/db/schema";
 import type { ActionState } from "@/lib/form-state";
 import { SIDES, type Side } from "@/lib/match";
+import { MAX_COURT } from "@/lib/score-record";
 
 function sideFrom(formData: FormData): Side | null {
   const value = String(formData.get("side") ?? "");
@@ -63,5 +65,38 @@ export async function reactAction(_prev: ActionState, formData: FormData): Promi
     throw error;
   }
 
+  return { error: null, savedAt: Date.now() };
+}
+
+/** Posts a fan's message to a court chat. */
+export async function postMessageAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) return { error: "Sign in to join the chat.", savedAt: null };
+
+  const courtNumber = Number(formData.get("courtNumber") ?? "");
+  if (!Number.isInteger(courtNumber) || courtNumber < 1 || courtNumber > MAX_COURT) {
+    return { error: "That court does not exist.", savedAt: null };
+  }
+  const tournament = getCurrentTournament();
+  if (!tournament) return { error: "No tournament is running.", savedAt: null };
+
+  try {
+    postFanMessage(getDb(), {
+      tournamentId: tournament.id,
+      courtNumber,
+      userId,
+      body: String(formData.get("body") ?? ""),
+      now: Date.now(),
+    });
+  } catch (error) {
+    if (error instanceof FanRejectedError) return { error: error.message, savedAt: null };
+    throw error;
+  }
+
+  // The page polls for new messages, so nothing is revalidated here.
   return { error: null, savedAt: Date.now() };
 }

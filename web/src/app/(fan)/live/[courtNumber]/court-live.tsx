@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { CourtChat } from "./court-chat";
 import { PredictionPanel } from "./prediction-panel";
 import { ReactionsRow } from "./reactions-row";
 import { CATEGORY_LABELS } from "@/db/schema";
@@ -32,12 +33,14 @@ export function CourtLive({
   initialFeed,
   predictAction,
   reactAction,
+  postMessageAction,
 }: {
   courtNumber: number;
   embedUrl: string | null;
   initialFeed: FanFeed;
   predictAction: FormAction;
   reactAction: FormAction;
+  postMessageAction: FormAction;
 }) {
   const [feed, setFeed] = useState<FanFeed>(initialFeed);
 
@@ -97,6 +100,13 @@ export function CourtLive({
           action={predictAction}
         />
       )}
+
+      <CourtChat
+        courtNumber={courtNumber}
+        messages={feed.messages}
+        signedIn={feed.signedIn}
+        action={postMessageAction}
+      />
     </div>
   );
 }
