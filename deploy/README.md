@@ -124,7 +124,8 @@ print expanded Compose configuration because it contains environment secrets.
 - Razorpay test payments were enabled after the initial deployment at the user's
   request. Existing test credentials are stored only in the ignored, protected
   app environment on the VM. No local database or live payment keys were copied.
-  Public launch still needs Google OAuth, rotated payment credentials and webhook
+  Public launch still needs verified individual Google sign-in with demo disabled,
+  rotated payment credentials and webhook
   verification if payments are enabled, confirmed entry deadline, backups, and
   preservation of the live main branch's sponsorship integration. The preview's
   sponsorship form does not send enquiries.
@@ -149,10 +150,23 @@ after closing the browser is not configured: no dashboard webhook or webhook
 secret is set, and the preview password gate protects that route as well.
 Do not treat this as a verified webhook/reconciliation flow.
 
-Everyone currently shares the demo account; an event already paid by one tester
-cannot be paid again by another. Separate tester accounts remain a prerequisite
-for independent parallel testing. Test keys previously shared in chat should be
+Anyone choosing the demo option shares its account; an event already paid by one
+demo tester cannot be paid again by another. Use individual Google accounts once
+the first real login is verified. Test keys previously shared in chat should be
 rotated before wider use; do not paste replacement secrets into chat.
+
+## Google sign-in configuration
+
+Google OAuth credentials from the separate `tennis-os` project are installed in
+the protected VM app environment. Hosting remains in `forgeon`. The authorized
+callback is `https://internal.rubstaopen.com/api/auth/callback/google`.
+The downloaded client-secret JSON remains outside the repository and was not
+uploaded as an asset. The app is healthy with Google enabled; an account-owner
+login must still verify consent and the return callback. The browser password
+gate and test payments remain active. Demo access is temporarily retained until
+the first Google login and the organiser's admin email are confirmed. New Google
+users receive player access, not admin access. Do not remove the password gate
+while shared demo/admin access is enabled.
 
 References: [GCS static hosting](https://docs.cloud.google.com/storage/docs/hosting-static-website),
 [persistent disk deletion settings](https://docs.cloud.google.com/compute/docs/disks/modify-persistent-disk),
