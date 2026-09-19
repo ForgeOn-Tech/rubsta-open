@@ -49,13 +49,19 @@ Canvas: https://claude.ai/code/artifact/03717cab-8b12-4a02-be17-7394af9dae09
 
 ## Landing page
 
-The public page at the repository root is the Rubsta Open waitlist. The first fold
+The public page at the repository root is the Rubsta Open home page. The first fold
 shows the tournament at a glance: 24–25 October at Vazirani National Sports
-Academy, ₹50,000 in prize money for the Open category, a ₹3,000 entry fee, six
-courts and five categories.
+Academy, ₹50,000 in prize money for the Open category, entry fees of ₹2,000 to
+₹4,000 by category, six courts and five categories.
 
-Every “Show interest” button opens the form in a pop-up, and so does a link to
-`#interest`. The form takes a name, an email, an optional mobile number, the
+Every “Register” link opens the registration page of the Tournament OS app
+(`web/`) in a new tab. `assets/register.js` sets the address: on `localhost` or
+`127.0.0.1` it is `http://localhost:3100/register`, where `npm run dev` serves the
+app, and anywhere else it is `https://register.rubstaopen.com/register`. That
+address works only once the app is deployed there.
+
+The interest form still opens from a link to `#interest`, which the “Request it”
+link under the categories uses. The form takes a name, an email, an optional mobile number, the
 categories a player wants and a free-text category request. A request with no
 category ticked is a valid submission. While the details go to Google, the Send
 button's pop-up shows a tennis ball rallying across a small court. A confirmation
@@ -66,7 +72,7 @@ On the first page load of a browser session, a short entrance plays: a tennis ba
 bounces onto a court, then the page fades in. It skips when the visitor prefers
 reduced motion and when a link opens the form directly.
 
-Below the first fold, “Be the first to hear” lists the five categories with their
+Below the first fold, “Pick your category” lists the five categories with their
 planned draw sizes.
 
 The earlier full landing page now lives at `preview/`. It keeps the gallery,
@@ -85,7 +91,8 @@ Fonts use Google Fonts with local system fallbacks.
 
 | Files | Purpose |
 | --- | --- |
-| `index.html`, `assets/waitlist.css`, `assets/waitlist.js` | Waitlist page and form behaviour |
+| `index.html`, `assets/waitlist.css`, `assets/waitlist.js` | Home page and interest form behaviour |
+| `assets/register.js` | Points the Register links at the registration app |
 | `assets/waitlist-form.js` | Interest form checks, used by the page and the tests |
 | `assets/sponsor.css`, `assets/sponsor.js` | Become a Sponsor pop-up and form behaviour |
 | `assets/sponsor-form.js` | Sponsor form checks, used by the page and the tests |

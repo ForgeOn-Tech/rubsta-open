@@ -2,6 +2,9 @@
 button.button{border:0}
 button.nav-cta{background:transparent;color:inherit}
 button.nav-cta:hover{color:var(--lime)}
+.site-header a.nav-cta:hover{text-decoration:none}
+.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.category-note a{text-decoration:underline;text-underline-offset:3px}
 
 /* First fold: grows with its content so the facts are never clipped. */
 .hero.wrap{height:auto;min-height:max(800px,100svh);padding-bottom:90px}
