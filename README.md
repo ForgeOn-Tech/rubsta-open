@@ -50,8 +50,9 @@ Canvas: https://claude.ai/code/artifact/03717cab-8b12-4a02-be17-7394af9dae09
 ## Landing page
 
 The public page at the repository root is the Rubsta Open waitlist. The first fold
-shows the tournament at a glance: October dates, cash prizes, six courts and five
-categories. Exact dates and prize amounts are marked as coming soon.
+shows the tournament at a glance: 24–25 October at Vazirani National Sports
+Academy, ₹50,000 in prize money for the Open category, a ₹3,000 entry fee, six
+courts and five categories.
 
 Every “Show interest” button opens the form in a pop-up, and so does a link to
 `#interest`. The form takes a name, an email, an optional mobile number, the

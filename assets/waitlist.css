@@ -7,9 +7,11 @@ button.nav-cta:hover{color:var(--lime)}
 .hero.wrap{height:auto;min-height:max(800px,100svh);padding-bottom:90px}
 .hero-copy button{pointer-events:auto}
 .hero-concept{position:absolute;right:4vw;bottom:28px;z-index:3;margin:0;font:8px var(--mono);letter-spacing:1px;color:#fffbedcc}
-.hero-facts{list-style:none;margin:44px auto 0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));max-width:880px;border-block:1px solid #fffbed55;background:#0d1d1266}
+.hero-facts{list-style:none;margin:44px auto 0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));max-width:880px;border-block:1px solid #fffbed55;background:#0d1d1266}
 .hero-facts li{display:flex;flex-direction:column;align-items:center;gap:6px;padding:20px 14px;text-align:center}
 .hero-facts li+li{border-left:1px solid #fffbed33}
+.hero-facts li:nth-child(3n+1){border-left:0}
+.hero-facts li:nth-child(n+4){border-top:1px solid #fffbed33}
 .fact-icon{width:26px;height:26px;margin-bottom:4px;fill:none;stroke:var(--lime);stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
 .fact-label{font:9px var(--mono);letter-spacing:2px;text-transform:uppercase;color:#fffbedcc}
 .hero-facts strong{font:26px/1.1 var(--serif);font-weight:500;color:#fffbed}
@@ -145,7 +147,8 @@ footer a{text-decoration:underline;text-underline-offset:3px}
 .hero-concept{right:auto;left:22px;bottom:22px;font-size:6px}
 .hero-facts{grid-template-columns:1fr 1fr;margin-top:32px}
 .hero-facts li{padding:16px 10px}
-.hero-facts li:nth-child(3){border-left:0}
+.hero-facts li:nth-child(3n+1){border-left:1px solid #fffbed33}
+.hero-facts li:nth-child(odd){border-left:0}
 .hero-facts li:nth-child(n+3){border-top:1px solid #fffbed33}
 .hero-facts strong{font-size:22px}
 .section-aside{margin-top:20px}
