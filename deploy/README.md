@@ -1,17 +1,23 @@
 # Google Cloud deployment
 
 The approved deployment is a GCS asset bucket plus one Compute Engine VM with
-persistent SQLite storage. No cloud resources have been provisioned yet.
+persistent SQLite storage. The internal environment is provisioned in project
+`forgeon`, zone `asia-south1-a`: VM `rubsta-internal` (e2-medium), reserved address
+`rubsta-internal-ip` (`8.231.95.59`), 20 GB data disk `rubsta-internal-data`, and
+private bucket `forgeon-rubsta-internal-assets`. These are billable resources.
+DNS `internal.rubstaopen.com` points to this address. The existing public site is
+unchanged. Deployment verification is recorded below when complete.
 
-The VM runs the app and Caddy. Caddy serves the public HTML/assets from the GCS
-release prefix and sends every other route to Next.js. Register and Team access
+The VM runs the app and Caddy. The organisation disallows public bucket access;
+keep that policy intact. An authenticated deployer downloads the immutable GCS
+release to `/var/lib/rubsta/site/FULL_COMMIT_SHA` on the VM. Caddy serves that
+read-only copy and sends every other route to Next.js. Register and Team access
 therefore stay on one HTTPS origin. Authentication callbacks return to `/home`,
 not the public landing page.
 
 ## Required before provisioning
 
-- Refresh `gcloud` access to project `forgeon`; both saved accounts required
-  reauthentication at the last deployment attempt.
+- Authenticate `gcloud` to project `forgeon` using `tech@forgelabs.in`.
 - Choose internal demo or public registration. Google OAuth is not configured
   locally. Public registration must use Google OAuth with demo sign-in disabled.
 - Select the hostname and point its DNS at the VM's reserved IP. Keep the existing
@@ -22,8 +28,8 @@ not the public landing page.
 - `Dockerfile` builds the standalone Next app on Linux, including SQLite's native
   dependency. `.dockerignore` excludes credentials, local databases and caches.
 - `compose.yaml` exposes only Caddy on ports 80/443. The app has no published port.
-- `Caddyfile` routes `/` and `/assets/*` to GCS and other paths to the app. GCS
-  must contain only public website assets, never credentials or a database.
+- `Caddyfile` routes `/` and `/assets/*` to the downloaded GCS release and other
+  paths to the app. GCS contains website assets, never credentials or a database.
 - `access.internal.caddy` password-protects the entire origin. Use test payments
   only. Razorpay cannot deliver unauthenticated webhooks through this gate.
 - `access.public.caddy` relies on the app's Google sign-in and role checks.
@@ -49,8 +55,10 @@ print expanded Compose configuration because it contains environment secrets.
    Mount it at `/var/lib/rubsta` and create `data` (owned by UID/GID 1000) and `tls`
    directories there. A container rebuild must never replace that mount.
 3. Publish `index.html` and `assets/` from the reviewed, committed source to
-   `gs://BUCKET/releases/FULL_COMMIT_SHA/`. Give public read access only to the
-   dedicated asset bucket. Use release prefixes for rollback; do not upload the
+   `gs://BUCKET/releases/FULL_COMMIT_SHA/`. Keep the bucket private. Download that
+   prefix using authenticated `gcloud storage cp`, transfer it over IAP, and put
+   `index.html` and `assets/` in `/var/lib/rubsta/site/FULL_COMMIT_SHA`. Use release
+   prefixes for rollback; do not upload the
    repository, `.env` files, `web/`, or database files. HTML should revalidate.
 4. Copy the exact same source commit and separate protected environment files to
    the VM. Set `RUBSTA_RELEASE` to that full SHA and validate configuration:

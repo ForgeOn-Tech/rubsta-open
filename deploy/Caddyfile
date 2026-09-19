@@ -4,20 +4,18 @@
 
 {$RUBSTA_HOST} {
   import /etc/caddy/access.caddy
+  root * /srv/site
 
   @homepage path / /index.html
   handle @homepage {
-    rewrite * /{$RUBSTA_ASSET_BUCKET}/releases/{$RUBSTA_RELEASE}/index.html
-    reverse_proxy https://storage.googleapis.com {
-      header_up Host storage.googleapis.com
-    }
+    rewrite * /index.html
+    header Cache-Control "no-cache"
+    file_server
   }
 
   handle /assets/* {
-    rewrite * /{$RUBSTA_ASSET_BUCKET}/releases/{$RUBSTA_RELEASE}{uri}
-    reverse_proxy https://storage.googleapis.com {
-      header_up Host storage.googleapis.com
-    }
+    header Cache-Control "no-cache"
+    file_server
   }
 
   handle {
