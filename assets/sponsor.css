@@ -1,0 +1,19 @@
+.sponsor-actions{margin-top:28px;text-align:center}
+#sponsor-dialog{width:min(640px,calc(100vw - 32px));max-width:none;max-height:calc(100dvh - 32px);overflow:auto;border:0;padding:0;background:var(--bg);color:var(--ink)}
+.sponsor-dialog-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:28px 32px 0}
+.sponsor-dialog-head h2{font-size:42px;margin:10px 0 0}
+.sponsor-close{flex:none;width:40px;height:40px;border:1px solid #b3bda7;border-radius:50%;background:transparent;color:var(--ink);font-size:20px;line-height:1}
+.sponsor-close:hover{background:#eef2dc}
+.sponsor-dialog-body{padding:14px 32px 32px}
+#sponsor-intro{margin:0 0 24px;font-size:13px;line-height:1.8;color:var(--muted)}
+#sponsor-form{display:grid;gap:24px}
+#sponsor-form label{display:block;font-size:12px;font-weight:600}
+#sponsor-form label span{font-weight:400;color:var(--muted)}
+#sponsor-form input,#sponsor-form textarea{display:block;margin-top:8px;width:100%;font:15px Inter,system-ui,sans-serif;color:var(--ink);background:#fffdf6;border:1px solid #b3bda7;border-radius:0;padding:13px 14px}
+#sponsor-form textarea{resize:vertical}
+#sponsor-form :focus-visible,.sponsor-close:focus-visible,.sponsor-actions button:focus-visible{outline:3px solid #37794f;outline-offset:2px}
+.sponsor-form-note{margin:0;font-size:11px;line-height:1.6;color:var(--muted)}
+#sponsor-form button{justify-self:start}
+#sponsor-form button:disabled{opacity:.55;cursor:not-allowed}
+body:has(#sponsor-dialog[open]){overflow:hidden}
+@media(max-width:760px){.sponsor-dialog-head{padding:22px 20px 0}.sponsor-dialog-head h2{font-size:34px}.sponsor-dialog-body{padding:12px 20px 24px}}

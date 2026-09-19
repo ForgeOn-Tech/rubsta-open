@@ -31,7 +31,7 @@ export default async function SignInPage({
       <div className="card w-full max-w-sm p-8">
         <div className="eyebrow">Tournament OS · Entry</div>
         <h1 className="mt-3 text-[20px] font-semibold tracking-[-0.01em]">
-          Rubsta Open
+          Rubsta <em>Open</em>
         </h1>
         <p className="mt-2 text-[13px]" style={{ color: "var(--color-muted)" }}>
           Sign in to register for the tournament.

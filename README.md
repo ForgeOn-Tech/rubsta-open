@@ -392,8 +392,18 @@ labelled. Nothing in this update connects production services.
 
 ### Public hosting
 
-Production uses Sites; the original GitHub repository stays private. GitHub Pages
-was unavailable for this account's private-repository plan. `.openai/hosting.json`
-records the Sites project. `python3 scripts/build-site.py` assembles only public
-website assets into `dist/`, excluding the original large PNG and repository files.
-Publish a saved version from the exact source commit pushed to the Sites repository.
+As verified on 19 September 2026, the live public website uses GitHub Pages,
+publishing `main` at `www.rubstaopen.com`. The Sites ID in `.openai/hosting.json`
+is historical and is unavailable to the currently connected account.
+
+The themed landing page uses `/register` and `/internal` links. In localhost
+previews, `assets/register.js` sends them to the Next.js app on port 3100.
+`/internal` requires sign-in and directs admins to `/admin`, umpires to `/score`,
+and players to `/home`; destination pages retain their existing access checks.
+
+Deployment of these links requires a Node host with persistent SQLite storage
+and routing to the app. GitHub Pages cannot run the registration backend.
+The previously proposed `register.rubstaopen.com` domain does not currently
+resolve. Do not publish this branch over the live site until backend hosting and
+routing are configured and the current main-branch sponsorship integration is
+preserved. No payment keys or local databases belong in the deployment artifact.

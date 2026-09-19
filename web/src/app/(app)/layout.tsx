@@ -22,20 +22,20 @@ export default async function AppLayout({
   return (
     <div className="flex min-h-screen flex-col">
       <header
-        className="border-b bg-surface-1"
+        className="rubsta-entry-header"
         style={{ borderColor: "var(--color-line)" }}
       >
         <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-4 px-5 py-4">
-          <Link href="/home" className="flex items-baseline gap-3">
-            <span className="text-[15px] font-semibold tracking-[-0.01em] text-ink">
-              Rubsta Open
+          <Link href="/home" className="flex flex-col gap-1">
+            <span className="rubsta-wordmark">
+              Rubsta <em>Open</em>
             </span>
             <span className="eyebrow hidden sm:inline">
-              Tournament OS · Entry
+              Powered by ForgeLabs
             </span>
           </Link>
-          <div className="flex items-center gap-4">
-            <span className="caps">{session.user.name ?? session.user.email}</span>
+          <div className="flex min-w-0 items-center gap-4">
+            <span className="caps hidden max-w-40 truncate sm:block">{session.user.name ?? session.user.email}</span>
             <form action={signOutAction}>
               <button
                 type="submit"

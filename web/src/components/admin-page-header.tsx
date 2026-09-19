@@ -11,7 +11,7 @@ export function AdminPageHeader({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="border-b border-line bg-surface-1 px-6 pb-4 pt-[22px]">
+    <div className="px-6 pb-5 pt-7">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="eyebrow">{eyebrow}</div>
