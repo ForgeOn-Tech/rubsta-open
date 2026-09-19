@@ -57,14 +57,21 @@ describe("EntryForm", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("opens the stub checkout before paying when payments are on", async () => {
-    const user = userEvent.setup();
+  it("goes on to payment when payments are on", () => {
     render(<EntryForm {...BASE_PROPS} paymentsEnabled />);
 
-    await user.click(screen.getByRole("button", { name: "Continue to payment" }));
+    expect(screen.getByRole("button", { name: "Continue to payment" })).toHaveAttribute("type", "submit");
+    expect(screen.queryByRole("button", { name: "Submit entry" })).not.toBeInTheDocument();
+  });
 
-    expect(screen.getByRole("heading", { name: "Test checkout" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Pay ₹3,000" })).toBeInTheDocument();
+  it("shows the team fee for doubles", async () => {
+    const user = userEvent.setup();
+    render(<EntryForm {...BASE_PROPS} />);
+
+    await user.click(screen.getByRole("radio", { name: "Open doubles" }));
+
+    expect(screen.getByText("₹4,000 per team (₹2,000 each)")).toBeInTheDocument();
+    expect(screen.getByText(/You pay the fee for the whole team\./)).toBeInTheDocument();
   });
 
   it("shows the error returned by the server action", async () => {

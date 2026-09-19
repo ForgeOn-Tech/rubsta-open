@@ -5,6 +5,8 @@ import { notFound } from "next/navigation";
 import { changePartnerAction } from "../actions";
 import { ChangePartnerForm } from "./change-partner-form";
 import { InviteLink } from "./invite-link";
+import { PayButton } from "./pay-button";
+import { confirmCheckout, startCheckout } from "./payment-actions";
 import { requireUser } from "@/auth/require";
 import { PartnerStatusBadge } from "@/components/partner-status-badge";
 import { StatusBadge } from "@/components/status-badge";
@@ -12,9 +14,11 @@ import { db, getDb } from "@/db/client";
 import { getEventFees } from "@/db/fees";
 import { entries, tournaments } from "@/db/schema";
 import { CATEGORY_LABELS, entryReference, isDoubles } from "@/lib/entries";
+import { isPayable } from "@/lib/entry-status";
 import { eventFeeLabel } from "@/lib/fees";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatFee } from "@/lib/format";
 import { partnerInvitationPath } from "@/lib/partners";
+import { razorpayConfig } from "@/lib/razorpay";
 
 export const dynamic = "force-dynamic";
 
@@ -25,11 +29,14 @@ interface Detail {
 
 export default async function EntryConfirmationPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ entryId: string }>;
+  searchParams: Promise<{ pay?: string }>;
 }) {
   const user = await requireUser();
   const { entryId } = await params;
+  const { pay } = await searchParams;
 
   // Scoped to the signed-in user: another player's entry id is a 404.
   const row = db
@@ -43,6 +50,9 @@ export default async function EntryConfirmationPage({
   const { entry, tournament } = row;
   const categoryLabel = CATEGORY_LABELS[entry.category];
   const partnerStatus = entry.partnerStatus;
+  const feeCents = getEventFees(getDb(), tournament.id)[entry.category];
+  const feeLabel = eventFeeLabel(feeCents, tournament.currency, isDoubles(entry.category));
+  const awaitingPayment = razorpayConfig(process.env) !== null && isPayable(entry.status);
 
   const partner: Detail[] = entry.partnerName
     ? [
@@ -67,11 +77,7 @@ export default async function EntryConfirmationPage({
       label: "Entry fee",
       value: (
         <span className="mono">
-          {eventFeeLabel(
-            getEventFees(getDb(), tournament.id)[entry.category],
-            tournament.currency,
-            isDoubles(entry.category),
-          )}
+          {feeLabel}
         </span>
       ),
     },
@@ -96,12 +102,33 @@ export default async function EntryConfirmationPage({
       <div>
         <div className="eyebrow">{tournament.name} · Entry</div>
         <h1 className="mt-2 text-[20px] font-semibold tracking-[-0.01em]">
-          {entry.status === "paid" ? "Entry paid" : "Entry received"}
+          {entry.status === "paid" ? "Entry paid" : awaitingPayment ? "Pay to complete your entry" : "Entry received"}
         </h1>
         <p className="mt-1.5 text-[13px] text-muted">
-          Your {categoryLabel} entry for {tournament.name} is recorded.
+          {awaitingPayment
+            ? `Your ${categoryLabel} entry for ${tournament.name} is saved. It is complete once the fee is paid.`
+            : `Your ${categoryLabel} entry for ${tournament.name} is recorded.`}
         </p>
       </div>
+
+      {awaitingPayment ? (
+        <section aria-labelledby="payment-heading" className="card flex flex-col gap-3 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <h2 id="payment-heading" className="text-[14px] font-semibold">
+              Entry fee
+            </h2>
+            <span className="mono text-right text-[16px] font-semibold">{feeLabel}</span>
+          </div>
+          <p className="text-[12px] text-muted">Pay by UPI, card or netbanking through Razorpay.</p>
+          <PayButton
+            entryId={entry.id}
+            amountLabel={formatFee(feeCents, tournament.currency)}
+            openOnLoad={pay === "1"}
+            start={startCheckout}
+            confirm={confirmCheckout}
+          />
+        </section>
+      ) : null}
 
       <dl className="card divide-y divide-line">
         {details.map((detail) => (

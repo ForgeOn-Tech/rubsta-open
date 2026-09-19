@@ -38,7 +38,6 @@ export function EntryForm({
   const [category, setCategory] = useState<Category | undefined>(
     openCategories[0],
   );
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   if (!category) {
     return (
@@ -48,15 +47,6 @@ export function EntryForm({
     );
   }
 
-  function selectCategory(value: Category) {
-    setCategory(value);
-    setCheckoutOpen(false);
-  }
-
-  function openCheckout(event: React.MouseEvent<HTMLButtonElement>) {
-    // Run native validation (partner fields) before showing the checkout.
-    if (event.currentTarget.form?.reportValidity()) setCheckoutOpen(true);
-  }
 
   return (
     <form action={formAction} className="flex flex-col gap-5">
@@ -84,7 +74,7 @@ export function EntryForm({
                     value={value}
                     checked={category === value}
                     disabled={entered}
-                    onChange={() => selectCategory(value)}
+                    onChange={() => setCategory(value)}
                     aria-describedby={hintId}
                     className="h-4 w-4 accent-accent"
                   />
@@ -132,22 +122,8 @@ export function EntryForm({
       {isDoubles(category) ? (
         <p className="-mt-2 text-[12px] text-muted">
           Your partner signs in with this email to accept. The entry goes into the draw once they
-          accept.
+          accept. You pay the fee for the whole team.
         </p>
-      ) : null}
-
-      {checkoutOpen ? (
-        <section className="card p-4" aria-labelledby="checkout-title">
-          <div className="flex items-center justify-between gap-3">
-            <h2 id="checkout-title" className="text-[14px] font-semibold">
-              Test checkout
-            </h2>
-            <span className="badge badge-submitted">Razorpay stub</span>
-          </div>
-          <p className="mt-2 text-[12px] text-muted">
-            No money is taken. Paying here marks the entry as paid.
-          </p>
-        </section>
       ) : null}
 
       {state.error ? (
@@ -168,41 +144,9 @@ export function EntryForm({
         </div>
 
         <div className="mt-4 flex gap-3">
-          {!paymentsEnabled ? (
-            <button
-              type="submit"
-              className="btn btn-primary w-full"
-              disabled={pending}
-            >
-              {pending ? "Submitting…" : "Submit entry"}
-            </button>
-          ) : checkoutOpen ? (
-            <>
-              <button
-                type="button"
-                className="btn btn-outline"
-                onClick={() => setCheckoutOpen(false)}
-                disabled={pending}
-              >
-                Back
-              </button>
-              <button
-                type="submit"
-                className="btn btn-primary flex-1"
-                disabled={pending}
-              >
-                {pending ? "Processing…" : `Pay ${feeLabels[category]}`}
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              className="btn btn-primary w-full"
-              onClick={openCheckout}
-            >
-              Continue to payment
-            </button>
-          )}
+          <button type="submit" className="btn btn-primary w-full" disabled={pending}>
+            {pending ? "Submitting…" : paymentsEnabled ? "Continue to payment" : "Submit entry"}
+          </button>
         </div>
       </div>
     </form>

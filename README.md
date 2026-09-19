@@ -91,7 +91,7 @@ npm run dev                  # http://localhost:3100
 | `/home` | Players | Next step, partner invitations, entries, next match, player card with record and certificates, tournament details |
 | `/profile` | Players | Name, date of birth, gender, mobile, club, best ranking, past tournaments |
 | `/register` | Players | Choose an event (Open singles, Women's 30+, U-15 juniors, Open doubles, 40+ singles); doubles need a partner name and email |
-| `/register/<entry id>` | Players | Entry confirmation, visible only to the player who entered; for doubles, the partner link and a way to change partner |
+| `/register/<entry id>` | Players | Entry confirmation and, while unpaid, the Pay button, visible only to the player who entered; for doubles, the partner link and a way to change partner |
 | `/partner/<entry id>` | Invited partners | Accept or decline a doubles invitation, visible only to the invited email |
 | `/draws` and `/draws/<event>` | Everyone | Published draws with scores; a signed-in player's own lines are marked |
 | `/results` and `/results/<match id>` | Everyone | Matches in progress and completed by event, and one match's score and statistics |
@@ -189,8 +189,10 @@ A retired match has statistics up to the retirement.
 The statistics show under the result on the scoring screen when a match ends,
 and on each match's page in `/admin/results`.
 
-Entry status moves submitted → confirmed → paid. Any live entry can be cancelled,
-and a cancelled entry can be reinstated as submitted. Marking an entry paid by hand
+Entry status moves submitted → confirmed → paid. A Razorpay payment moves a
+submitted or confirmed entry straight to paid and stores Razorpay's payment id
+(`pay_…`) as the payment reference. Any live entry can be cancelled, and a
+cancelled entry can be reinstated as submitted. Marking an entry paid by hand
 records the payment reference `manual`.
 
 ### Player pages
@@ -226,9 +228,33 @@ app sends no email. A doubles entry goes into a draw only after the partner
 accepts. After a decline, or while waiting, the player can name a new partner,
 unless the entry is already in a published draw.
 
-Payments are off by default, and an entry is stored as `submitted`. With
-`NEXT_PUBLIC_PAYMENTS_ENABLED=true`, a stub checkout stores the entry as `paid`
-with `paymentRef: razorpay-stub`. No money moves in either mode.
+### Payments
+
+Payments go through Razorpay. They are off until `RAZORPAY_KEY_ID` and
+`RAZORPAY_KEY_SECRET` are set; until then an entry is stored as `submitted` and
+nobody is charged.
+
+With the keys set, "Continue to payment" saves the entry and opens Razorpay
+Checkout on the entry page. The server creates each order from the event's fee in
+`/admin/settings`, never from the browser. The player who enters doubles pays the
+whole team fee. When Checkout reports success, the server checks Razorpay's
+signature before it marks the entry paid. A player who closes Checkout can pay
+later from the entry page, which creates a new order.
+
+Razorpay also posts payments to `/api/payments/razorpay/webhook`. It marks the
+entry paid when the player closes the page before Checkout reports back. Set it
+up in the Razorpay dashboard under **Webhooks**, with the `payment.captured` and
+`order.paid` events, and put its secret in `RAZORPAY_WEBHOOK_SECRET`. Razorpay
+cannot reach `localhost`, so locally only the Checkout path runs.
+
+Each order is a row in the `payments` table. A payment for an entry that is
+already paid or cancelled is kept there, and the server logs it for a refund in
+the Razorpay dashboard. Refunds are made in the dashboard; the app does not issue
+them.
+
+To try it, create test keys in the Razorpay dashboard (Account & Settings > API
+Keys, test mode) and add them to `web/.env.local`. Test mode takes Razorpay's test
+cards and UPI IDs and moves no money.
 
 Only emails listed in `ADMIN_EMAILS` can open `/admin`, and demo mode does not
 change that. To use the admin interface locally, add `demo@rubstaopen.local`

@@ -14,6 +14,7 @@ import { ageFromDob } from "@/lib/age";
 import { CATEGORY_LABELS, entriesOpen, isDoubles } from "@/lib/entries";
 import { eventFeeLabel } from "@/lib/fees";
 import { formatEntryCloses } from "@/lib/format";
+import { razorpayConfig } from "@/lib/razorpay";
 import { PROVISIONAL_SCHEDULE_NOTE } from "@/lib/tournament";
 
 export const dynamic = "force-dynamic";
@@ -134,7 +135,7 @@ export default async function RegisterPage() {
           enteredCategories={listPlayedCategories(getDb(), user.id)}
           feeLabels={feeLabels}
           closesLabel={closesLabel}
-          paymentsEnabled={process.env.NEXT_PUBLIC_PAYMENTS_ENABLED === "true"}
+          paymentsEnabled={razorpayConfig(process.env) !== null}
         />
       )}
 

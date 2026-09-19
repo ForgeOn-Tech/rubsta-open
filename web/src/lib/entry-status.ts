@@ -21,6 +21,14 @@ const TRANSITIONS: Record<EntryStatus, readonly EntryAction[]> = {
   cancelled: [{ to: "submitted", label: "Reinstate" }],
 };
 
+/** Entries that still wait for their fee. */
+const PAYABLE_STATUSES: readonly EntryStatus[] = ["submitted", "confirmed"];
+
+/** True while a player can pay for the entry. */
+export function isPayable(status: EntryStatus): boolean {
+  return PAYABLE_STATUSES.includes(status);
+}
+
 export function isEntryStatus(value: string): value is EntryStatus {
   return ENTRY_STATUSES.some((status) => status === value);
 }
@@ -36,7 +44,7 @@ export function canTransition(from: EntryStatus, to: EntryStatus): boolean {
 
 /**
  * The fields to write for a status change. Marking paid keeps an existing
- * payment reference (e.g. the checkout stub) and otherwise records "manual".
+ * payment reference (a Razorpay payment id) and otherwise records "manual".
  */
 export function statusUpdate(
   entry: { status: EntryStatus; paymentRef: string | null },

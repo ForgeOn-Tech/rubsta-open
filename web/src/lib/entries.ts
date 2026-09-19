@@ -139,17 +139,3 @@ export function isUniqueViolation(error: unknown): boolean {
   if ((error as { code?: unknown }).code === SQLITE_UNIQUE_VIOLATION) return true;
   return isUniqueViolation(error.cause);
 }
-
-export interface PaymentOutcome {
-  status: EntryStatus;
-  paymentRef: string | null;
-}
-
-/**
- * What a new entry stores. Without payments it stays submitted; the stub
- * checkout (NEXT_PUBLIC_PAYMENTS_ENABLED=true) marks it paid without charging.
- */
-export const PAYMENT_OUTCOMES = {
-  disabled: { status: "submitted", paymentRef: null },
-  stub: { status: "paid", paymentRef: "razorpay-stub" },
-} as const satisfies Record<string, PaymentOutcome>;

@@ -227,6 +227,40 @@ export const entries = sqliteTable(
   (table) => [uniqueIndex("entries_user_category").on(table.userId, table.category)],
 );
 
+export const PAYMENT_STATUSES = ["created", "paid"] as const;
+export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
+
+/** One Razorpay order for an entry's fee. A retried checkout adds a new order. */
+export const payments = sqliteTable(
+  "payments",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    entryId: text("entry_id")
+      .notNull()
+      .references(() => entries.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    orderId: text("order_id").notNull(),
+    // Set once Razorpay confirms the payment; unique, so a replayed confirmation records nothing new.
+    paymentId: text("payment_id"),
+    amountCents: integer("amount_cents").notNull(),
+    currency: text("currency").notNull(),
+    status: text("status", { enum: PAYMENT_STATUSES }).notNull().default("created"),
+    createdAt: integer("created_at")
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+    paidAt: integer("paid_at"),
+  },
+  (table) => [
+    uniqueIndex("payments_order").on(table.orderId),
+    uniqueIndex("payments_payment").on(table.paymentId),
+    index("payments_entry").on(table.entryId),
+  ],
+);
+
 export const DRAW_STATUSES = ["draft", "published"] as const;
 export type DrawStatus = (typeof DRAW_STATUSES)[number];
 export const DRAW_STATUS_LABELS: Record<DrawStatus, string> = {
@@ -500,3 +534,4 @@ export type FanMessage = typeof fanMessages.$inferSelect;
 export type FanReaction = typeof fanReactions.$inferSelect;
 export type FanPrediction = typeof fanPredictions.$inferSelect;
 export type FanMute = typeof fanMutes.$inferSelect;
+export type Payment = typeof payments.$inferSelect;

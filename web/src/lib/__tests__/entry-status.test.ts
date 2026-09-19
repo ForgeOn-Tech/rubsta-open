@@ -5,6 +5,7 @@ import {
   actionsFor,
   canTransition,
   isEntryStatus,
+  isPayable,
   statusUpdate,
 } from "@/lib/entry-status";
 
@@ -37,9 +38,9 @@ describe("statusUpdate", () => {
   });
 
   it("keeps an existing payment reference", () => {
-    expect(statusUpdate({ status: "confirmed", paymentRef: "razorpay-stub" }, "paid")).toEqual({
+    expect(statusUpdate({ status: "confirmed", paymentRef: "pay_1" }, "paid")).toEqual({
       status: "paid",
-      paymentRef: "razorpay-stub",
+      paymentRef: "pay_1",
     });
     expect(statusUpdate({ status: "paid", paymentRef: "manual" }, "cancelled").paymentRef).toBe(
       "manual",
@@ -58,5 +59,14 @@ describe("isEntryStatus", () => {
     expect(isEntryStatus("paid")).toBe(true);
     expect(isEntryStatus("refunded")).toBe(false);
     expect(isEntryStatus("")).toBe(false);
+  });
+});
+
+describe("isPayable", () => {
+  it("is true only while the entry waits for its fee", () => {
+    expect(isPayable("submitted")).toBe(true);
+    expect(isPayable("confirmed")).toBe(true);
+    expect(isPayable("paid")).toBe(false);
+    expect(isPayable("cancelled")).toBe(false);
   });
 });

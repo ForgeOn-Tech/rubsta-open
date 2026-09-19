@@ -64,6 +64,13 @@
       "when": 1789805631013,
       "tag": "0008_event_fees",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1789806158485,
+      "tag": "0009_payments",
+      "breakpoints": true
     }
   ]
 }

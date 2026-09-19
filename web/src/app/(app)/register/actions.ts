@@ -10,7 +10,6 @@ import { PartnerRejectedError, changePartner, listPlayedCategories } from "@/db/
 import { entries, profiles, tournaments } from "@/db/schema";
 import {
   CATEGORY_LABELS,
-  PAYMENT_OUTCOMES,
   isDoubles,
   isUniqueViolation,
   validateEntryInput,
@@ -18,6 +17,7 @@ import {
 } from "@/lib/entries";
 import type { ActionState } from "@/lib/form-state";
 import { normaliseEmail } from "@/lib/partners";
+import { razorpayConfig } from "@/lib/razorpay";
 
 export async function submitEntry(
   _prev: EntryFormState,
@@ -57,10 +57,6 @@ export async function submitEntry(
   if (!validation.ok) return { error: validation.error };
 
   const doubles = isDoubles(validation.category);
-  const outcome =
-    process.env.NEXT_PUBLIC_PAYMENTS_ENABLED === "true"
-      ? PAYMENT_OUTCOMES.stub
-      : PAYMENT_OUTCOMES.disabled;
   const id = crypto.randomUUID();
 
   try {
@@ -73,8 +69,7 @@ export async function submitEntry(
         partnerName: doubles ? partnerName : null,
         partnerEmail: doubles ? normaliseEmail(partnerEmail) : null,
         partnerStatus: doubles ? "pending" : null,
-        status: outcome.status,
-        paymentRef: outcome.paymentRef,
+        status: "submitted",
       })
       .run();
   } catch (error) {
@@ -87,7 +82,8 @@ export async function submitEntry(
     throw error;
   }
 
-  redirect(`/register/${id}`);
+  // With payments on, the entry page opens Razorpay Checkout straight away.
+  redirect(razorpayConfig(process.env) ? `/register/${id}?pay=1` : `/register/${id}`);
 }
 
 /** Names a new doubles partner, who then has to accept. */
