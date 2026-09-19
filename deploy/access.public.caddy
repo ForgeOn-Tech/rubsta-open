@@ -1,0 +1,3 @@
+# Public visitors can view the tournament. Next.js enforces account and role
+# checks for registration, internal pages, payments and organiser actions.
+# Use only with DEMO_AUTH=false and configured Google OAuth credentials.

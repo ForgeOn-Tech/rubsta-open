@@ -1,0 +1,26 @@
+{
+  email {$RUBSTA_TLS_EMAIL}
+}
+
+{$RUBSTA_HOST} {
+  import /etc/caddy/access.caddy
+
+  @homepage path / /index.html
+  handle @homepage {
+    rewrite * /{$RUBSTA_ASSET_BUCKET}/releases/{$RUBSTA_RELEASE}/index.html
+    reverse_proxy https://storage.googleapis.com {
+      header_up Host storage.googleapis.com
+    }
+  }
+
+  handle /assets/* {
+    rewrite * /{$RUBSTA_ASSET_BUCKET}/releases/{$RUBSTA_RELEASE}{uri}
+    reverse_proxy https://storage.googleapis.com {
+      header_up Host storage.googleapis.com
+    }
+  }
+
+  handle {
+    reverse_proxy app:3100
+  }
+}

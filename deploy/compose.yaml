@@ -1,0 +1,51 @@
+services:
+  app:
+    image: rubsta-app:${RUBSTA_RELEASE:?Set the deployed source commit}
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    restart: unless-stopped
+    env_file: .env.app
+    environment:
+      AUTH_URL: https://${RUBSTA_HOST:?Set the app hostname}
+      AUTH_TRUST_HOST: "true"
+      DATABASE_PATH: /data/tournament.db
+    volumes:
+      - /var/lib/rubsta/data:/data
+    expose:
+      - "3100"
+    stop_grace_period: 30s
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3100/signin').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+  gateway:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      RUBSTA_HOST: ${RUBSTA_HOST:?Set the app hostname}
+      RUBSTA_TLS_EMAIL: ${RUBSTA_TLS_EMAIL:?Set a TLS contact email}
+      RUBSTA_ASSET_BUCKET: ${RUBSTA_ASSET_BUCKET:?Set the GCS asset bucket}
+      RUBSTA_RELEASE: ${RUBSTA_RELEASE:?Set the deployed source commit}
+      RUBSTA_PREVIEW_USER: ${RUBSTA_PREVIEW_USER:-}
+      RUBSTA_PREVIEW_PASSWORD_HASH: ${RUBSTA_PREVIEW_PASSWORD_HASH:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./access.${RUBSTA_ACCESS_MODE:?Choose internal or public}.caddy:/etc/caddy/access.caddy:ro
+      - /var/lib/rubsta/tls:/data
+    depends_on:
+      app:
+        condition: service_healthy
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
