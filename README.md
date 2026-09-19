@@ -90,7 +90,7 @@ npm run dev                  # http://localhost:3100
 | `/signin` | Everyone | Google sign-in when configured; demo account when `DEMO_AUTH=true` |
 | `/home` | Players | Next step, partner invitations, entries, next match, player card with record and certificates, tournament details |
 | `/profile` | Players | Name, date of birth, gender, mobile, club, best ranking, past tournaments |
-| `/register` | Players | Choose an event (MS, WS, MD, WD); doubles need a partner name and email |
+| `/register` | Players | Choose an event (Open singles, Women's 30+, U-15 juniors, Open doubles, 40+ singles); doubles need a partner name and email |
 | `/register/<entry id>` | Players | Entry confirmation, visible only to the player who entered; for doubles, the partner link and a way to change partner |
 | `/partner/<entry id>` | Invited partners | Accept or decline a doubles invitation, visible only to the invited email |
 | `/draws` and `/draws/<event>` | Everyone | Published draws with scores; a signed-in player's own lines are marked |
@@ -111,7 +111,7 @@ npm run dev                  # http://localhost:3100
 | `/admin/results/<match id>` | Admins | One match's score and statistics |
 | `/admin/players` | Admins | Everyone with a profile or entry, their entries, and search by name, email, club or mobile |
 | `/admin/fan` | Admins | Every court chat message with the account behind it; hide a message or mute a fan |
-| `/admin/settings` | Admins | Name, dates, venue, closing time (IST), fee, entries open or closed, schedule confirmed, courts, stream links |
+| `/admin/settings` | Admins | Name, dates, venue, closing time (IST), a fee for each event, entries open or closed, schedule confirmed, courts, stream links |
 | `/score` | Admins and umpires | Matches in progress, ready to start, waiting on earlier results, and completed |
 | `/score/<match id>` | Admins and umpires | Umpire scoring screen, which keeps working when the signal drops |
 | `/score/schedule/<day>` | Admins and umpires | A day's published order of play |
@@ -233,7 +233,9 @@ with `paymentRef: razorpay-stub`. No money moves in either mode.
 Only emails listed in `ADMIN_EMAILS` can open `/admin`, and demo mode does not
 change that. To use the admin interface locally, add `demo@rubstaopen.local`
 to `ADMIN_EMAILS` in `.env.local`. The database migrates and seeds Rubsta Open 2026 on
-first use. The seeded fee (₹1,500) and closing time (22 Sep, 18:00 IST) come
+first use. The seeded fees are the Rubsta Open 2026 fees: Open singles ₹3,000,
+Open doubles ₹4,000 per team (₹2,000 each), 40+ singles ₹3,000, U-15 juniors
+₹2,000 and Women's 30+ ₹2,500. The seeded closing time (22 Sep, 18:00 IST) comes
 from the design artboard, not a confirmed schedule. Player pages call the fee and
 closing time provisional until an admin ticks "Schedule confirmed" in
 `/admin/settings`, which needs a start date and venue.

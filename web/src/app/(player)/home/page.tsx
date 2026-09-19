@@ -6,6 +6,7 @@ import { requireUser } from "@/auth/require";
 import { PartnerStatusBadge } from "@/components/partner-status-badge";
 import { StatusBadge } from "@/components/status-badge";
 import { db, getDb } from "@/db/client";
+import { getEventFees } from "@/db/fees";
 import { listScoringMatches, type ScoringMatchRow } from "@/db/matches";
 import { listPartneredEntries, listPendingInvitations, listTeamEntryIds } from "@/db/partners";
 import { listPublishedDays } from "@/db/schedule";
@@ -14,9 +15,9 @@ import { CATEGORY_LABELS, entriesOpen } from "@/lib/entries";
 import {
   formatDate,
   formatEntryCloses,
-  formatFee,
   formatTournamentDates,
 } from "@/lib/format";
+import { feeRangeLabel } from "@/lib/fees";
 import { UPCOMING_FEATURES, greetingName, nextStep } from "@/lib/home";
 import { partnerInvitationPath } from "@/lib/partners";
 import { other } from "@/lib/match";
@@ -275,7 +276,7 @@ export default async function HomePage() {
                 },
                 {
                   label: "Entry fee",
-                  value: formatFee(tournament.feeCents, tournament.currency),
+                  value: feeRangeLabel(getEventFees(getDb(), tournament.id), tournament.currency),
                 },
               ].map((detail) => (
                 <div key={detail.label} className="border-b border-r border-club-line px-5 py-5">

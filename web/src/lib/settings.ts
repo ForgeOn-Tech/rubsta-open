@@ -1,4 +1,11 @@
-import { TOURNAMENT_STATUSES, type TournamentStatus } from "@/db/schema";
+import {
+  CATEGORIES,
+  CATEGORY_LABELS,
+  TOURNAMENT_STATUSES,
+  type Category,
+  type TournamentStatus,
+} from "@/db/schema";
+import type { EventFees } from "@/lib/fees";
 import type { ActionState } from "@/lib/form-state";
 
 const IST_OFFSET = "+05:30";
@@ -20,7 +27,7 @@ export interface SettingsForm {
   endsOn: string;
   venue: string;
   entryClosesAt: string; // datetime-local, entered in IST
-  feeRupees: string;
+  feeRupees: Record<Category, string>;
   status: string;
   scheduleConfirmed: boolean;
 }
@@ -32,13 +39,12 @@ export interface TournamentSettings {
   endsOn: string | null;
   venue: string | null;
   entryClosesAt: string;
-  feeCents: number;
   status: TournamentStatus;
   scheduleConfirmed: boolean;
 }
 
 export type SettingsValidation =
-  | { ok: true; settings: TournamentSettings }
+  | { ok: true; settings: TournamentSettings; fees: EventFees }
   | { ok: false; error: string };
 
 export type SettingsFormState = ActionState;
@@ -81,6 +87,20 @@ export function isoToIstLocal(iso: string): string {
   return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
 }
 
+/** Each event's fee in paise, or the first error in the form's rupee amounts. */
+function validateFees(feeRupees: Record<Category, string>): EventFees | string {
+  const fees: Partial<EventFees> = {};
+  for (const category of CATEGORIES) {
+    const text = feeRupees[category].trim();
+    const label = CATEGORY_LABELS[category];
+    if (!WHOLE_NUMBER.test(text)) return `Enter the ${label} fee in whole rupees.`;
+    const rupees = Number(text);
+    if (rupees > MAX_FEE_RUPEES) return `The ${label} fee is too large.`;
+    fees[category] = rupees * PAISE_PER_RUPEE;
+  }
+  return fees as EventFees;
+}
+
 function fail(error: string): SettingsValidation {
   return { ok: false, error };
 }
@@ -113,10 +133,8 @@ export function validateSettings(form: SettingsForm): SettingsValidation {
     return fail("Entries must close on or before the start date.");
   }
 
-  const feeText = form.feeRupees.trim();
-  if (!WHOLE_NUMBER.test(feeText)) return fail("Enter the entry fee in whole rupees.");
-  const feeRupees = Number(feeText);
-  if (feeRupees > MAX_FEE_RUPEES) return fail("The entry fee is too large.");
+  const fees = validateFees(form.feeRupees);
+  if (typeof fees === "string") return fail(fees);
 
   const status = TOURNAMENT_STATUSES.find((value) => value === form.status);
   if (!status) return fail("Choose whether entries are open or closed.");
@@ -133,9 +151,9 @@ export function validateSettings(form: SettingsForm): SettingsValidation {
       endsOn,
       venue,
       entryClosesAt,
-      feeCents: feeRupees * PAISE_PER_RUPEE,
       status,
       scheduleConfirmed: form.scheduleConfirmed,
     },
+    fees,
   };
 }

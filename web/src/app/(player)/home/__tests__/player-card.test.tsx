@@ -54,14 +54,14 @@ describe("PlayerCard", () => {
 
   it("links each earned certificate as a download and offers the card to share", () => {
     const certificates = [
-      { href: "/home/certificates/e1/participation", label: "Men's singles · Certificate of participation" },
-      { href: "/home/certificates/e1/winner", label: "Men's singles · Winner's certificate" },
+      { href: "/home/certificates/e1/participation", label: "Open singles · Certificate of participation" },
+      { href: "/home/certificates/e1/winner", label: "Open singles · Winner's certificate" },
     ];
     render(
       <PlayerCard profile={PROFILE} playerId={null} entryCount={1} record={NO_MATCHES} certificates={certificates} />,
     );
 
-    const winner = screen.getByRole("link", { name: "Men's singles · Winner's certificate" });
+    const winner = screen.getByRole("link", { name: "Open singles · Winner's certificate" });
     expect(winner).toHaveAttribute("href", "/home/certificates/e1/winner");
     expect(winner).toHaveAttribute("download");
     expect(screen.getByRole("button", { name: "Share card" })).toBeEnabled();

@@ -16,17 +16,23 @@ const BASE_PROPS: EntryFormProps = {
   action: rejectingAction,
   tournamentId: "tournament-1",
   enteredCategories: [],
-  feeLabel: "₹1,500",
+  feeLabels: {
+    OS: "₹3,000",
+    W30: "₹2,500",
+    U15: "₹2,000",
+    OD: "₹4,000 per team (₹2,000 each)",
+    S40: "₹3,000",
+  },
   closesLabel: "22 Sep, 18:00 IST",
   paymentsEnabled: false,
 };
 
 describe("EntryForm", () => {
   it("disables events the player has already entered", () => {
-    render(<EntryForm {...BASE_PROPS} enteredCategories={["MS"]} />);
+    render(<EntryForm {...BASE_PROPS} enteredCategories={["OS"]} />);
 
-    expect(screen.getByRole("radio", { name: "Men's singles" })).toBeDisabled();
-    expect(screen.getByRole("radio", { name: "Women's singles" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "Open singles" })).toBeDisabled();
+    expect(screen.getByRole("radio", { name: "Women's 30+" })).toBeChecked();
   });
 
   it("asks for a partner only in doubles", async () => {
@@ -34,11 +40,11 @@ describe("EntryForm", () => {
     render(<EntryForm {...BASE_PROPS} />);
 
     expect(screen.queryByLabelText("Partner name")).not.toBeInTheDocument();
-    await user.click(screen.getByRole("radio", { name: "Men's doubles" }));
+    await user.click(screen.getByRole("radio", { name: "Open doubles" }));
     expect(screen.getByLabelText("Partner name")).toBeRequired();
     expect(screen.getByLabelText("Partner email")).toBeRequired();
 
-    await user.click(screen.getByRole("radio", { name: "Women's singles" }));
+    await user.click(screen.getByRole("radio", { name: "Women's 30+" }));
     expect(screen.queryByLabelText("Partner name")).not.toBeInTheDocument();
   });
 
@@ -58,7 +64,7 @@ describe("EntryForm", () => {
     await user.click(screen.getByRole("button", { name: "Continue to payment" }));
 
     expect(screen.getByRole("heading", { name: "Test checkout" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Pay ₹1,500" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Pay ₹3,000" })).toBeInTheDocument();
   });
 
   it("shows the error returned by the server action", async () => {

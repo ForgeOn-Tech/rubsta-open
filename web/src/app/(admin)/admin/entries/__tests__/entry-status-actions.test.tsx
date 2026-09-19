@@ -5,7 +5,7 @@ import { EntryStatusActions } from "../entry-status-actions";
 
 async function noopAction(): Promise<void> {}
 
-const SUBJECT = "Gaurav Pillai, Men's singles";
+const SUBJECT = "Gaurav Pillai, Open singles";
 
 describe("EntryStatusActions", () => {
   it("offers confirm and cancel for a submitted entry, naming the entry", () => {

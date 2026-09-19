@@ -57,6 +57,13 @@
       "when": 1789175579329,
       "tag": "0007_fan_zone",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1789805631013,
+      "tag": "0008_event_fees",
+      "breakpoints": true
     }
   ]
 }

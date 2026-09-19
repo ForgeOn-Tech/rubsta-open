@@ -9,7 +9,7 @@ import { INITIAL_ACTION_STATE } from "@/lib/form-state";
 const BOARD: FanScoreboard = {
   matchId: "match-1",
   matchNumber: 12,
-  category: "MS",
+  category: "OS",
   roundName: "Semi-finals",
   status: "in_progress",
   sides: {

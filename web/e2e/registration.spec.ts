@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import { addConfirmedEntrants, addDoublesInvitation } from "./fixtures";
+import { addConfirmedEntrants, addDoublesInvitation, replaceDoublesPartner } from "./fixtures";
 
 async function signInAsDemo(page: Page) {
   await page.goto("/signin");
@@ -31,21 +31,21 @@ test.describe.serial("registration", () => {
     await main.getByRole("link", { name: "Enter an event" }).click();
 
     await expect(page).toHaveURL(/\/register$/);
-    await page.getByRole("radio", { name: "Men's singles", exact: true }).check();
+    await page.getByRole("radio", { name: "Open singles", exact: true }).check();
     await page.getByRole("button", { name: "Submit entry" }).click();
 
     await expect(page.getByRole("heading", { name: "Entry received" })).toBeVisible();
-    await expect(page.getByText("Men's singles · Main draw")).toBeVisible();
+    await expect(page.getByText("Open singles · Main draw")).toBeVisible();
 
     await page.getByRole("link", { name: "Back to home" }).click();
     await expect(page).toHaveURL(/\/home$/);
     const entries = page.getByRole("region", { name: "Your entries" });
-    await expect(entries).toContainText("Men's singles");
+    await expect(entries).toContainText("Open singles");
     await expect(entries).toContainText("Submitted");
     await expect(main.getByRole("heading", { name: "Enter another event" })).toBeVisible();
 
     await page.goto("/register");
-    await expect(page.getByRole("radio", { name: "Men's singles", exact: true })).toBeDisabled();
+    await expect(page.getByRole("radio", { name: "Open singles", exact: true })).toBeDisabled();
   });
 
   test("an admin sees the entry in the overview and the entries table", async ({ page }) => {
@@ -56,13 +56,13 @@ test.describe.serial("registration", () => {
     await expect(page).toHaveURL(/\/admin$/);
     await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
     const events = page.getByRole("region", { name: "Entries by event" });
-    await expect(events.getByRole("row", { name: /Men's singles/ })).toContainText("1");
+    await expect(events.getByRole("row", { name: /Open singles/ })).toContainText("1");
 
     // The old organiser URL redirects into the admin interface.
     await page.goto("/entries");
     await expect(page).toHaveURL(/\/admin\/entries$/);
     const row = page.getByRole("row", { name: /Demo Player/ });
-    await expect(row).toContainText("Men's singles");
+    await expect(row).toContainText("Open singles");
     await expect(row).toContainText("Submitted");
 
     const statusFilter = page.getByRole("navigation", { name: "Filter by status" });
@@ -87,10 +87,10 @@ test.describe.serial("registration", () => {
     const body = await csv.text();
     expect(body).toContain("Payment reference");
     expect(body).toContain("Demo Player");
-    expect(body).toContain("Men's singles");
+    expect(body).toContain("Open singles");
 
     await page.goto("/admin/players?q=demo");
-    await expect(page.getByRole("row", { name: /Demo Player/ })).toContainText("Men's singles");
+    await expect(page.getByRole("row", { name: /Demo Player/ })).toContainText("Open singles");
     await page.getByLabel("Search players").fill("nobody-here");
     await page.getByRole("button", { name: "Search" }).click();
     await expect(page.getByText("No players match")).toBeVisible();
@@ -112,14 +112,14 @@ test.describe.serial("registration", () => {
 
   test("an admin seeds, generates and publishes a draw", async ({ page }) => {
     // The demo player's paid entry plus four confirmed players: a draw of 8 with 3 byes.
-    addConfirmedEntrants("MS", ["Arjun Mehta", "Kabir Rao", "Rohan Das", "Vikram Shah"]);
+    addConfirmedEntrants("OS", ["Arjun Mehta", "Kabir Rao", "Rohan Das", "Vikram Shah"]);
     await signInAsDemo(page);
 
     await page.goto("/admin/draws");
-    const menSingles = page.getByRole("row", { name: /Men's singles/ });
-    await expect(menSingles).toContainText("8 lines");
-    await menSingles.getByRole("link", { name: "Men's singles" }).click();
-    await expect(page).toHaveURL(/\/admin\/draws\/MS$/);
+    const openSingles = page.getByRole("row", { name: /Open singles/ });
+    await expect(openSingles).toContainText("8 lines");
+    await openSingles.getByRole("link", { name: "Open singles" }).click();
+    await expect(page).toHaveURL(/\/admin\/draws\/OS$/);
 
     await page.getByLabel("Seed for Demo Player").fill("1");
     await page.getByLabel("Seed for Arjun Mehta").fill("2");
@@ -142,7 +142,7 @@ test.describe.serial("registration", () => {
     await expect(page.getByLabel("Seed for Demo Player")).toBeDisabled();
 
     // The entries table warns that these entries sit in a published draw.
-    await page.goto("/admin/entries?category=MS");
+    await page.goto("/admin/entries?category=OS");
     await expect(page.getByRole("row", { name: /Demo Player/ })).toContainText(
       "In the published draw",
     );
@@ -249,8 +249,8 @@ test.describe.serial("registration", () => {
 
     // Admin results show the match live, with statistics from its two points.
     await page.goto("/admin/results");
-    const menSingles = page.getByRole("region", { name: "Men's singles" });
-    await menSingles.getByRole("row").filter({ hasText: "Live" }).getByRole("link").click();
+    const openSingles = page.getByRole("region", { name: "Open singles" });
+    await openSingles.getByRole("row").filter({ hasText: "Live" }).getByRole("link").click();
     await expect(page).toHaveURL(/\/admin\/results\/[^/]+$/);
     const stats = page.getByRole("table", { name: "Match statistics" });
     await expect(stats.getByRole("row", { name: /Points won/ })).toHaveText(/^2\s*Points won\s*0$/);
@@ -306,16 +306,16 @@ test.describe.serial("registration", () => {
 
   test("a player accepts a doubles invitation, then waits on a partner of their own", async ({ page }) => {
     // The demo account is the only browser identity, so another player invites it.
-    addDoublesInvitation("MD", "Riya Singh", "demo@rubstaopen.local");
+    addDoublesInvitation("OD", "Riya Singh", "demo@rubstaopen.local");
     await signInAsDemo(page);
 
-    await page.getByRole("region", { name: "Partner invitations" }).getByRole("link", { name: /Men's doubles/ }).click();
+    await page.getByRole("region", { name: "Partner invitations" }).getByRole("link", { name: /Open doubles/ }).click();
     await expect(page).toHaveURL(/\/partner\/[^/]+$/);
     await expect(
-      page.getByRole("heading", { name: "Riya Singh wants you as their Men's doubles partner" }),
+      page.getByRole("heading", { name: "Riya Singh wants you as their Open doubles partner" }),
     ).toBeVisible();
     await page.getByRole("button", { name: "Accept" }).click();
-    await expect(page.getByText("You are playing Men's doubles with Riya Singh.")).toBeVisible();
+    await expect(page.getByText("You are playing Open doubles with Riya Singh.")).toBeVisible();
 
     await page.getByRole("link", { name: "Back to home" }).click();
     await expect(page.getByRole("region", { name: "Partner invitations" })).toHaveCount(0);
@@ -323,10 +323,14 @@ test.describe.serial("registration", () => {
       "With Riya Singh · You joined as partner",
     );
 
-    // The accepted event is taken; a new doubles entry waits for its own partner.
+    // The accepted event is taken.
     await page.goto("/register");
-    await expect(page.getByRole("radio", { name: "Men's doubles", exact: true })).toBeDisabled();
-    await page.getByRole("radio", { name: "Women's doubles", exact: true }).check();
+    await expect(page.getByRole("radio", { name: "Open doubles", exact: true })).toBeDisabled();
+
+    // Riya names someone else, so the player enters doubles and waits on a partner of their own.
+    replaceDoublesPartner("demo@rubstaopen.local", "Kabir Das", "kabir@example.com");
+    await page.goto("/register");
+    await page.getByRole("radio", { name: "Open doubles", exact: true }).check();
     await page.getByLabel("Partner name").fill("Asha Rao");
     await page.getByLabel("Partner email").fill("asha@example.com");
     await page.getByRole("button", { name: "Submit entry" }).click();
@@ -339,7 +343,7 @@ test.describe.serial("registration", () => {
 
     // Seed 1 had a bye, so their semi-final waits on match 2, which has no time yet.
     const next = page.getByRole("region", { name: "Your next match" });
-    await expect(next).toContainText("Men's singles · Semi-finals · M5");
+    await expect(next).toContainText("Open singles · Semi-finals · M5");
     await expect(next).toContainText("v Winner of M2");
     await expect(next).toContainText("Time to be announced");
     const card = page.getByRole("region", { name: "Your record" });
@@ -359,8 +363,8 @@ test.describe.serial("registration", () => {
     expect((await page.request.get("/home/certificates/not-an-entry/participation")).status()).toBe(404);
 
     await next.getByRole("link", { name: /See the draw/ }).click();
-    await expect(page).toHaveURL(/\/draws\/MS$/);
-    await expect(page.getByRole("heading", { name: "Men's singles" })).toBeVisible();
+    await expect(page).toHaveURL(/\/draws\/OS$/);
+    await expect(page.getByRole("heading", { name: "Open singles" })).toBeVisible();
     await expect(page.getByRole("article", { name: "Match 5", exact: true })).toContainText("You");
     await expect(page.getByRole("article", { name: "Match 1", exact: true })).toContainText("Bye");
 
@@ -375,15 +379,15 @@ test.describe.serial("registration", () => {
     await page.goto("/draws");
     await expect(page.getByRole("heading", { name: "Draws", level: 1 })).toBeVisible();
     await expect(page.getByRole("link", { name: "Sign in" })).toBeVisible();
-    await page.getByRole("link", { name: /Men's singles/ }).click();
+    await page.getByRole("link", { name: /Open singles/ }).click();
 
-    await expect(page).toHaveURL(/\/draws\/MS$/);
+    await expect(page).toHaveURL(/\/draws\/OS$/);
     await expect(page.getByRole("article", { name: "Match 1", exact: true })).toContainText("Bye");
     // Without a sign-in there is no player to mark lines for.
     await expect(page.getByText("You", { exact: true })).toHaveCount(0);
 
     await page.goto("/results");
-    await page.getByRole("region", { name: "Men's singles" }).getByRole("link").first().click();
+    await page.getByRole("region", { name: "Open singles" }).getByRole("link").first().click();
     await expect(page).toHaveURL(/\/results\/[^/]+$/);
     await expect(page.getByRole("table", { name: "Match statistics" })).toBeVisible();
 

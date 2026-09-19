@@ -38,7 +38,7 @@ function row(id: string, overrides: Partial<Match>): ScoringMatchRow {
   };
   return {
     match,
-    category: "MS",
+    category: "OS",
     top: { entryId: "top-entry", seed: 1, name: "Y. Malhotra", partnerName: null },
     bottom: { entryId: "bottom-entry", seed: null, name: "G. Pillai", partnerName: null },
   };

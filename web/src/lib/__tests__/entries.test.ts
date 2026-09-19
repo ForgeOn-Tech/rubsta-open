@@ -17,7 +17,7 @@ const BEFORE_CLOSE = new Date("2026-09-11T00:00:00+05:30");
 const AFTER_CLOSE = new Date("2026-09-23T00:00:00+05:30");
 
 const base = {
-  category: "MS",
+  category: "OS",
   ownEmail: "player@example.com",
   existingCategories: [] as string[],
   entryClosesAt: CLOSES_AT,
@@ -27,19 +27,23 @@ const base = {
 
 describe("category labels", () => {
   it("maps every category to a display label", () => {
-    expect(CATEGORY_LABELS.MS).toBe("Men's singles");
-    expect(CATEGORY_LABELS.WS).toBe("Women's singles");
-    expect(CATEGORY_LABELS.MD).toBe("Men's doubles");
-    expect(CATEGORY_LABELS.WD).toBe("Women's doubles");
+    expect(CATEGORY_LABELS).toEqual({
+      OS: "Open singles",
+      W30: "Women's 30+",
+      U15: "U-15 juniors",
+      OD: "Open doubles",
+      S40: "40+ singles",
+    });
   });
 });
 
 describe("isDoubles", () => {
-  it("is true only for MD and WD", () => {
-    expect(isDoubles("MD")).toBe(true);
-    expect(isDoubles("WD")).toBe(true);
-    expect(isDoubles("MS")).toBe(false);
-    expect(isDoubles("WS")).toBe(false);
+  it("is true only for Open doubles", () => {
+    expect(isDoubles("OD")).toBe(true);
+    expect(isDoubles("OS")).toBe(false);
+    expect(isDoubles("W30")).toBe(false);
+    expect(isDoubles("U15")).toBe(false);
+    expect(isDoubles("S40")).toBe(false);
   });
 });
 
@@ -58,7 +62,7 @@ describe("validateEntryInput", () => {
     expect(
       validateEntryInput({
         ...base,
-        category: "WD",
+        category: "OD",
         partnerName: "Me Again",
         partnerEmail: " Player@Example.com ",
       }),
@@ -66,21 +70,21 @@ describe("validateEntryInput", () => {
   });
 
   it("accepts a singles entry before the deadline", () => {
-    expect(validateEntryInput(base)).toEqual({ ok: true, category: "MS" });
+    expect(validateEntryInput(base)).toEqual({ ok: true, category: "OS" });
   });
 
-  it("requires a partner for men's doubles", () => {
-    const result = validateEntryInput({ ...base, category: "MD" });
+  it("requires a partner for doubles", () => {
+    const result = validateEntryInput({ ...base, category: "OD" });
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error).toMatch(/partner name and email/i);
     }
   });
 
-  it("requires a partner for women's doubles", () => {
+  it("requires a partner name that is not blank", () => {
     const result = validateEntryInput({
       ...base,
-      category: "WD",
+      category: "OD",
       partnerName: "  ",
       partnerEmail: "partner@example.com",
     });
@@ -90,17 +94,17 @@ describe("validateEntryInput", () => {
   it("accepts doubles with a partner name and valid email", () => {
     const result = validateEntryInput({
       ...base,
-      category: "MD",
+      category: "OD",
       partnerName: "Rahul Verma",
       partnerEmail: "rahul@example.com",
     });
-    expect(result).toEqual({ ok: true, category: "MD" });
+    expect(result).toEqual({ ok: true, category: "OD" });
   });
 
   it("rejects an invalid partner email", () => {
     const result = validateEntryInput({
       ...base,
-      category: "WD",
+      category: "OD",
       partnerName: "Riya Singh",
       partnerEmail: "not-an-email",
     });
@@ -111,23 +115,23 @@ describe("validateEntryInput", () => {
   it("rejects a duplicate entry in the same category", () => {
     const result = validateEntryInput({
       ...base,
-      existingCategories: ["MS"],
+      existingCategories: ["OS"],
     });
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.error).toBe("You already have a Men's singles entry.");
+      expect(result.error).toBe("You have already entered Open singles.");
     }
   });
 
   it("allows entries in other categories when one exists", () => {
     const result = validateEntryInput({
       ...base,
-      category: "MD",
+      category: "OD",
       partnerName: "Rahul Verma",
       partnerEmail: "rahul@example.com",
-      existingCategories: ["MS"],
+      existingCategories: ["OS"],
     });
-    expect(result).toEqual({ ok: true, category: "MD" });
+    expect(result).toEqual({ ok: true, category: "OD" });
   });
 
   it("blocks submission after entries close", () => {

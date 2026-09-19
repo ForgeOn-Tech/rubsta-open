@@ -18,7 +18,7 @@ export interface EntryFormProps {
   ) => Promise<EntryFormState>;
   tournamentId: string;
   enteredCategories: readonly Category[];
-  feeLabel: string;
+  feeLabels: Record<Category, string>;
   closesLabel: string;
   paymentsEnabled: boolean;
 }
@@ -27,7 +27,7 @@ export function EntryForm({
   action,
   tournamentId,
   enteredCategories,
-  feeLabel,
+  feeLabels,
   closesLabel,
   paymentsEnabled,
 }: EntryFormProps) {
@@ -164,7 +164,7 @@ export function EntryForm({
               Entry closes {closesLabel}
             </div>
           </div>
-          <div className="mono text-[22px] font-semibold">{feeLabel}</div>
+          <div className="mono text-right text-[22px] font-semibold">{feeLabels[category]}</div>
         </div>
 
         <div className="mt-4 flex gap-3">
@@ -191,7 +191,7 @@ export function EntryForm({
                 className="btn btn-primary flex-1"
                 disabled={pending}
               >
-                {pending ? "Processing…" : `Pay ${feeLabel}`}
+                {pending ? "Processing…" : `Pay ${feeLabels[category]}`}
               </button>
             </>
           ) : (

@@ -50,7 +50,7 @@ function setup() {
         id: player.id,
         userId: `user-${player.id}`,
         tournamentId: TOURNAMENT_ID,
-        category: "MS",
+        category: "OS",
         status: player.status,
         seed: player.seed,
       })
@@ -81,10 +81,10 @@ type Db = ReturnType<typeof setup>;
 function materializedDraw(database: Db, order: readonly (string | null)[]) {
   const drawId = saveGeneratedDraw(database, {
     tournamentId: TOURNAMENT_ID,
-    category: "MS",
+    category: "OS",
     lines: lines(order),
   });
-  const current = getDrawWithSlots(database, TOURNAMENT_ID, "MS")!;
+  const current = getDrawWithSlots(database, TOURNAMENT_ID, "OS")!;
   publishDraw(database, current.draw, current.slots);
   const rows = database.select().from(schema.matches).where(eq(schema.matches.drawId, drawId)).all();
   return { draw: current.draw, matches: rows };
@@ -176,10 +176,10 @@ describe("materializeMatches", () => {
     const database = setup();
     saveGeneratedDraw(database, {
       tournamentId: TOURNAMENT_ID,
-      category: "MS",
+      category: "OS",
       lines: lines(["a", "b", null, null]),
     });
-    const current = getDrawWithSlots(database, TOURNAMENT_ID, "MS")!;
+    const current = getDrawWithSlots(database, TOURNAMENT_ID, "OS")!;
 
     expect(() => materializeMatches(database, current.draw, current.slots)).toThrow(/two byes/);
     expect(database.select().from(schema.matches).all()).toHaveLength(0);
@@ -434,14 +434,14 @@ describe("publishDraw", () => {
     const database = setup();
     saveGeneratedDraw(database, {
       tournamentId: TOURNAMENT_ID,
-      category: "MS",
+      category: "OS",
       lines: lines(["a", "b", null, null]),
     });
-    const current = getDrawWithSlots(database, TOURNAMENT_ID, "MS")!;
+    const current = getDrawWithSlots(database, TOURNAMENT_ID, "OS")!;
 
     expect(() => publishDraw(database, current.draw, current.slots)).toThrow(/two byes/);
 
-    expect(getDrawWithSlots(database, TOURNAMENT_ID, "MS")!.draw.status).toBe("draft");
+    expect(getDrawWithSlots(database, TOURNAMENT_ID, "OS")!.draw.status).toBe("draft");
     expect(database.select().from(schema.matches).all()).toHaveLength(0);
   });
 });
@@ -453,7 +453,7 @@ describe("unpublishDraw", () => {
 
     unpublishDraw(database, draw.id);
 
-    expect(getDrawWithSlots(database, TOURNAMENT_ID, "MS")!.draw.status).toBe("draft");
+    expect(getDrawWithSlots(database, TOURNAMENT_ID, "OS")!.draw.status).toBe("draft");
     expect(database.select().from(schema.matches).all()).toHaveLength(0);
   });
 
@@ -464,7 +464,7 @@ describe("unpublishDraw", () => {
 
     expect(() => unpublishDraw(database, draw.id)).toThrow(/have started/);
 
-    expect(getDrawWithSlots(database, TOURNAMENT_ID, "MS")!.draw.status).toBe("published");
+    expect(getDrawWithSlots(database, TOURNAMENT_ID, "OS")!.draw.status).toBe("published");
     expect(database.select().from(schema.matches).all()).toHaveLength(3);
   });
 });
@@ -490,7 +490,7 @@ describe("listScoringMatches", () => {
     expect(rows.map((row) => row.match.matchNumber)).toEqual([3, 1, 2]);
 
     const final = rows[0];
-    expect(final.category).toBe("MS");
+    expect(final.category).toBe("OS");
     expect(final.top).toEqual({ entryId: "a", seed: 1, name: "Asha Anand", partnerName: null });
     expect(final.bottom).toBeNull();
 
@@ -509,7 +509,7 @@ describe("listScoringMatches", () => {
 
     expect(getScoringMatch(database, "no-such-match")).toBeNull();
     const row = getScoringMatch(database, matchByNumber(matches, 1).id);
-    expect(row?.category).toBe("MS");
+    expect(row?.category).toBe("OS");
     expect(row?.top?.name).toBe("Asha Anand");
   });
 });

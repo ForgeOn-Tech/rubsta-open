@@ -8,10 +8,12 @@ import { InviteLink } from "./invite-link";
 import { requireUser } from "@/auth/require";
 import { PartnerStatusBadge } from "@/components/partner-status-badge";
 import { StatusBadge } from "@/components/status-badge";
-import { db } from "@/db/client";
+import { db, getDb } from "@/db/client";
+import { getEventFees } from "@/db/fees";
 import { entries, tournaments } from "@/db/schema";
-import { CATEGORY_LABELS, entryReference } from "@/lib/entries";
-import { formatDate, formatFee } from "@/lib/format";
+import { CATEGORY_LABELS, entryReference, isDoubles } from "@/lib/entries";
+import { eventFeeLabel } from "@/lib/fees";
+import { formatDate } from "@/lib/format";
 import { partnerInvitationPath } from "@/lib/partners";
 
 export const dynamic = "force-dynamic";
@@ -65,7 +67,11 @@ export default async function EntryConfirmationPage({
       label: "Entry fee",
       value: (
         <span className="mono">
-          {formatFee(tournament.feeCents, tournament.currency)}
+          {eventFeeLabel(
+            getEventFees(getDb(), tournament.id)[entry.category],
+            tournament.currency,
+            isDoubles(entry.category),
+          )}
         </span>
       ),
     },

@@ -70,7 +70,7 @@ function setup(events: readonly MatchEvent[]): Db {
 
   database
     .insert(schema.draws)
-    .values({ id: DRAW_ID, tournamentId: TOURNAMENT_ID, category: "MS", status: "published", size: 2 })
+    .values({ id: DRAW_ID, tournamentId: TOURNAMENT_ID, category: "OS", status: "published", size: 2 })
     .run();
   database
     .insert(schema.matches)

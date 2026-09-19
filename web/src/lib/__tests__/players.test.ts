@@ -52,9 +52,9 @@ const ADMIN_ONLY: PlayerAccount = {
 };
 
 const ENTRIES = [
-  { id: "e1", userId: "u-zara", category: "WS" as const, status: "paid" as const },
-  { id: "e2", userId: "u-zara", category: "WD" as const, status: "submitted" as const },
-  { id: "e3", userId: "u-legacy", category: "MS" as const, status: "cancelled" as const },
+  { id: "e1", userId: "u-zara", category: "W30" as const, status: "paid" as const },
+  { id: "e2", userId: "u-zara", category: "OD" as const, status: "submitted" as const },
+  { id: "e3", userId: "u-legacy", category: "OS" as const, status: "cancelled" as const },
 ];
 
 describe("buildPlayerRows", () => {

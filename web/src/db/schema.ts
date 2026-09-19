@@ -129,7 +129,6 @@ export const tournaments = sqliteTable("tournaments", {
     .$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
   entryClosesAt: text("entry_closes_at").notNull(), // ISO 8601 with offset
-  feeCents: integer("fee_cents").notNull(),
   currency: text("currency").notNull().default("INR"),
   status: text("status", { enum: TOURNAMENT_STATUSES })
     .notNull()
@@ -143,15 +142,29 @@ export const tournaments = sqliteTable("tournaments", {
     .default(false),
 });
 
-export const CATEGORIES = ["MS", "WS", "MD", "WD"] as const;
+export const CATEGORIES = ["OS", "W30", "U15", "OD", "S40"] as const;
 export type Category = (typeof CATEGORIES)[number];
 export const CATEGORY_LABELS: Record<Category, string> = {
-  MS: "Men's singles",
-  WS: "Women's singles",
-  MD: "Men's doubles",
-  WD: "Women's doubles",
+  OS: "Open singles",
+  W30: "Women's 30+",
+  U15: "U-15 juniors",
+  OD: "Open doubles",
+  S40: "40+ singles",
 };
-export const DOUBLES_CATEGORIES: readonly Category[] = ["MD", "WD"];
+export const DOUBLES_CATEGORIES: readonly Category[] = ["OD"];
+
+/** Each event's entry fee in paise. A doubles fee covers the whole team. */
+export const eventFees = sqliteTable(
+  "event_fees",
+  {
+    tournamentId: text("tournament_id")
+      .notNull()
+      .references(() => tournaments.id, { onDelete: "cascade" }),
+    category: text("category", { enum: CATEGORIES }).notNull(),
+    feeCents: integer("fee_cents").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.tournamentId, table.category] })],
+);
 
 export const DIVISIONS = ["main"] as const;
 export type Division = (typeof DIVISIONS)[number];

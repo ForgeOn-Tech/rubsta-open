@@ -49,15 +49,15 @@ function setup() {
     database.insert(schema.users).values({ id: `user-${id}`, email: `${id}@example.com`, name: id }).run();
     database
       .insert(schema.entries)
-      .values({ id, userId: `user-${id}`, tournamentId: TOURNAMENT_ID, category: "MS", status: "paid" })
+      .values({ id, userId: `user-${id}`, tournamentId: TOURNAMENT_ID, category: "OS", status: "paid" })
       .run();
   }
   const drawId = saveGeneratedDraw(database, {
     tournamentId: TOURNAMENT_ID,
-    category: "MS",
+    category: "OS",
     lines: ["a", null, "b", "c"].map((entryId, index) => ({ position: index + 1, entryId, seed: null })),
   });
-  const current = getDrawWithSlots(database, TOURNAMENT_ID, "MS")!;
+  const current = getDrawWithSlots(database, TOURNAMENT_ID, "OS")!;
   publishDraw(database, current.draw, current.slots);
 
   const rows = database.select().from(schema.matches).where(eq(schema.matches.drawId, drawId)).all();
@@ -184,7 +184,7 @@ describe("addMatchItem", () => {
   it("refuses a bye", () => {
     const { database, bye } = setup();
 
-    expect(() => placeMatch(database, bye.id, 1)).toThrow("Men's singles M1 is a bye, so it needs no court.");
+    expect(() => placeMatch(database, bye.id, 1)).toThrow("Open singles M1 is a bye, so it needs no court.");
   });
 
   it("refuses a completed match", () => {
@@ -199,7 +199,7 @@ describe("addMatchItem", () => {
     placeMatch(database, semi.id, 1);
 
     expect(() => placeMatch(database, semi.id, 2)).toThrow(
-      /Men's singles M2 is already on the order of play for Sat 26 Sept?\./,
+      /Open singles M2 is already on the order of play for Sat 26 Sept?\./,
     );
   });
 

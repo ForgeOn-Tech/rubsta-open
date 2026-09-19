@@ -6,8 +6,11 @@ import { AdminNotice } from "@/components/admin-notice";
 import { AdminPageHeader } from "@/components/admin-page-header";
 import { getDb } from "@/db/client";
 import { listCourts } from "@/db/courts";
+import { getEventFees } from "@/db/fees";
 import { getCurrentTournament } from "@/db/queries";
-import { formatFee, formatTournamentDates } from "@/lib/format";
+import { CATEGORIES, type Category } from "@/db/schema";
+import { feeRangeLabel } from "@/lib/fees";
+import { formatTournamentDates } from "@/lib/format";
 import { isoToIstLocal } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +22,7 @@ export default async function AdminSettingsPage() {
 
   const tournament = getCurrentTournament();
   if (!tournament) return <AdminNotice message="No tournament has been set up." />;
+  const fees = getEventFees(getDb(), tournament.id);
 
   return (
     <>
@@ -28,7 +32,7 @@ export default async function AdminSettingsPage() {
         stats={[
           formatTournamentDates(tournament.startsOn, tournament.endsOn) ?? "Dates not set",
           tournament.venue ?? "Venue not set",
-          `Fee ${formatFee(tournament.feeCents, tournament.currency)}`,
+          `Fees ${feeRangeLabel(fees, tournament.currency)}`,
           tournament.scheduleConfirmed ? "Schedule confirmed" : "Schedule provisional",
         ]}
       />
@@ -42,7 +46,9 @@ export default async function AdminSettingsPage() {
             endsOn: tournament.endsOn ?? "",
             venue: tournament.venue ?? "",
             entryClosesAt: isoToIstLocal(tournament.entryClosesAt),
-            feeRupees: String(tournament.feeCents / PAISE_PER_RUPEE),
+            feeRupees: Object.fromEntries(
+              CATEGORIES.map((category) => [category, String(fees[category] / PAISE_PER_RUPEE)]),
+            ) as Record<Category, string>,
             status: tournament.status,
             scheduleConfirmed: tournament.scheduleConfirmed,
           }}

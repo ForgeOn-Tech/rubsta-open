@@ -46,9 +46,9 @@ function row(
 }
 
 const ROWS: AdminEntryRow[] = [
-  row("a", "MS", "submitted", {}),
-  row("b", "MS", "paid", {}),
-  row("c", "WD", "paid", {}),
+  row("a", "OS", "submitted", {}),
+  row("b", "OS", "paid", {}),
+  row("c", "OD", "paid", {}),
 ];
 
 describe("filterEntries", () => {
@@ -61,8 +61,8 @@ describe("filterEntries", () => {
       filterEntries(ROWS, filters).map((item) => item.entry.id);
 
     expect(ids({ status: "paid", category: null })).toEqual(["b", "c"]);
-    expect(ids({ status: null, category: "MS" })).toEqual(["a", "b"]);
-    expect(ids({ status: "paid", category: "MS" })).toEqual(["b"]);
+    expect(ids({ status: null, category: "OS" })).toEqual(["a", "b"]);
+    expect(ids({ status: "paid", category: "OS" })).toEqual(["b"]);
   });
 });
 
@@ -75,15 +75,15 @@ describe("entriesHref", () => {
   });
 
   it("carries both filters", () => {
-    expect(entriesHref("/admin/entries/export", { status: "paid", category: "WD" })).toBe(
-      "/admin/entries/export?category=WD&status=paid",
+    expect(entriesHref("/admin/entries/export", { status: "paid", category: "OD" })).toBe(
+      "/admin/entries/export?category=OD&status=paid",
     );
   });
 });
 
 describe("parseCategoryFilter", () => {
   it("accepts known events only", () => {
-    expect(parseCategoryFilter("MD")).toBe("MD");
+    expect(parseCategoryFilter("OD")).toBe("OD");
     expect(parseCategoryFilter("XD")).toBeNull();
     expect(parseCategoryFilter(undefined)).toBeNull();
   });
@@ -113,8 +113,8 @@ describe("entriesExportFilename", () => {
 
 describe("entrantLabel", () => {
   it("adds the partner for doubles only", () => {
-    const singles = row("s", "MS", "paid", { accountName: "Arjun Mehta" });
-    const doubles = row("d", "WD", "paid", {
+    const singles = row("s", "OS", "paid", { accountName: "Arjun Mehta" });
+    const doubles = row("d", "OD", "paid", {
       accountName: "Riya Singh",
       entry: { ...ROWS[2].entry, partnerName: "Meera Iyer", partnerEmail: "meera@example.com" },
     });
@@ -126,7 +126,7 @@ describe("entrantLabel", () => {
 
 describe("entryCsvRows", () => {
   it("starts with the header and maps a doubles entry", () => {
-    const doubles = row("d", "WD", "paid", {
+    const doubles = row("d", "OD", "paid", {
       accountName: "Riya Singh",
       entry: {
         ...ROWS[2].entry,
@@ -149,7 +149,7 @@ describe("entryCsvRows", () => {
       null,
       null,
       null,
-      "Women's doubles",
+      "Open doubles",
       "Meera Iyer",
       "meera@example.com",
       "Paid",

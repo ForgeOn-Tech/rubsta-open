@@ -30,7 +30,7 @@ function setup() {
         id: player.id,
         userId: `user-${player.id}`,
         tournamentId: TOURNAMENT_ID,
-        category: "MS",
+        category: "OS",
         status: player.status,
         seed: player.seed,
       })
@@ -50,9 +50,9 @@ function seedOf(database: ReturnType<typeof setup>, entryId: string): number | n
 describe("saveGeneratedDraw", () => {
   it("creates a draft draw with one slot per line", () => {
     const database = setup();
-    saveGeneratedDraw(database, { tournamentId: TOURNAMENT_ID, category: "MS", lines: lines(["a", null, "b", null]) });
+    saveGeneratedDraw(database, { tournamentId: TOURNAMENT_ID, category: "OS", lines: lines(["a", null, "b", null]) });
 
-    const saved = getDrawWithSlots(database, TOURNAMENT_ID, "MS");
+    const saved = getDrawWithSlots(database, TOURNAMENT_ID, "OS");
     expect(saved?.draw).toMatchObject({ status: "draft", size: 4, publishedAt: null });
     expect(saved?.slots.map((slot) => [slot.position, slot.entryId])).toEqual([
       [1, "a"],
@@ -64,42 +64,42 @@ describe("saveGeneratedDraw", () => {
 
   it("replaces the lines of a draft draw instead of adding to them", () => {
     const database = setup();
-    const firstId = saveGeneratedDraw(database, { tournamentId: TOURNAMENT_ID, category: "MS", lines: lines(["a", "b"]) });
-    const secondId = saveGeneratedDraw(database, { tournamentId: TOURNAMENT_ID, category: "MS", lines: lines(["b", "a"]) });
+    const firstId = saveGeneratedDraw(database, { tournamentId: TOURNAMENT_ID, category: "OS", lines: lines(["a", "b"]) });
+    const secondId = saveGeneratedDraw(database, { tournamentId: TOURNAMENT_ID, category: "OS", lines: lines(["b", "a"]) });
 
     expect(secondId).toBe(firstId);
-    const saved = getDrawWithSlots(database, TOURNAMENT_ID, "MS");
+    const saved = getDrawWithSlots(database, TOURNAMENT_ID, "OS");
     expect(saved?.slots.map((slot) => slot.entryId)).toEqual(["b", "a"]);
     expect(database.select().from(schema.draws).all()).toHaveLength(1);
   });
 
   it("refuses a published draw and keeps its lines", () => {
     const database = setup();
-    const drawId = saveGeneratedDraw(database, { tournamentId: TOURNAMENT_ID, category: "MS", lines: lines(["a", "b"]) });
+    const drawId = saveGeneratedDraw(database, { tournamentId: TOURNAMENT_ID, category: "OS", lines: lines(["a", "b"]) });
     setDrawStatus(database, drawId, "draft", "published");
 
     expect(() =>
-      saveGeneratedDraw(database, { tournamentId: TOURNAMENT_ID, category: "MS", lines: lines(["b", "a"]) }),
+      saveGeneratedDraw(database, { tournamentId: TOURNAMENT_ID, category: "OS", lines: lines(["b", "a"]) }),
     ).toThrow(/published/);
-    expect(getDrawWithSlots(database, TOURNAMENT_ID, "MS")?.slots.map((slot) => slot.entryId)).toEqual(["a", "b"]);
+    expect(getDrawWithSlots(database, TOURNAMENT_ID, "OS")?.slots.map((slot) => slot.entryId)).toEqual(["a", "b"]);
   });
 });
 
 describe("setDrawStatus", () => {
   it("publishes a draft and records when", () => {
     const database = setup();
-    const drawId = saveGeneratedDraw(database, { tournamentId: TOURNAMENT_ID, category: "MS", lines: lines(["a", "b"]) });
+    const drawId = saveGeneratedDraw(database, { tournamentId: TOURNAMENT_ID, category: "OS", lines: lines(["a", "b"]) });
 
     setDrawStatus(database, drawId, "draft", "published");
 
-    const draw = getDrawWithSlots(database, TOURNAMENT_ID, "MS")?.draw;
+    const draw = getDrawWithSlots(database, TOURNAMENT_ID, "OS")?.draw;
     expect(draw?.status).toBe("published");
     expect(draw?.publishedAt).toEqual(expect.any(Number));
   });
 
   it("throws when the draw is not in the expected status", () => {
     const database = setup();
-    const drawId = saveGeneratedDraw(database, { tournamentId: TOURNAMENT_ID, category: "MS", lines: lines(["a", "b"]) });
+    const drawId = saveGeneratedDraw(database, { tournamentId: TOURNAMENT_ID, category: "OS", lines: lines(["a", "b"]) });
 
     expect(() => setDrawStatus(database, drawId, "published", "draft")).toThrow(/is not published/);
   });
@@ -109,7 +109,7 @@ describe("saveSeeds", () => {
   it("seeds accepted entries and clears every other seed in the event", () => {
     const database = setup();
 
-    saveSeeds(database, TOURNAMENT_ID, "MS", [
+    saveSeeds(database, TOURNAMENT_ID, "OS", [
       { entryId: "a", seed: 1 },
       { entryId: "b", seed: null },
     ]);
@@ -121,11 +121,11 @@ describe("saveSeeds", () => {
     const database = setup();
 
     expect(() =>
-      saveSeeds(database, TOURNAMENT_ID, "MS", [
+      saveSeeds(database, TOURNAMENT_ID, "OS", [
         { entryId: "a", seed: 1 },
         { entryId: "c", seed: 2 },
       ]),
-    ).toThrow("Entry c is not an accepted MS entry.");
+    ).toThrow("Entry c is not an accepted OS entry.");
     expect(["a", "b", "c"].map((id) => seedOf(database, id))).toEqual([null, null, 2]);
   });
 });

@@ -7,11 +7,13 @@ import { EntryForm } from "./entry-form";
 import { requireUser } from "@/auth/require";
 import { StatusBadge } from "@/components/status-badge";
 import { db, getDb } from "@/db/client";
+import { getEventFees } from "@/db/fees";
 import { listPlayedCategories } from "@/db/partners";
-import { entries, profiles, tournaments } from "@/db/schema";
+import { CATEGORIES, entries, profiles, tournaments, type Category } from "@/db/schema";
 import { ageFromDob } from "@/lib/age";
-import { CATEGORY_LABELS, entriesOpen } from "@/lib/entries";
-import { formatEntryCloses, formatFee } from "@/lib/format";
+import { CATEGORY_LABELS, entriesOpen, isDoubles } from "@/lib/entries";
+import { eventFeeLabel } from "@/lib/fees";
+import { formatEntryCloses } from "@/lib/format";
 import { PROVISIONAL_SCHEDULE_NOTE } from "@/lib/tournament";
 
 export const dynamic = "force-dynamic";
@@ -44,7 +46,13 @@ export default async function RegisterPage() {
     .all();
 
   const closed = !entriesOpen(tournament);
-  const feeLabel = formatFee(tournament.feeCents, tournament.currency);
+  const fees = getEventFees(getDb(), tournament.id);
+  const feeLabels = Object.fromEntries(
+    CATEGORIES.map((category) => [
+      category,
+      eventFeeLabel(fees[category], tournament.currency, isDoubles(category)),
+    ]),
+  ) as Record<Category, string>;
   const closesLabel = `${formatEntryCloses(tournament.entryClosesAt)} IST`;
   const age = ageFromDob(profile.dateOfBirth);
   const playerFacts = [
@@ -124,7 +132,7 @@ export default async function RegisterPage() {
           tournamentId={tournament.id}
           // Includes events the player joined as a doubles partner.
           enteredCategories={listPlayedCategories(getDb(), user.id)}
-          feeLabel={feeLabel}
+          feeLabels={feeLabels}
           closesLabel={closesLabel}
           paymentsEnabled={process.env.NEXT_PUBLIC_PAYMENTS_ENABLED === "true"}
         />

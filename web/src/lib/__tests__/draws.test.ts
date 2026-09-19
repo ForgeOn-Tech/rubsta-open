@@ -328,31 +328,31 @@ describe("parseSeedInput", () => {
 });
 
 describe("eligibleRows", () => {
-  const row = (id: string, category: "MS" | "WS", status: EntryStatus) => ({
+  const row = (id: string, category: "OS" | "W30", status: EntryStatus) => ({
     entry: { id, category, status, seed: id === "paid" ? 1 : null, partnerStatus: null },
   });
 
   it("holds doubles entries until the partner accepts", () => {
     const doubles = (id: string, partnerStatus: "pending" | "accepted" | "declined") => ({
-      entry: { id, category: "MD" as const, status: "paid" as const, seed: null, partnerStatus },
+      entry: { id, category: "OD" as const, status: "paid" as const, seed: null, partnerStatus },
     });
 
     expect(
-      eligibleRows([doubles("pending", "pending"), doubles("accepted", "accepted"), doubles("declined", "declined")], "MD")
+      eligibleRows([doubles("pending", "pending"), doubles("accepted", "accepted"), doubles("declined", "declined")], "OD")
         .map((item) => item.entry.id),
     ).toEqual(["accepted"]);
   });
 
   it("keeps confirmed and paid entries in the event", () => {
     const rows = [
-      row("submitted", "MS", "submitted"),
-      row("confirmed", "MS", "confirmed"),
-      row("paid", "MS", "paid"),
-      row("cancelled", "MS", "cancelled"),
-      row("other-event", "WS", "paid"),
+      row("submitted", "OS", "submitted"),
+      row("confirmed", "OS", "confirmed"),
+      row("paid", "OS", "paid"),
+      row("cancelled", "OS", "cancelled"),
+      row("other-event", "W30", "paid"),
     ];
 
-    expect(eligibleRows(rows, "MS").map(toDrawEntrant)).toEqual([
+    expect(eligibleRows(rows, "OS").map(toDrawEntrant)).toEqual([
       { entryId: "confirmed", seed: null },
       { entryId: "paid", seed: 1 },
     ]);

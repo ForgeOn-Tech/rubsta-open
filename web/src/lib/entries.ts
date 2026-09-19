@@ -83,7 +83,7 @@ export function validateEntryInput(input: {
   if (existingCategories.includes(category)) {
     return {
       ok: false,
-      error: `You already have a ${CATEGORY_LABELS[category]} entry.`,
+      error: `You have already entered ${CATEGORY_LABELS[category]}.`,
     };
   }
   if (isDoubles(category)) {

@@ -81,7 +81,7 @@ export async function submitEntry(
     // A double submit can pass validation twice; the index is the real guard.
     if (isUniqueViolation(error)) {
       return {
-        error: `You already have a ${CATEGORY_LABELS[validation.category]} entry.`,
+        error: `You have already entered ${CATEGORY_LABELS[validation.category]}.`,
       };
     }
     throw error;
