@@ -102,18 +102,46 @@ print expanded Compose configuration because it contains environment secrets.
   moderate findings during installation; no automatic upgrades were applied).
 - Browser checks passed at desktop/mobile widths: homepage, same-origin links,
   demo sign-in, profile creation, event entry and admin routing, with no browser
-  errors. One clearly labelled `Preview Test` profile and submitted Open singles
-  entry remain for inspection; no payment was attempted.
+  errors. One clearly labelled `Preview Test` profile and Open singles entry
+  remain for inspection. Initially submitted, the entry was subsequently paid
+  during the test-payment verification below.
 - Entry and settings survived an app-container restart. SQLite quick_check
   returned `ok`. The dedicated data disk has automatic deletion disabled.
 - Preview dates/venue are 24–25 October 2026 at Vazirani National Sports Academy.
   Schedule remains provisional: the seed's 22 September entry deadline is NOT
   the confirmed tournament deadline. Confirm/update it before real registration.
-- Payments are disabled and no local database or payment keys were copied.
+- Razorpay test payments were enabled after the initial deployment at the user's
+  request. Existing test credentials are stored only in the ignored, protected
+  app environment on the VM. No local database or live payment keys were copied.
   Public launch still needs Google OAuth, rotated payment credentials and webhook
   verification if payments are enabled, confirmed entry deadline, backups, and
   preservation of the live main branch's sponsorship integration. The preview's
   sponsorship form does not send enquiries.
+
+## Team payment testing
+
+Verified on 19 September 2026: checkout displayed Test Mode and ₹3,000; choosing
+Failure left the entry unpaid and retryable after reload. A successful retry
+created `pay_TdrmcP0qfQpgIm` for `order_TdrmSAjMifMmei`. The Razorpay API confirmed
+`captured`, INR 300000 paise, method netbanking. The application verified the
+callback signature and stored Paid with the payment reference; player reload and
+the admin entries page both showed Paid. No manual Paid override or fabricated
+signature was used. All 28 targeted payment unit/persistence tests passed.
+
+Sign in to the preview, open an unpaid entry and click **Pay**. The Razorpay
+window must display **Test Mode**. Choose **Netbanking → Canara Bank**, then
+**Success** or **Failure** on the mock bank page. No bank login or real payment
+details are needed. Keep the original app tab open for payment confirmation.
+
+The browser callback verifies Razorpay's signature server-side. Webhook recovery
+after closing the browser is not configured: no dashboard webhook or webhook
+secret is set, and the preview password gate protects that route as well.
+Do not treat this as a verified webhook/reconciliation flow.
+
+Everyone currently shares the demo account; an event already paid by one tester
+cannot be paid again by another. Separate tester accounts remain a prerequisite
+for independent parallel testing. Test keys previously shared in chat should be
+rotated before wider use; do not paste replacement secrets into chat.
 
 References: [GCS static hosting](https://docs.cloud.google.com/storage/docs/hosting-static-website),
 [persistent disk deletion settings](https://docs.cloud.google.com/compute/docs/disks/modify-persistent-disk),
