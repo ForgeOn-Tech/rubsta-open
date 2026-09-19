@@ -41,7 +41,7 @@ services:
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ./access.${RUBSTA_ACCESS_MODE:?Choose internal or public}.caddy:/etc/caddy/access.caddy:ro
-      - /var/lib/rubsta/site/${RUBSTA_RELEASE}:/srv/site:ro
+      - /var/lib/rubsta/site/${RUBSTA_SITE_RELEASE:-${RUBSTA_RELEASE}}:/srv/site:ro
       - /var/lib/rubsta/tls:/data
     depends_on:
       app:

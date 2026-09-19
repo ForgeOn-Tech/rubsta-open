@@ -15,6 +15,17 @@ read-only copy and sends every other route to Next.js. Register and Team access
 therefore stay on one HTTPS origin. Authentication callbacks return to `/home`,
 not the public landing page.
 
+For landing-only releases, set `RUBSTA_SITE_RELEASE` in `deploy/.env` to the new
+static source commit and leave `RUBSTA_RELEASE` at the running app release. Upload
+and verify the private GCS release, install it on the VM, then recreate only the
+gateway with `docker compose --project-directory deploy -f deploy/compose.yaml up -d --no-deps gateway`.
+This preserves the app container, payment configuration and database. Omit the
+override to deploy app and landing assets from the same commit. Validate landing
+folds with `node scripts/check-landing-folds.cjs` (local port 8087) or append
+`--deployed` for the internal preview. Default layouts fit seven viewport folds;
+expanded biography, very short landscape viewports and zoom can grow naturally
+so that content is never clipped.
+
 ## Prerequisites for future deployments
 
 - Authenticate `gcloud` to project `forgeon` using `tech@forgelabs.in`.

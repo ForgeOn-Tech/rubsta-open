@@ -1,0 +1,199 @@
+/* One complete chapter per viewport. Content may grow for zoom, very small
+   screens or an expanded biography; never crop text or trap page scrolling. */
+html { scroll-padding-top: 0; }
+main > section { scroll-margin-top: 0; }
+main > section:not(.hero) {
+  min-height: 100svh;
+  padding-block: clamp(24px, 5svh, 56px);
+  align-content: center;
+}
+.section.wrap:not(.next-chapter) {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.hero.wrap {
+  height: auto;
+  min-height: 100svh;
+  padding: 100px 28px 160px;
+}
+.hero-copy { margin-top: 0; translate: none; }
+.hero h1, .hero h1 em { font-size: clamp(76px, 16svh, 170px); }
+.hero h1 { margin-block: 12px; }
+.hero-powered { margin-block: 14px; }
+.hero .intro { margin-block: 14px; }
+.hero .digital-hero-summary { margin-bottom: 16px; }
+.hero .actions { margin-top: 16px; }
+.hero .hero-footnote { margin-block: 16px 0; }
+.hero .audience {
+  position: absolute;
+  inset: auto 0 0;
+  padding: 18px 4vw;
+  min-height: 64px;
+  width: 100%;
+}
+.hero-slide figcaption { bottom: 96px; }
+.hero .slider-controls { bottom: 90px; }
+.section-heading { margin-bottom: clamp(20px, 4svh, 40px); }
+.digital-features { gap: clamp(20px, 4svh, 36px) 40px; }
+.digital-features article { padding-top: 0; }
+.digital-features h3 { margin-block: 12px 10px; font-size: clamp(25px, 3.8svh, 32px); }
+.digital-features p { line-height: 1.6; }
+.coach-profile { width: 100%; }
+.coach-background { margin-block: 12px; color: var(--muted); font-size: 13px; line-height: 1.65; }
+.coach-background summary { cursor: pointer; color: var(--ink); min-height: 32px; padding-block: 6px; }
+.coach-background summary:focus-visible { outline: 2px solid var(--deep); outline-offset: 4px; }
+.coach-background p { margin-block: 10px; }
+.coach-carousel { max-width: min(370px, 40svh); }
+.gallery-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
+.gallery-item img { height: clamp(140px, 30svh, 320px); }
+.gallery-caption { padding-top: 12px; }
+.gallery-caption strong { font-size: 22px; line-height: 1.15; }
+.gallery-caption small { line-height: 1.5; }
+.sponsors > .wrap { width: 100%; }
+.sponsor-lead { padding-block: 20px; }
+.sponsor-grid > div { padding: 20px 12px; }
+main > section.sponsors { min-height: calc(100svh - 76px); }
+body > footer { min-height: 76px; padding-block: 16px; flex-direction: row; }
+body > footer p { margin: 0; width: auto; }
+.event-details .event-entry-fees dl > div { padding: 0; min-height: 0; }
+
+@media (max-width: 760px) {
+  .site-header { height: 72px; padding-inline: 24px; }
+  .hero.wrap { padding: 82px 24px 166px; }
+  .hero h1, .hero h1 em { font-size: clamp(62px, 11svh, 96px); }
+  .hero .intro { font-size: 18px; max-width: 320px; }
+  .hero-copy .eyebrow { font-size: 9px; letter-spacing: 2px; }
+  .hero-powered { font-size: 9px; margin-block: 12px; }
+  .hero .actions { flex-direction: row; flex-wrap: wrap; gap: 8px 20px; }
+  .hero .hero-footnote { max-width: 320px; font-size: 9px; line-height: 1.6; }
+  .hero .audience { display: block; text-align: center; padding: 12px 20px; min-height: 70px; }
+  .hero .audience > span { font-size: 7px; }
+  .hero .audience p { font-size: 10px; margin-top: 8px; }
+  .hero .audience i { margin-inline: 3px; }
+  .hero-slide figcaption { bottom: 122px; left: 24px; }
+  .hero-slide figcaption h2 { font-size: 16px; }
+  .hero .slider-controls { bottom: 86px; left: 24px; right: 24px; }
+  .hero .concept-label { bottom: -9px; font-size: 6px; }
+  main > section.section.wrap, main > section.event-details, main > section.sponsors { padding-block: 24px; }
+  .section-heading { display: block; margin-bottom: 22px; }
+  .section-heading h2, .event-details h2, .coach-story h2 { font-size: 34px; margin-top: 8px; }
+  .section-heading > p { font-size: 12px; line-height: 1.6; margin-top: 12px; }
+  .digital-features { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 18px; }
+  .digital-feature-label { font-size: 8px; letter-spacing: 1px; }
+  .digital-features h3 { font-size: 24px; margin-block: 8px; }
+  .digital-features p { font-size: 12px; line-height: 1.5; }
+  .event-details { gap: 24px; }
+  .event-details .event-intro { font-size: 14px; margin-block: 14px 8px; }
+  .entry-deadline { margin-bottom: 16px; }
+  .event-entry-fees h3 { font-size: 24px; margin-bottom: 16px; }
+  .event-entry-fees dl { gap: 14px; }
+  .event-fee-note { margin-top: 16px; }
+  .coach-profile { gap: 18px; }
+  .coach-story h2 { margin-bottom: 12px; }
+  .coach-story > p:not(.eyebrow) { font-size: 12px; line-height: 1.6; }
+  .coach-rankings { margin-top: 12px; padding-block: 8px; }
+  .coach-credentials { gap: 8px 16px; margin-top: 8px; }
+  .coach-credentials p { margin: 0; font-size: 10px; }
+  .coach-carousel { max-width: 100%; }
+  .coach-slides { aspect-ratio: auto; height: clamp(120px, 22svh, 220px); }
+  .coach-controls { padding-block: 4px; }
+  .gallery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 14px; }
+  .gallery-item img { height: clamp(100px, 18svh, 180px); }
+  .gallery-caption { padding: 10px 18px 0 0; }
+  .gallery-caption strong { font-size: 19px; }
+  .gallery-caption small { font-size: 9px; margin-top: 5px; }
+  .gallery-caption > span { right: 0; top: 12px; }
+  .gallery-note { margin-top: 16px; line-height: 1.5; }
+  .sponsor-lead { padding-block: 12px; }
+  .sponsor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sponsor-grid > div { padding: 16px 8px; }
+  .sponsor-grid .dummy-logo { font-size: 21px; }
+  .sponsor-actions { gap: 8px 20px; }
+  body > footer { gap: 8px; }
+  footer .brand { font-size: 20px; }
+}
+
+@media (max-width: 760px) and (max-height: 700px) {
+  .hero.wrap { padding-top: 78px; padding-bottom: 148px; }
+  .hero h1, .hero h1 em { font-size: 56px; }
+  .hero .intro { font-size: 16px; }
+  .hero .digital-hero-summary { font-size: 10px; line-height: 1.5; }
+  .hero .button { padding-block: 12px; }
+  .hero .actions { gap: 6px 16px; }
+  .hero-slide figcaption { bottom: 116px; }
+  .section-heading h2, .event-details h2, .coach-story h2 { font-size: 30px; }
+  .section-heading > p { margin-top: 8px; }
+  .event-details { gap: 18px; }
+  .event-details .event-intro { line-height: 1.5; margin-top: 10px; }
+  .event-entry-fees dl { gap: 10px; }
+  .event-fee-note { margin-top: 12px; }
+  .coach-rankings dd { font-size: 24px; white-space: nowrap; }
+  .coach-rankings { gap: 8px; }
+  .coach-rankings dt { font-size: 8px; }
+  .coach-story > p.coach-ranking-note { font-size: 10px; }
+  .coach-background { margin-block: 6px; }
+  .coach-slides { height: 120px; }
+  .gallery-caption strong { font-size: 17px; }
+  .sponsors .section-heading { margin-bottom: 12px; }
+  .sponsors .section-heading > p { font-size: 11px; }
+  .sponsor-lead { padding-block: 8px; }
+  .sponsor-lead .dummy-logo { font-size: 28px; }
+  .sponsor-grid > div { padding-block: 10px; }
+  .sponsor-grid .dummy-logo { font-size: 18px; }
+  .sponsor-grid .eyebrow { font-size: 7px; letter-spacing: 1px; }
+  .sponsor-note { margin-block: 10px; }
+  .sponsor-actions .button { padding-block: 12px; }
+  body > footer { gap: 8px; }
+  footer .brand { font-size: 18px; }
+}
+
+@media (max-height: 650px) {
+  main > section.section.wrap, main > section.event-details, main > section.sponsors { padding-block: 20px; }
+  .hero h1, .hero h1 em { font-size: clamp(54px, 10svh, 76px); }
+  .hero h1, .hero-powered, .hero .intro { margin-block: 8px; }
+  .hero .digital-hero-summary { margin-bottom: 8px; line-height: 1.5; }
+  .hero .actions { margin-top: 10px; }
+  .hero .hero-footnote { margin-top: 10px; }
+  .section-heading { margin-bottom: 16px; }
+  .digital-features { row-gap: 14px; }
+  .digital-features h3 { font-size: 22px; }
+  .coach-profile { gap: 12px; }
+  .coach-slides { height: 120px; }
+  .gallery-item img { height: 100px; }
+}
+
+@media (max-width: 760px) and (max-height: 700px) {
+  .sponsor-lead { gap: 10px; }
+  .sponsor-grid .dummy-logo { margin-top: 10px; }
+  .sponsor-actions { margin-top: 14px; gap: 8px 12px; }
+  .sponsor-actions .button { font-size: 10px; gap: 12px; padding-inline: 16px; }
+  .sponsor-actions .button.secondary { padding-inline: 0; }
+}
+@media (max-width: 360px) and (max-height: 650px) {
+  .hero.wrap { padding-block: 70px 132px; }
+  .hero h1, .hero h1 em { font-size: 48px; }
+  .hero .intro { font-size: 15px; }
+  .hero .actions { gap: 4px 10px; }
+  .hero .button { font-size: 10px; gap: 12px; }
+  .hero .button.primary { padding-inline: 20px; }
+  .hero-slide figcaption { bottom: 112px; }
+  .hero-slide figcaption .eyebrow { display: none; }
+  .hero-slide figcaption h2 { font-size: 14px; }
+  .section-heading h2 { font-size: 26px; }
+  .digital-features h3 { font-size: 20px; margin-block: 6px; }
+  .digital-features { gap: 12px; }
+  .digital-feature-label { font-size: 7px; }
+  .gallery-caption strong { font-size: 16px; }
+  .gallery-grid { row-gap: 12px; }
+  .gallery-item img { height: 90px; }
+  .sponsors .section-heading { margin-bottom: 8px; }
+  .sponsors .section-heading h2 { font-size: 26px; }
+  .sponsors .section-heading > p { line-height: 1.4; }
+  .sponsor-lead { gap: 6px; padding-block: 6px; }
+  .sponsor-lead > .eyebrow { font-size: 7px; }
+  .sponsor-grid > div { padding-block: 6px; }
+  .sponsor-grid .dummy-logo { margin-top: 6px; }
+  .dummy-logo > span { margin-top: 5px; }
+  .sponsor-actions { margin-top: 8px; }
+}
