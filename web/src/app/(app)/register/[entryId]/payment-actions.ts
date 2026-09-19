@@ -15,6 +15,7 @@ import {
 import { payments, profiles } from "@/db/schema";
 import { CATEGORY_LABELS } from "@/lib/entries";
 import {
+  checkoutContact,
   isCheckoutSignatureValid,
   orderReceipt,
   razorpayConfig,
@@ -80,7 +81,7 @@ export async function startCheckout(entryId: string): Promise<StartCheckoutResul
       amountCents: feeCents,
       currency: tournament.currency,
       description: `${CATEGORY_LABELS[entry.category]} entry · ${tournament.name}`,
-      prefill: { name: profile?.fullName ?? user.name, email: user.email, contact: profile?.mobile ?? "" },
+      prefill: { name: profile?.fullName ?? user.name, email: user.email, contact: checkoutContact(profile?.mobile ?? "") },
     },
   };
 }

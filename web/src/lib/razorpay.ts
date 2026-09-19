@@ -86,6 +86,13 @@ export function paidPaymentFromWebhook(rawBody: string): WebhookPayment | null {
   return { orderId: payment.order_id, paymentId: payment.id };
 }
 
+/** A mobile number as Checkout's prefill accepts it: digits, with a leading + kept. */
+export function checkoutContact(mobile: string): string {
+  const trimmed = mobile.trim();
+  const digits = trimmed.replace(/\D/g, "");
+  return trimmed.startsWith("+") ? `+${digits}` : digits;
+}
+
 /** The order receipt: the entry id, cut to Razorpay's limit. */
 export function orderReceipt(entryId: string): string {
   return entryId.slice(0, MAX_RECEIPT_LENGTH);

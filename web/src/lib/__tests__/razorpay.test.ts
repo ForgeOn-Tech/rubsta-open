@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  checkoutContact,
   isCheckoutSignatureValid,
   isWebhookSignatureValid,
   orderReceipt,
@@ -87,6 +88,14 @@ describe("paidPaymentFromWebhook", () => {
     expect(() => paidPaymentFromWebhook(webhook("payment.captured", { id: "pay_1" }))).toThrow(
       "Razorpay payment.captured webhook has no payment id and order id.",
     );
+  });
+});
+
+describe("checkoutContact", () => {
+  it("drops spaces and dashes so Checkout fills in the number", () => {
+    expect(checkoutContact("+91 98765 43210")).toBe("+919876543210");
+    expect(checkoutContact(" 98765-43210 ")).toBe("9876543210");
+    expect(checkoutContact("")).toBe("");
   });
 });
 
