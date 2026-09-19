@@ -6,7 +6,7 @@ persistent SQLite storage. The internal environment is provisioned in project
 `rubsta-internal-ip` (`8.231.95.59`), 20 GB data disk `rubsta-internal-data`, and
 private bucket `forgeon-rubsta-internal-assets`. These are billable resources.
 DNS `internal.rubstaopen.com` points to this address. The existing public site is
-unchanged. Deployment verification is recorded below when complete.
+unchanged. Deployment verification is recorded below.
 
 The VM runs the app and Caddy. The organisation disallows public bucket access;
 keep that policy intact. An authenticated deployer downloads the immutable GCS
@@ -15,7 +15,7 @@ read-only copy and sends every other route to Next.js. Register and Team access
 therefore stay on one HTTPS origin. Authentication callbacks return to `/home`,
 not the public landing page.
 
-## Required before provisioning
+## Prerequisites for future deployments
 
 - Authenticate `gcloud` to project `forgeon` using `tech@forgelabs.in`.
 - Choose internal demo or public registration. Google OAuth is not configured
@@ -80,9 +80,40 @@ print expanded Compose configuration because it contains environment secrets.
    Rollback uses the previous app image and GCS release prefix, retaining the
    database. Review migration compatibility before rolling app versions back.
 
-The local Docker daemon was not running during preparation, so the container and
-Caddy configurations still need runtime validation before deployment. The Next
-production build was tested separately; this is not a claim of cloud deployment.
+## Verified internal deployment — 19 September 2026
+
+- URL: `https://internal.rubstaopen.com`; Team access: `/internal`.
+- Running source/image release: `2277d6bca391421c639960d068862a0dc5a09235`.
+  Later documentation-only commits do not require rebuilding this release.
+- Browser credentials are in the local, permission-restricted, Git-ignored
+  `deploy/.env.preview-access`. After the browser password prompt, use
+  **Continue with demo account**. This shared demo has admin access; do not share
+  the preview password publicly or enter real player data.
+- VM working directory: `/home/devansh/rubsta-release`; Compose files and
+  protected environment files are in its `deploy/` directory. Connect with
+  `gcloud compute ssh rubsta-internal --project=forgeon --zone=asia-south1-a --tunnel-through-iap`.
+- HTTPS certificate issued, HTTP redirects to HTTPS, and unauthenticated page,
+  asset, admin and auth API requests return 401. Anonymous GCS access returns 403.
+  Tagged firewall rules allow web and IAP SSH at priority 800 and deny other
+  ingress at 900, overriding unrelated default-network allowances for this VM.
+- Linux production build and TypeScript passed; app is healthy. Caddy runtime
+  validation and six deployment preflight tests passed. The production-only npm
+  audit reported zero vulnerabilities (development dependencies reported four
+  moderate findings during installation; no automatic upgrades were applied).
+- Browser checks passed at desktop/mobile widths: homepage, same-origin links,
+  demo sign-in, profile creation, event entry and admin routing, with no browser
+  errors. One clearly labelled `Preview Test` profile and submitted Open singles
+  entry remain for inspection; no payment was attempted.
+- Entry and settings survived an app-container restart. SQLite quick_check
+  returned `ok`. The dedicated data disk has automatic deletion disabled.
+- Preview dates/venue are 24–25 October 2026 at Vazirani National Sports Academy.
+  Schedule remains provisional: the seed's 22 September entry deadline is NOT
+  the confirmed tournament deadline. Confirm/update it before real registration.
+- Payments are disabled and no local database or payment keys were copied.
+  Public launch still needs Google OAuth, rotated payment credentials and webhook
+  verification if payments are enabled, confirmed entry deadline, backups, and
+  preservation of the live main branch's sponsorship integration. The preview's
+  sponsorship form does not send enquiries.
 
 References: [GCS static hosting](https://docs.cloud.google.com/storage/docs/hosting-static-website),
 [persistent disk deletion settings](https://docs.cloud.google.com/compute/docs/disks/modify-persistent-disk),
