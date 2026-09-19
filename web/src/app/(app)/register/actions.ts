@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 import { requireUser } from "@/auth/require";
 import { db, getDb } from "@/db/client";
+import { getEventFees } from "@/db/fees";
 import { PartnerRejectedError, changePartner, listPlayedCategories } from "@/db/partners";
 import { entries, profiles, tournaments } from "@/db/schema";
 import {
@@ -16,6 +17,7 @@ import {
   type EntryFormState,
 } from "@/lib/entries";
 import type { ActionState } from "@/lib/form-state";
+import { awaitsPayment } from "@/lib/entry-status";
 import { normaliseEmail } from "@/lib/partners";
 import { razorpayConfig } from "@/lib/razorpay";
 
@@ -82,8 +84,13 @@ export async function submitEntry(
     throw error;
   }
 
-  // With payments on, the entry page opens Razorpay Checkout straight away.
-  redirect(razorpayConfig(process.env) ? `/register/${id}?pay=1` : `/register/${id}`);
+  // When the fee is due online, the entry page opens Razorpay Checkout straight away.
+  const payNow = awaitsPayment({
+    paymentsOn: razorpayConfig(process.env) !== null,
+    feeCents: getEventFees(getDb(), tournament.id)[validation.category],
+    status: "submitted",
+  });
+  redirect(payNow ? `/register/${id}?pay=1` : `/register/${id}`);
 }
 
 /** Names a new doubles partner, who then has to accept. */

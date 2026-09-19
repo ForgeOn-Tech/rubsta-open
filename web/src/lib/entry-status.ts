@@ -29,6 +29,11 @@ export function isPayable(status: EntryStatus): boolean {
   return PAYABLE_STATUSES.includes(status);
 }
 
+/** True when the player still has a fee to pay online: payments are on, the event costs something, and the entry is unpaid. */
+export function awaitsPayment(entry: { paymentsOn: boolean; feeCents: number; status: EntryStatus }): boolean {
+  return entry.paymentsOn && entry.feeCents > 0 && isPayable(entry.status);
+}
+
 export function isEntryStatus(value: string): value is EntryStatus {
   return ENTRY_STATUSES.some((status) => status === value);
 }

@@ -14,7 +14,7 @@ import { db, getDb } from "@/db/client";
 import { getEventFees } from "@/db/fees";
 import { entries, tournaments } from "@/db/schema";
 import { CATEGORY_LABELS, entryReference, isDoubles } from "@/lib/entries";
-import { isPayable } from "@/lib/entry-status";
+import { awaitsPayment } from "@/lib/entry-status";
 import { eventFeeLabel } from "@/lib/fees";
 import { formatDate, formatFee } from "@/lib/format";
 import { partnerInvitationPath } from "@/lib/partners";
@@ -52,7 +52,11 @@ export default async function EntryConfirmationPage({
   const partnerStatus = entry.partnerStatus;
   const feeCents = getEventFees(getDb(), tournament.id)[entry.category];
   const feeLabel = eventFeeLabel(feeCents, tournament.currency, isDoubles(entry.category));
-  const awaitingPayment = razorpayConfig(process.env) !== null && isPayable(entry.status);
+  const awaitingPayment = awaitsPayment({
+    paymentsOn: razorpayConfig(process.env) !== null,
+    feeCents,
+    status: entry.status,
+  });
 
   const partner: Detail[] = entry.partnerName
     ? [

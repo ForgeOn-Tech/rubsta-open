@@ -6,6 +6,7 @@ import {
   canTransition,
   isEntryStatus,
   isPayable,
+  awaitsPayment,
   statusUpdate,
 } from "@/lib/entry-status";
 
@@ -68,5 +69,17 @@ describe("isPayable", () => {
     expect(isPayable("confirmed")).toBe(true);
     expect(isPayable("paid")).toBe(false);
     expect(isPayable("cancelled")).toBe(false);
+  });
+});
+
+describe("awaitsPayment", () => {
+  it("asks for payment only when payments are on and the event has a fee", () => {
+    const unpaid = { paymentsOn: true, feeCents: 300000, status: "submitted" as const };
+
+    expect(awaitsPayment(unpaid)).toBe(true);
+    expect(awaitsPayment({ ...unpaid, paymentsOn: false })).toBe(false);
+    expect(awaitsPayment({ ...unpaid, feeCents: 0 })).toBe(false);
+    expect(awaitsPayment({ ...unpaid, status: "paid" })).toBe(false);
+    expect(awaitsPayment({ ...unpaid, status: "cancelled" })).toBe(false);
   });
 });
