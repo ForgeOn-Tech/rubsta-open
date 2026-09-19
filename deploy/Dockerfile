@@ -2,7 +2,8 @@ FROM node:22-bookworm-slim AS build
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ ca-certificates && rm -rf /var/lib/apt/lists/*
 COPY web/package.json web/package-lock.json ./
-RUN npm ci
+# Match the npm version that produced the lockfile. npm 10 rejects its layout.
+RUN npm install --global npm@11.17.0 && npm ci
 COPY web/ ./
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build -- --webpack

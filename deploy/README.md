@@ -27,6 +27,8 @@ not the public landing page.
 
 - `Dockerfile` builds the standalone Next app on Linux, including SQLite's native
   dependency. `.dockerignore` excludes credentials, local databases and caches.
+  It pins npm 11.17.0 to match the lockfile producer; bundled npm 10 fails clean
+  installation with a spurious missing esbuild dependency.
 - `compose.yaml` exposes only Caddy on ports 80/443. The app has no published port.
 - `Caddyfile` routes `/` and `/assets/*` to the downloaded GCS release and other
   paths to the app. GCS contains website assets, never credentials or a database.
