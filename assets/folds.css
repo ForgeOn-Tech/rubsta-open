@@ -97,7 +97,10 @@ body > footer p { margin: 0; width: auto; }
   .coach-credentials p { margin: 0; font-size: 10px; }
   .coach-carousel { max-width: 100%; }
   .coach-slides { aspect-ratio: auto; height: clamp(120px, 22svh, 220px); }
-  .coach-controls { padding-block: 4px; }
+  .coach-controls { padding: 4px 8px; gap: 8px; }
+  .coach-dots { gap: 0; }
+  .coach-dots button { width: 24px; }
+  #coach-count { white-space: nowrap; flex-shrink: 0; }
   .gallery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 14px; }
   .gallery-item img { height: clamp(100px, 18svh, 180px); }
   .gallery-caption { padding: 10px 18px 0 0; }
@@ -187,6 +190,7 @@ body > footer p { margin: 0; width: auto; }
   .gallery-caption strong { font-size: 16px; }
   .gallery-grid { row-gap: 12px; }
   .gallery-item img { height: 90px; }
+  .coach-rankings > div:first-child dd { font-size: 20px; }
   .sponsors .section-heading { margin-bottom: 8px; }
   .sponsors .section-heading h2 { font-size: 26px; }
   .sponsors .section-heading > p { line-height: 1.4; }
