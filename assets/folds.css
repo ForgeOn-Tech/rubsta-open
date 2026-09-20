@@ -1,5 +1,17 @@
 /* Responsive section layouts; content remains free to grow. */
 html { scroll-padding-top: 0; }
+#technology { gap: 64px; }
+.avatar-story h2 { margin-block: 12px 26px; }
+.avatar-feature h3 { font: 28px/1.2 var(--serif); margin: 12px 0; }
+.avatar-feature h3 em { color: #65764b; font-weight: 400; }
+.avatar-feature > p:not(.eyebrow), .planned-features > p:not(.eyebrow) { font-size: 13px; line-height: 1.8; color: var(--muted); max-width: 430px; }
+.avatar-feature .button { margin-top: 12px; }
+.avatar-feature > p.avatar-eligibility { font-size: 10px; margin-top: 12px; }
+.planned-features { border-top: 1px solid var(--line); padding-top: 14px; margin-top: 24px; }
+.avatar-preview { margin: 0; width: 100%; max-width: 430px; justify-self: end; }
+.avatar-preview img { display: block; width: 100%; height: auto; border-radius: 8px; }
+.avatar-preview figcaption { margin-top: 14px; font: italic 20px var(--serif); text-align: center; color: var(--muted); }
+@media(max-width:760px) { #technology { gap: 30px; } .avatar-preview { max-width: 340px; justify-self: center; } }
 .site-header nav .nav-signin { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; white-space: nowrap; }
 @media (max-width: 760px) {
   .site-header nav { gap: 12px; }

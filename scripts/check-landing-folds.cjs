@@ -24,7 +24,7 @@ const baseURL = access?.PREVIEW_URL || 'http://127.0.0.1:8087';
       await page.goto('/');
       await page.evaluate(() => document.fonts.ready);
       await expect(page.getByRole('link', { name: 'Sign in', exact: true })).toBeVisible();
-      await expect(page.locator('[data-account]')).toHaveAttribute('href', /\/home$/);
+      await expect(page.locator('header [data-account]')).toHaveAttribute('href', /\/home$/);
       await expect(page.locator('[data-early-bird]')).toContainText('1 event: ₹200 off');
       await expect(page.locator('[data-early-bird]')).toContainText('2 events: ₹500 off total');
       await expect(page.locator('[data-early-bird]')).toContainText('30 Sept 2026');
