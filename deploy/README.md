@@ -214,6 +214,54 @@ demo tester cannot be paid again by another. Use individual Google accounts once
 the first real login is verified. Test keys previously shared in chat should be
 rotated before wider use; do not paste replacement secrets into chat.
 
+## Switching to live payments — procedure
+
+Live keys and the webhook secret are created in the Razorpay dashboard and never pass
+through a repository, a chat or a shell argument.
+
+1. In the dashboard, generate **live mode** API keys. The key secret is shown once.
+2. Under Webhooks, add `https://www.rubstaopen.com/api/payments/razorpay/webhook` with
+   the `payment.captured` and `order.paid` events, and set a webhook secret. The route
+   verifies `X-Razorpay-Signature` as HMAC-SHA256 of the raw body under that secret,
+   and ignores orders this app did not create.
+3. On the VM, install the three values interactively:
+
+   ```sh
+   gcloud compute ssh rubsta-internal --project=forgeon --zone=asia-south1-a --tunnel-through-iap
+   cd ~/rubsta-release && bash deploy/set-payment-keys.sh
+   ```
+
+   The script reads the secrets from the terminal, so they stay out of the shell history
+   and the process list. It backs up `.env.app`, writes it back at mode 600, and refuses
+   a live key id when no webhook secret is configured.
+4. Validate and recreate the app container:
+
+   ```sh
+   sudo docker run --rm -v ~/rubsta-release:/app:ro -w /app node:22-alpine node deploy/preflight.mjs
+   sudo docker compose --project-directory deploy -f deploy/compose.yaml up -d --wait
+   ```
+
+   Node is not installed on the VM itself; preflight runs in a throwaway container and
+   prints no credential values. Recreate the gateway alongside the app so Caddy does not
+   hold the old container's address.
+5. Verify: send a test event from the dashboard's webhook page and confirm it is accepted,
+   then take one real entry through checkout and confirm the Razorpay window no longer
+   says Test Mode, the entry shows Paid, and the payment reference matches the dashboard.
+
+Rolling back means restoring the timestamped `.env.app` backup the script wrote and
+recreating the app container. Orders created under test keys cannot be paid with live
+keys; clear or ignore any unpaid test entries before opening public registration.
+
+## Payment configuration observed — 20 September 2026
+
+An unsigned POST to `/api/payments/razorpay/webhook` returns 400, not 503. The route
+returns 503 only when `RAZORPAY_WEBHOOK_SECRET` is unset, so a webhook secret **is**
+installed on the VM, and the note under "Team payment testing" that no webhook secret is
+set no longer describes this deployment. `deploy/preflight.mjs` reports the configuration
+valid for a public deployment, which confirms `DEMO_AUTH=false` and Google sign-in
+configured. Whether the installed key id is `rzp_test_` or `rzp_live_` was not read: the
+file holds credentials, and the dashboard shows which keys are active.
+
 ## Google sign-in configuration
 
 Google OAuth credentials from the separate `tennis-os` project are installed in
