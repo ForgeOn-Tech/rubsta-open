@@ -21,6 +21,9 @@ body:has(#sponsor-dialog[open]){overflow:hidden}
 /* Tournament partner: real logo artwork replaces the placeholder lockups. */
 .sponsor-lead{flex-direction:column;align-items:center;text-align:center;gap:18px;padding-block:34px}
 .partner-logo{width:min(320px,70vw);height:auto;display:block}
+.sponsor-partners{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:40px;max-width:900px;margin-inline:auto;align-items:start}
+.partner-logo-sp{max-height:190px;object-fit:contain;mix-blend-mode:multiply}
+@media(max-width:760px){.sponsor-partners{grid-template-columns:1fr;gap:24px}.partner-logo-sp{max-height:150px}}
 .partner-name{display:flex;flex-direction:column;gap:7px;font:11px var(--mono);letter-spacing:3px;color:var(--ink);text-transform:uppercase}
 .partner-name em{font:13px/1.5 Inter,system-ui,sans-serif;font-style:italic;letter-spacing:0;text-transform:none;color:var(--muted)}
 @media(max-width:760px){
