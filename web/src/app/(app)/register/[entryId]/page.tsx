@@ -19,6 +19,8 @@ import { eventFeeLabel } from "@/lib/fees";
 import { formatDate, formatFee } from "@/lib/format";
 import { partnerInvitationPath } from "@/lib/partners";
 import { razorpayConfig } from "@/lib/razorpay";
+import { registrationState } from "@/db/registration";
+import { getPayableEntry } from "@/db/payments";
 
 export const dynamic = "force-dynamic";
 
@@ -52,11 +54,14 @@ export default async function EntryConfirmationPage({
   const partnerStatus = entry.partnerStatus;
   const feeCents = getEventFees(getDb(), tournament.id)[entry.category];
   const feeLabel = eventFeeLabel(feeCents, tournament.currency, isDoubles(entry.category));
-  const awaitingPayment = awaitsPayment({
+  const registration = registrationState(getDb(), user.id, tournament.id);
+  const awaitingPayment = !registration.paid && awaitsPayment({
     paymentsOn: razorpayConfig(process.env) !== null,
     feeCents,
     status: entry.status,
   });
+  const checkout = awaitingPayment ? getPayableEntry(getDb(), entry.id, user.id) : null;
+  const checkoutAmount = checkout ? formatFee(checkout.feeCents, tournament.currency) : feeLabel;
 
   const partner: Detail[] = entry.partnerName
     ? [
@@ -115,18 +120,23 @@ export default async function EntryConfirmationPage({
         </p>
       </div>
 
+      {registration.paid && entry.status !== "paid" ? <p className="card p-4 text-[13px] text-muted" role="status">
+        Your tournament registration is already paid. This earlier unpaid entry is not part of that payment.
+        Contact the organiser if your selected categories need a correction; no additional checkout is available.
+      </p> : null}
+
       {awaitingPayment ? (
         <section aria-labelledby="payment-heading" className="card flex flex-col gap-3 p-4">
           <div className="flex items-center justify-between gap-3">
             <h2 id="payment-heading" className="text-[14px] font-semibold">
-              Entry fee
+              One payment · Selected categories
             </h2>
-            <span className="mono text-right text-[16px] font-semibold">{feeLabel}</span>
+            <span className="mono text-right text-[16px] font-semibold">{checkoutAmount}</span>
           </div>
-          <p className="text-[12px] text-muted">Pay by UPI, card or netbanking through Razorpay.</p>
+          <p className="text-[12px] text-muted">{checkout?.entries.map(item => CATEGORY_LABELS[item.category]).join(" + ")}. Pay once by UPI, card or netbanking. Categories cannot be added after payment.</p>
           <PayButton
             entryId={entry.id}
-            amountLabel={formatFee(feeCents, tournament.currency)}
+            amountLabel={checkoutAmount}
             openOnLoad={pay === "1"}
             start={startCheckout}
             confirm={confirmCheckout}

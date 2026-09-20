@@ -2,6 +2,8 @@ import Link from "next/link";
 
 import { signOutAction } from "@/auth/actions";
 import { canAccessAdmin, canScoreMatches, requireUser } from "@/auth/require";
+import { getDb } from "@/db/client";
+import { registrationState } from "@/db/registration";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +14,7 @@ export default async function PlayerLayout({
   children: React.ReactNode;
 }) {
   const user = await requireUser();
+  const registration = registrationState(getDb(), user.id);
   const admin = canAccessAdmin(user.email);
   const scorer = canScoreMatches(user.email);
   const demoMode = process.env.DEMO_AUTH === "true";
@@ -38,9 +41,9 @@ export default async function PlayerLayout({
             <Link href="/order-of-play" className="hidden sm:inline">
               Order of play
             </Link>
-            <Link href="/register" className="hidden sm:inline">
-              Enter an event
-            </Link>
+            {!registration.paid ? <Link href={registration.pendingId ? `/register/${registration.pendingId}` : "/register"} className="hidden sm:inline">
+              {registration.pendingId ? "Complete registration" : "Register"}
+            </Link> : null}
             <Link href="/profile" className="hidden sm:inline">
               Profile
             </Link>

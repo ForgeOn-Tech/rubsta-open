@@ -1,4 +1,6 @@
 export type NextStepKind =
+  | "registration-paid"
+  | "complete-registration"
   | "create-profile"
   | "no-tournament"
   | "entries-closed"
@@ -19,6 +21,8 @@ export interface NextStep {
 }
 
 export interface NextStepInput {
+  registrationPaid?: boolean;
+  pendingEntryId?: string | null;
   hasProfile: boolean;
   /** Whether entries are open; null when no tournament exists. */
   entriesOpen: boolean | null;
@@ -26,15 +30,23 @@ export interface NextStepInput {
   categoryCount: number;
 }
 
-const ENTER_EVENT: NextStepAction = { label: "Enter an event", href: "/register" };
+const ENTER_EVENT: NextStepAction = { label: "Choose categories", href: "/register" };
 
 /** The one action the player home leads with. */
 export function nextStep({
+  registrationPaid = false,
+  pendingEntryId = null,
   hasProfile,
   entriesOpen,
   enteredCount,
   categoryCount,
 }: NextStepInput): NextStep {
+  if (registrationPaid) {
+    return { kind: "registration-paid", title: "Your registration is paid", description: "Your selected categories and payment confirmation are listed below. You’re ready for the tournament.", action: null };
+  }
+  if (pendingEntryId) {
+    return { kind: "complete-registration", title: "Complete your registration", description: "Your categories are selected. Complete one payment for your registration.", action: { label: "Continue to payment", href: `/register/${pendingEntryId}` } };
+  }
   if (!hasProfile) {
     return {
       kind: "create-profile",
@@ -74,18 +86,17 @@ export function nextStep({
   if (enteredCount === 0) {
     return {
       kind: "enter-first-event",
-      title: "Enter your first event",
+      title: "Register for the tournament",
       description:
-        "Choose singles or doubles. Doubles entries need your partner's name and email.",
+        "Select your event or approved combination, then make one payment. Doubles entries need your partner's name and email.",
       action: ENTER_EVENT,
     };
   }
-  const remaining = categoryCount - enteredCount;
   return {
-    kind: "enter-another-event",
-    title: "Enter another event",
-    description: `You can enter ${remaining} more ${remaining === 1 ? "event" : "events"}.`,
-    action: ENTER_EVENT,
+    kind: "complete-registration",
+    title: "Your tournament entries",
+    description: "Your selected categories and their status are listed below.",
+    action: null,
   };
 }
 

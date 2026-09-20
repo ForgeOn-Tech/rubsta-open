@@ -19,6 +19,7 @@ import { awaitsPayment } from "@/lib/entry-status";
 import { normaliseEmail } from "@/lib/partners";
 import { razorpayConfig } from "@/lib/razorpay";
 import { registrationOption } from "@/lib/registration-pricing";
+import { registrationState } from "@/db/registration";
 
 export async function submitEntry(
   _prev: EntryFormState,
@@ -56,6 +57,9 @@ export async function submitEntry(
 
   try {
     db.transaction((tx) => {
+      const registration = registrationState(tx, user.id, tournament.id);
+      if (registration.paid) redirect("/home");
+      if (registration.pendingId) redirect(`/register/${registration.pendingId}`);
       if (bundleId) tx.insert(entryBundles).values({ id: bundleId, userId: user.id, tournamentId: tournament.id }).run();
       tx.insert(entries).values(selection.categories.map((category, index) => ({
         id: ids[index], userId: user.id, tournamentId: tournament.id, bundleId, category,

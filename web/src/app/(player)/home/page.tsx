@@ -4,6 +4,7 @@ import Link from "next/link";
 import { PlayerCard } from "./player-card";
 import { PaymentWelcome } from "./payment-welcome";
 import { AvatarStudio } from "./avatar-studio";
+import { registrationState } from "@/db/registration";
 import { avatarAccessError } from "@/lib/avatar";
 import { ageFromDob } from "@/lib/age";
 import { playerAvatars } from "@/db/schema";
@@ -73,7 +74,10 @@ export default async function HomePage({ searchParams }: {
   );
   const upcoming = nextMatch(tournamentMatches, teamEntryIds, places);
 
+  const registration = registrationState(getDb(), user.id, tournament?.id);
   const step = nextStep({
+    registrationPaid: registration.paid,
+    pendingEntryId: registration.pendingId,
     hasProfile: profile !== null,
     entriesOpen: tournament ? entriesOpen(tournament) : null,
     enteredCount: myEntries.length + partnered.length,

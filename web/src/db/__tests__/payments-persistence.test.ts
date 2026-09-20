@@ -8,6 +8,7 @@ import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { saveEventFees } from "@/db/fees";
+import { registrationState } from "@/db/registration";
 import {
   PaymentRejectedError,
   applyRazorpayWebhook,
@@ -67,6 +68,21 @@ afterEach(() => {
 });
 
 describe("getPayableEntry", () => {
+  it("blocks another checkout after payment and preserves the existing entries", () => {
+    const database = setup();
+    addEntry(database, "paid", "OS", "paid");
+    addEntry(database, "old-unpaid", "S40", "submitted");
+    expect(registrationState(database, PLAYER, TOURNAMENT_ID)).toEqual({ paid: true, pendingId: null });
+    expect(() => getPayableEntry(database, "old-unpaid", PLAYER)).toThrow("already paid");
+    expect(entryOf(database, "old-unpaid")?.status).toBe("submitted");
+  });
+
+  it("resumes an unpaid registration after a failed checkout", () => {
+    const database = setup();
+    addEntry(database, "pending", "OS", "submitted");
+    expect(registrationState(database, PLAYER, TOURNAMENT_ID)).toEqual({ paid: false, pendingId: "pending" });
+    expect(getPayableEntry(database, "pending", PLAYER).entry.id).toBe("pending");
+  });
   it("charges an approved two-event bundle once with the ₹500 early-bird offer", () => {
     const database = setup();
     database.insert(schema.entryBundles).values({ id: "bundle-1", userId: PLAYER, tournamentId: TOURNAMENT_ID }).run();

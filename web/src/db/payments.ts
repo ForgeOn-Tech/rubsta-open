@@ -5,6 +5,7 @@ import { getEventFees } from "./fees";
 import { entries, payments, tournaments, type Entry, type Tournament } from "./schema";
 import { registrationPrice } from "@/lib/registration-pricing";
 import { isPayable } from "@/lib/entry-status";
+import { registrationState } from "./registration";
 import { isWebhookSignatureValid, paidPaymentFromWebhook, type WebhookPayment } from "@/lib/razorpay";
 
 /** The player cannot pay for this entry. Its message is for the player. */
@@ -41,6 +42,9 @@ export function getPayableEntry(database: Database, entryId: string, userId: str
   if (!row) throw new Error(`Entry ${entryId} does not belong to user ${userId}.`);
   if (row.entry.status === "paid") throw new PaymentRejectedError("This entry is already paid.");
   if (!isPayable(row.entry.status)) throw new PaymentRejectedError("This entry was cancelled, so it cannot be paid.");
+  if (registrationState(database, userId, row.tournament.id).paid) {
+    throw new PaymentRejectedError("Your tournament registration is already paid. No additional payment is needed. Contact the organiser about category changes.");
+  }
   const bundled = row.entry.bundleId
     ? database.select().from(entries).where(and(eq(entries.bundleId, row.entry.bundleId), eq(entries.userId, userId))).all()
     : [row.entry];
