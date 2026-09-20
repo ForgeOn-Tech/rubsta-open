@@ -97,12 +97,18 @@ print expanded Compose configuration because it contains environment secrets.
 2. Attach a dedicated persistent data disk with automatic deletion disabled.
    Mount it at `/var/lib/rubsta` and create `data` (owned by UID/GID 1000) and `tls`
    directories there. A container rebuild must never replace that mount.
-3. Publish `index.html` and `assets/` from the reviewed, committed source to
-   `gs://BUCKET/releases/FULL_COMMIT_SHA/`. Keep the bucket private. Download that
+3. Publish `index.html`, the policy pages (`terms.html`, `privacy.html`,
+   `refunds.html`, `contact.html`, `shipping.html`) and `assets/` from the reviewed,
+   committed source to `gs://BUCKET/releases/FULL_COMMIT_SHA/`. Keep the bucket private. Download that
    prefix using authenticated `gcloud storage cp`, transfer it over IAP, and put
    `index.html` and `assets/` in `/var/lib/rubsta/site/FULL_COMMIT_SHA`. Use release
    prefixes for rollback; do not upload the
    repository, `.env` files, `web/`, or database files. HTML should revalidate.
+   `scripts/build-site.py` builds that set into `dist/` and exits non-zero while any
+   `{{TOKEN}}` placeholder is left in a page, so an unfinished policy page cannot be
+   published. The VM's gcloud is not authenticated and cannot read the bucket itself:
+   build locally, then `gcloud compute scp --recurse --tunnel-through-iap`. Docker on
+   the VM needs `sudo`.
 4. Copy the exact same source commit and separate protected environment files to
    the VM. Set `RUBSTA_RELEASE` to that full SHA and validate configuration:
 
@@ -159,6 +165,29 @@ print expanded Compose configuration because it contains environment secrets.
   verification if payments are enabled, confirmed entry deadline, backups, and
   preservation of the live main branch's sponsorship integration. The preview's
   sponsorship form does not send enquiries.
+
+## Verified public deployment — 20 September 2026
+
+- URL: `https://www.rubstaopen.com`. Site release
+  `5d174960f62364a7699df17e4632acc0ff59bcd1`; app release held at
+  `8c45429e1e6e0a9a0b5e40d4690eb5a8b6121343`, so the app container was not rebuilt.
+  Rollback: set `RUBSTA_SITE_RELEASE` back to `8c45429e…` and recreate the gateway.
+- Added the merchant policy pages Razorpay's website review asks for: `/terms`,
+  `/privacy`, `/refunds`, `/contact` and `/shipping`, plus footer links on the landing
+  page. Entity details come from the GST registration certificate.
+- The `Caddyfile` gained a `@policy` matcher that serves those five paths from the
+  release directory with `try_files {path}.html`. Everything outside `/`, `/assets/*`
+  and those paths still proxies to the app, so `/terms.html` returns the app's 404.
+  The config was validated in a throwaway `caddy:2-alpine` container on the VM before
+  the gateway was recreated.
+- The previous gateway configuration is kept on the VM as
+  `deploy/Caddyfile.pre-policy-pages` and `deploy/.env.pre-policy-pages`.
+- Verified after deployment: all five pages return 200 over HTTPS and are byte-identical
+  to the built release, no `{{TOKEN}}` placeholders reached production, `/register`
+  still redirects to `/signin`, the app container stayed healthy, and the gateway logs
+  show no errors. `node scripts/check-landing-folds.cjs` passes at all seven viewports.
+- Still outstanding for merchant review: the landing page describes its own sponsor
+  names, logos and imagery as placeholders and its venue photo as unconfirmed.
 
 ## Team payment testing
 
