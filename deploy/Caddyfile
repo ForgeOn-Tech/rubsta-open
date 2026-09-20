@@ -15,6 +15,18 @@
   log_skip /assets/*
 
   @homepage path / /index.html
+  # Browsers also request this automatically on registration/account pages.
+  handle /favicon.ico {
+    rewrite * /assets/images/favicon.ico
+    header Cache-Control "no-cache"
+    file_server
+  }
+
+  handle /apple-touch-icon.png {
+    rewrite * /assets/images/apple-touch-icon.png
+    file_server
+  }
+
   handle @homepage {
     rewrite * /index.html
     header Cache-Control "no-cache"
