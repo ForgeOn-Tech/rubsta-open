@@ -20,7 +20,8 @@ if out.exists():
 out.mkdir()
 for page in PAGES:
     shutil.copy2(root / page, out / page)
-shutil.copytree(root / 'assets', out / 'assets', ignore=shutil.ignore_patterns('*.png'))
+# club-court.png is a 2.9 MB source file; the site loads the JPEG instead.
+shutil.copytree(root / 'assets', out / 'assets', ignore=shutil.ignore_patterns('club-court.png'))
 shutil.copytree(root / 'design/screens', out / 'design/screens')
 
 unresolved = {
