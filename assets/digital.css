@@ -139,17 +139,22 @@ h2, .event-details h2, .coach-story h2 { font-size: clamp(34px, 3.8vw, 52px); fo
 .event-fee-note { margin: 24px 0 0; font-size: 11px; color: var(--muted); line-height: 1.7; }
 .digital-features p { margin-bottom: 0; }
 
-/* Feature icons sit on the label's own line, so the fold height is unchanged. */
+/* Fine-line club seals echo the cream, sage and forest-green palette. */
 .icon-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
 .digital-feature-label { display: inline-flex; align-items: center; gap: .85em; }
 .feature-icon {
-  width: 2.3em;
-  height: 2.3em;
+  box-sizing: content-box;
+  width: 2em;
+  height: 2em;
+  padding: .55em;
+  border: 1px solid #a6b192;
+  border-radius: 50%;
+  background: #e9edde;
   flex: none;
   color: var(--deep);
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  stroke-width: 1.25;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
 }

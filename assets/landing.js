@@ -1,25 +1,3 @@
-// Manual carousel: no automatic movement while visitors read the event details.
-const slides = [...document.querySelectorAll('.hero-slide')];
-const slideButtons = [...document.querySelectorAll('[data-slide]')];
-let currentSlide = 0;
-function showSlide(index) {
-  currentSlide = (index + slides.length) % slides.length;
-  slides.forEach((slide, i) => { slide.hidden = i !== currentSlide; });
-  slideButtons.forEach((button, i) => {
-    if (i === currentSlide) button.setAttribute('aria-current', 'true');
-    else button.removeAttribute('aria-current');
-  });
-  document.querySelector('#slide-status').textContent = `${String(currentSlide + 1).padStart(2, '0')} / ${String(slides.length).padStart(2, '0')}`;
-}
-slideButtons.forEach(button => button.addEventListener('click', () => showSlide(Number(button.dataset.slide))));
-document.querySelector('#previous-slide').addEventListener('click', () => showSlide(currentSlide - 1));
-document.querySelector('#next-slide').addEventListener('click', () => showSlide(currentSlide + 1));
-document.querySelector('.hero-slider').addEventListener('keydown', event => {
-  if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-    event.preventDefault(); showSlide(currentSlide + (event.key === 'ArrowRight' ? 1 : -1));
-  }
-});
-
 // A brief court-side entrance; CSS also dismisses it if loading is interrupted.
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 const loader = document.querySelector('#court-loader');

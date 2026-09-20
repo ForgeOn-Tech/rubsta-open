@@ -1,10 +1,54 @@
-/* One complete chapter per viewport. Content may grow for zoom, very small
-   screens or an expanded biography; never crop text or trap page scrolling. */
+/* Responsive section layouts; content remains free to grow. */
 html { scroll-padding-top: 0; }
+#prizes { min-height: 100svh; padding-block: 48px; }
+.prize-section .section-heading { display: block; text-align: center; }
+.prize-section .section-heading > p { max-width: 520px; margin: 16px auto 0; }
+.prize-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 24px; }
+.prize-grid article { border-top: 1px solid #a6b192; padding-top: 20px; }
+.prize-grid h3 { margin: 0; font: 24px/1.2 var(--serif); }
+.prize-total { margin: 14px 0 24px; font: 34px/1 var(--serif); color: var(--deep); }
+.prize-grid dl { margin: 0; }
+.prize-grid dl > div { display: flex; justify-content: space-between; gap: 8px; margin-top: 14px; font-size: 11px; line-height: 1.5; }
+.prize-grid dt { color: var(--muted); }
+.prize-grid dd { margin: 0; text-align: right; white-space: nowrap; }
+.prize-grid small { display: block; font-size: 10px; color: var(--muted); }
+.prize-condition { margin: 20px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+@media (max-width: 1050px) {
+  .prize-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+}
+@media (max-width: 760px) {
+  #prizes .prize-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 18px; }
+  #prizes .prize-open { grid-column: 1 / -1; }
+  #prizes .prize-open dl { display: grid; grid-template-columns: 1fr 1fr; gap: 0 22px; }
+  #prizes .prize-grid article { padding-top: 12px; }
+  #prizes .prize-grid h3 { font-size: 22px; }
+  #prizes .prize-total { font-size: 28px; margin: 8px 0 12px; }
+  #prizes .prize-grid dl > div { margin-top: 8px; }
+  #prizes .prize-condition { margin-top: 12px; }
+}
+/* Final composition: readable photography and a steady rhythm between sections. */
+.hero .hero-image::after { background: linear-gradient(180deg, #09170d50 0%, #09170d00 25%, #09170d20 55%, #09170d48 100%); }
+.hero-image img { object-position: 50% 50%; }
+#digital .digital-features { max-width: 1100px; width: 100%; margin-inline: auto; }
+#digital .digital-features article { border-top: 1px solid var(--line); padding-top: 18px; }
+#gallery .gallery-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; }
+#gallery .gallery-item img { height: clamp(220px, 26vw, 380px); }
+#gallery .section-heading, #sponsors .section-heading { display: block; text-align: center; }
+#gallery .section-heading > p, #sponsors .section-heading > p { max-width: 480px; margin: 16px auto 0; }
+main > #technology { padding-block: 52px; border-top: 1px solid var(--line); }
+@media (max-width: 760px) {
+  main > section.section.wrap, main > section.event-details, main > section.sponsors { padding-block: 48px !important; }
+  #gallery .gallery-grid { grid-template-columns: 1fr; gap: 26px; }
+  #gallery .gallery-item img { height: auto; aspect-ratio: 1.6; object-fit: cover; }
+  #coach .coach-slides { height: 300px; }
+  #digital .digital-features { gap: 26px 18px; }
+  #digital .digital-features h3 { font-size: 24px; }
+  #digital .digital-features p { font-size: 13px; }
+}
 main > section { scroll-margin-top: 0; }
 main > section:not(.hero) {
-  min-height: 100svh;
-  padding-block: clamp(24px, 5svh, 56px);
+  min-height: 0;
+  padding-block: clamp(56px, 7vw, 100px);
   align-content: center;
 }
 .section.wrap:not(.next-chapter) {
@@ -21,14 +65,16 @@ main > section:not(.hero) {
 .hero-copy .early-bird {
   display: inline-block;
   margin: 0;
-  padding: 8px 12px;
-  background: #dceac8;
-  color: #203e2a;
-  border-radius: 6px;
-  letter-spacing: 1px;
+  padding: 0;
+  background: transparent;
+  color: #fffbed;
+  font-size: 9px;
+  letter-spacing: .5px;
+  text-transform: none;
+  text-shadow: 0 1px 8px #09170d;
 }
 .early-bird span { display: block; margin-top: 4px; font-size: 9px; letter-spacing: .3px; }
-.early-bird strong { display: block; margin-top: 4px; font-size: 12px; letter-spacing: 0; text-transform: none; }
+.early-bird strong { display: block; margin-top: 4px; font-size: 11px; font-weight: 400; letter-spacing: 0; text-transform: none; }
 .hero h1, .hero h1 em { font-size: clamp(76px, 16svh, 170px); }
 .hero h1 { margin-block: 12px; }
 .hero-powered { margin-block: 14px; }
@@ -46,6 +92,12 @@ main > section:not(.hero) {
 .hero-slide figcaption { bottom: 96px; }
 .hero .slider-controls { bottom: 90px; }
 .section-heading { margin-bottom: clamp(20px, 4svh, 40px); }
+.digital-experience .section-heading { display: block; text-align: center; }
+.digital-experience .section-heading > p { max-width: none; margin: 12px auto 0; }
+.hero-image { position: absolute; inset: 0; margin: 0; z-index: -1; }
+.hero-image img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.hero-image::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, #09170d50 0%, #09170d00 25%, #09170d20 55%, #09170d48 100%); }
+.hero-image figcaption { position: absolute; right: 4vw; bottom: 86px; z-index: 1; color: #fffbedcc; font: 7px var(--mono); letter-spacing: 1px; }
 .digital-features { gap: clamp(20px, 4svh, 36px) 40px; }
 .digital-features article { padding-top: 0; }
 .digital-features h3 { margin-block: 12px 10px; font-size: clamp(25px, 3.8svh, 32px); }
@@ -64,7 +116,7 @@ main > section:not(.hero) {
 .sponsors > .wrap { width: 100%; }
 .sponsor-lead { padding-block: 20px; }
 .sponsor-grid > div { padding: 20px 12px; }
-main > section.sponsors { min-height: calc(100svh - var(--footer-h)); }
+main > section.sponsors { min-height: 0; }
 body > footer { min-height: var(--footer-h); padding-block: 16px; flex-direction: row; }
 body > footer p { margin: 0; width: auto; }
 /* Policy links sit in the footer row on wide screens and take their own row below it

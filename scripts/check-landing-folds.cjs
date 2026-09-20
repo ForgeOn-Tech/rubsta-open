@@ -28,15 +28,19 @@ const baseURL = access?.PREVIEW_URL || 'http://127.0.0.1:8087';
       await expect(page.locator('[data-early-bird]')).toContainText('30 Sept 2026');
       await expect(page.locator('.entry-deadline')).toContainText('15 October 2026');
       const sections = page.locator('main > section');
-      await expect(sections).toHaveCount(7);
+      await expect(sections).toHaveCount(8);
+      if (width >= 1280) {
+        const prizeHeight = await page.locator('#prizes').evaluate(element => element.getBoundingClientRect().height);
+        expect(prizeHeight, 'Prize section fits one desktop fold').toBeLessThanOrEqual(height + 2);
+      }
       const geometry = await sections.evaluateAll(elements => elements.map(element => {
         const box = element.getBoundingClientRect();
         return { id: element.id || 'hero', top: box.top + scrollY, height: box.height, overflow: element.scrollHeight > element.clientHeight + 2 };
       }));
-      const footerHeight = await page.locator('body > footer').evaluate(element => element.getBoundingClientRect().height);
       geometry.forEach((section, index) => {
-        expect(Math.abs(section.top - index * height), `${width}: ${section.id} start`).toBeLessThanOrEqual(2);
-        expect(Math.abs(section.height + (section.id === 'sponsors' ? footerHeight : 0) - height), `${width}: ${section.id} fold`).toBeLessThanOrEqual(2);
+        const previousEnd = index ? geometry[index - 1].top + geometry[index - 1].height : 0;
+        expect(Math.abs(section.top - previousEnd), `${width}: ${section.id} continuity`).toBeLessThanOrEqual(2);
+        expect(section.height, `${width}: ${section.id} visible`).toBeGreaterThan(0);
         expect(section.overflow, `${width}: ${section.id} clipping`).toBe(false);
       });
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
@@ -58,7 +62,7 @@ const baseURL = access?.PREVIEW_URL || 'http://127.0.0.1:8087';
       await expect(page.locator('[data-early-bird]')).toHaveCount(0);
       await expect(page.locator('.hero-copy > .eyebrow')).toHaveText('TENNIS. CONNECTED.');
       expect(errors).toEqual([]);
-      console.log(`PASS ${width}×${height}: seven aligned folds, no clipping/overflow; biography, carousel and dialogs work.`);
+      console.log(`PASS ${width}×${height}: eight sections, no clipping/overflow; biography, carousel and dialogs work.`);
       await page.close();
     }
   } finally { await browser.close(); }
