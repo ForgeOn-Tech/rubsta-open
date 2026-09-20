@@ -13,6 +13,13 @@
     file_server
   }
 
+  @policy path /terms /privacy /refunds /contact /shipping
+  handle @policy {
+    try_files {path}.html
+    header Cache-Control "no-cache"
+    file_server
+  }
+
   handle /assets/* {
     header Cache-Control "no-cache"
     file_server

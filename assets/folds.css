@@ -64,12 +64,19 @@ main > section:not(.hero) {
 .sponsors > .wrap { width: 100%; }
 .sponsor-lead { padding-block: 20px; }
 .sponsor-grid > div { padding: 20px 12px; }
-main > section.sponsors { min-height: calc(100svh - 76px); }
-body > footer { min-height: 76px; padding-block: 16px; flex-direction: row; }
+main > section.sponsors { min-height: calc(100svh - var(--footer-h)); }
+body > footer { min-height: var(--footer-h); padding-block: 16px; flex-direction: row; }
 body > footer p { margin: 0; width: auto; }
+/* Policy links sit in the footer row on wide screens and take their own row below it
+   when that row runs out of width. --footer-h must match the taller result. */
+body { --footer-h: 76px; }
+body > footer .site-footer-links { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 10px; }
+body > footer .site-footer-links a { display: inline; }
 .event-details .event-entry-fees dl > div { padding: 0; min-height: 0; }
 
 @media (max-width: 760px) {
+  body { --footer-h: 88px; }
+  body > footer { gap: 6px; padding-block: 12px; }
   .site-header { height: 72px; padding-inline: 24px; }
   .hero.wrap { padding: 82px 24px 166px; }
   .hero h1, .hero h1 em { font-size: clamp(62px, 11svh, 96px); }
@@ -212,10 +219,10 @@ body > footer p { margin: 0; width: auto; }
   .sponsors .section-heading { margin-bottom: 8px; }
   .sponsors .section-heading h2 { font-size: 26px; }
   .sponsors .section-heading > p { line-height: 1.4; }
-  .sponsor-lead { gap: 6px; padding-block: 6px; }
+  .sponsor-lead { gap: 6px; padding-block: 4px; }
   .sponsor-lead > .eyebrow { font-size: 7px; }
   .sponsor-grid > div { padding-block: 6px; }
   .sponsor-grid .dummy-logo { margin-top: 6px; }
   .dummy-logo > span { margin-top: 5px; }
-  .sponsor-actions { margin-top: 8px; }
+  .sponsor-actions { margin-top: 4px; }
 }
