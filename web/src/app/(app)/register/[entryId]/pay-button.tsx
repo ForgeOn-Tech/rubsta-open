@@ -48,18 +48,26 @@ export function PayButton({ entryId, amountLabel, openOnLoad, start, confirm }: 
   const [state, setState] = useState<PayState>("idle");
   const [error, setError] = useState<string | null>(null);
   const openedOnLoad = useRef(false);
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState<CheckoutResult | null>(null);
 
   async function finish(result: CheckoutResult) {
+    setAwaitingConfirmation(result);
     setState("confirming");
-    const confirmation = await confirm(entryId, result);
-    if (confirmation.error) {
-      setError(confirmation.error);
+    setError(null);
+    try {
+      const confirmation = await confirm(entryId, result);
+      if (confirmation.error) {
+        setError(confirmation.error);
+        setState("idle");
+        return;
+      }
+      // Home checks the player's saved entry before showing the welcome confirmation.
+      router.replace(`/home?paid=${encodeURIComponent(entryId)}`);
+      router.refresh();
+    } catch {
+      setError("Could not check payment status. Please check again; do not pay again if money left your account.");
       setState("idle");
-      return;
     }
-    // Drop ?pay=1 so a reload does not open Checkout again.
-    router.replace(`/register/${entryId}`);
-    router.refresh();
   }
 
   function openCheckout(order: CheckoutOrder) {
@@ -79,7 +87,7 @@ export function PayButton({ entryId, amountLabel, openOnLoad, start, confirm }: 
           paymentId: response.razorpay_payment_id,
           signature: response.razorpay_signature,
         }),
-      modal: { ondismiss: () => setState("idle") },
+      modal: { ondismiss: () => setState(current => current === "confirming" ? current : "idle") },
     });
     checkout.on("payment.failed", (response) => setError(`Payment failed: ${response.error.description}`));
     checkout.open();
@@ -87,15 +95,24 @@ export function PayButton({ entryId, amountLabel, openOnLoad, start, confirm }: 
   }
 
   async function pay() {
-    setError(null);
-    setState("starting");
-    const started = await start(entryId);
-    if (started.error !== null) {
-      setError(started.error);
-      setState("idle");
+    if (awaitingConfirmation) {
+      await finish(awaitingConfirmation);
       return;
     }
-    openCheckout(started.order);
+    setError(null);
+    setState("starting");
+    try {
+      const started = await start(entryId);
+      if (started.error !== null) {
+        setError(started.error);
+        setState("idle");
+        return;
+      }
+      openCheckout(started.order);
+    } catch {
+      setError("Checkout could not be opened. Please check your connection and try again.");
+      setState("idle");
+    }
   }
 
   useEffect(() => {
@@ -112,11 +129,12 @@ export function PayButton({ entryId, amountLabel, openOnLoad, start, confirm }: 
       ? "Confirming payment…"
       : state === "starting" || state === "open"
         ? "Opening checkout…"
-        : `Pay ${amountLabel}`;
+        : awaitingConfirmation ? "Check payment status" : `Pay ${amountLabel}`;
 
   return (
     <>
-      <Script src={CHECKOUT_SCRIPT_URL} strategy="afterInteractive" onReady={() => setScriptReady(true)} />
+      <Script src={CHECKOUT_SCRIPT_URL} strategy="afterInteractive" onReady={() => setScriptReady(true)}
+        onError={() => setError("The payment window could not load. Check your connection and reload this page.")} />
       {error ? (
         <p className="text-[12px] text-bad" role="alert">
           {error}

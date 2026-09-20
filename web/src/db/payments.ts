@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 import type { Database } from "./draws";
 import { getEventFees } from "./fees";
 import { entries, payments, tournaments, type Entry, type Tournament } from "./schema";
+import { registrationPrice } from "@/lib/registration-pricing";
 import { isPayable } from "@/lib/entry-status";
 import { isWebhookSignatureValid, paidPaymentFromWebhook, type WebhookPayment } from "@/lib/razorpay";
 
@@ -17,6 +18,7 @@ export class PaymentRejectedError extends Error {
 /** An entry the signed-in player can pay for, with the fee it costs. */
 export interface PayableEntry {
   entry: Entry;
+  entries: Entry[];
   tournament: Tournament;
   feeCents: number;
 }
@@ -39,9 +41,15 @@ export function getPayableEntry(database: Database, entryId: string, userId: str
   if (!row) throw new Error(`Entry ${entryId} does not belong to user ${userId}.`);
   if (row.entry.status === "paid") throw new PaymentRejectedError("This entry is already paid.");
   if (!isPayable(row.entry.status)) throw new PaymentRejectedError("This entry was cancelled, so it cannot be paid.");
-  const feeCents = getEventFees(database, row.tournament.id)[row.entry.category];
+  const bundled = row.entry.bundleId
+    ? database.select().from(entries).where(and(eq(entries.bundleId, row.entry.bundleId), eq(entries.userId, userId))).all()
+    : [row.entry];
+  if (bundled.length === 0 || bundled.some(entry => entry.status === "paid" || !isPayable(entry.status))) {
+    throw new PaymentRejectedError("This entry is no longer available to pay.");
+  }
+  const feeCents = registrationPrice(getEventFees(database, row.tournament.id), bundled.map(entry => entry.category));
   if (feeCents <= 0) throw new PaymentRejectedError("This event has no entry fee to pay.");
-  return { ...row, feeCents };
+  return { ...row, entries: bundled, feeCents };
 }
 
 /** Stores a new Razorpay order against an entry, before Checkout opens. */
@@ -62,6 +70,10 @@ export function recordPayment(database: Database, paid: WebhookPayment): Payment
   return database.transaction((tx) => {
     const payment = tx.select().from(payments).where(eq(payments.orderId, paid.orderId)).get();
     if (!payment) throw new Error(`Razorpay order ${paid.orderId} is not an order this app created.`);
+    if ((paid.amountCents !== undefined && paid.amountCents !== payment.amountCents) ||
+        (paid.currency !== undefined && paid.currency !== payment.currency)) {
+      throw new PaymentRejectedError("Payment amount or currency does not match the stored order.");
+    }
     if (payment.status === "paid") {
       if (payment.paymentId !== paid.paymentId) {
         throw new Error(
@@ -78,7 +90,14 @@ export function recordPayment(database: Database, paid: WebhookPayment): Payment
     const entry = tx.select().from(entries).where(eq(entries.id, payment.entryId)).get();
     if (!entry) throw new Error(`Payment ${payment.id} names entry ${payment.entryId}, which does not exist.`);
     if (isPayable(entry.status)) {
-      tx.update(entries).set({ status: "paid", paymentRef: paid.paymentId }).where(eq(entries.id, entry.id)).run();
+      const paidEntries = entry.bundleId
+        ? tx.select().from(entries).where(eq(entries.bundleId, entry.bundleId)).all()
+        : [entry];
+      if (paidEntries.some(item => !isPayable(item.status))) {
+        console.warn(`Payment ${paid.paymentId} arrived for a changed bundle; refund it in Razorpay.`);
+      } else {
+        for (const item of paidEntries) tx.update(entries).set({ status: "paid", paymentRef: paid.paymentId }).where(eq(entries.id, item.id)).run();
+      }
     } else {
       console.warn(
         `Payment ${paid.paymentId} arrived for entry ${entry.id}, which is ${entry.status}; refund it in Razorpay.`,
@@ -108,12 +127,18 @@ export function applyRazorpayWebhook(
   if (!post.signature || !isWebhookSignatureValid(post.rawBody, post.signature, post.webhookSecret)) {
     return HTTP_BAD_REQUEST;
   }
-  const paid = paidPaymentFromWebhook(post.rawBody);
+  let paid: WebhookPayment | null;
+  try { paid = paidPaymentFromWebhook(post.rawBody); }
+  catch { return HTTP_BAD_REQUEST; }
   if (!paid) return HTTP_OK;
   if (!isKnownOrder(database, paid.orderId)) {
     console.warn(`Razorpay webhook for order ${paid.orderId}, which this app did not create; ignored.`);
     return HTTP_OK;
   }
-  recordPayment(database, paid);
+  try { recordPayment(database, paid); }
+  catch (error) {
+    if (error instanceof PaymentRejectedError) return HTTP_BAD_REQUEST;
+    throw error;
+  }
   return HTTP_OK;
 }

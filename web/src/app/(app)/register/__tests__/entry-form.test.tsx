@@ -16,13 +16,7 @@ const BASE_PROPS: EntryFormProps = {
   action: rejectingAction,
   tournamentId: "tournament-1",
   enteredCategories: [],
-  feeLabels: {
-    OS: "₹3,000",
-    W30: "₹2,500",
-    U15: "₹2,000",
-    OD: "₹4,000 per team (₹2,000 each)",
-    S40: "₹3,000",
-  },
+  feeCents: { OS: 300000, W30: 250000, U15: 200000, OD: 400000, S40: 300000 },
   closesLabel: "22 Sep, 18:00 IST",
   paymentsEnabled: false,
 };
@@ -70,7 +64,7 @@ describe("EntryForm", () => {
 
     await user.click(screen.getByRole("radio", { name: "Open doubles" }));
 
-    expect(screen.getByText("₹4,000 per team (₹2,000 each)")).toBeInTheDocument();
+    expect(screen.getByText("₹3,800")).toBeInTheDocument();
     expect(screen.getByText(/You pay the fee for the whole team\./)).toBeInTheDocument();
   });
 

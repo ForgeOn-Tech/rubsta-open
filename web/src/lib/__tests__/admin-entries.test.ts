@@ -25,7 +25,8 @@ function row(
     entry: {
       id,
       userId: `user-${id}`,
-      tournamentId: "tournament-1",
+    tournamentId: "tournament-1",
+    bundleId: null,
       category,
       division: "main",
       partnerName: null,

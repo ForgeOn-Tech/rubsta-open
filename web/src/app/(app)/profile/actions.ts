@@ -1,12 +1,18 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { eq } from "drizzle-orm";
+import { submitEntry } from "../register/actions";
+import { listPlayedCategories } from "@/db/partners";
+import { tournaments } from "@/db/schema";
+import { validateEntryInput } from "@/lib/entries";
 
 import { requireUser } from "@/auth/require";
 import { getDb } from "@/db/client";
 import { upsertProfile } from "@/db/profiles";
 import { GENDERS, HANDS, type Gender, type PreviousTournament } from "@/db/schema";
 import { ageFromDob } from "@/lib/age";
+import { registrationOption } from "@/lib/registration-pricing";
 
 export interface ProfileFormState {
   error: string | null;
@@ -38,6 +44,19 @@ export async function saveProfile(
   const plays = HANDS.find((hand) => hand === playsInput);
   if (playsInput !== "" && plays === undefined) return { error: "Choose the hand you play with." };
 
+  const registering = formData.get("intent") === "register";
+  if (registering) {
+    const tournament = getDb().select().from(tournaments)
+      .where(eq(tournaments.id, String(formData.get("tournamentId") ?? ""))).get();
+    if (!tournament) return { error: "This tournament is not available." };
+    const selection = registrationOption(String(formData.get("selection") ?? formData.get("category") ?? ""));
+    if (!selection) return { error: "Choose an event or approved combo." };
+    for (const category of selection.categories) {
+      const validation = validateEntryInput({ category, partnerName: String(formData.get("partnerName") ?? "").trim(), partnerEmail: String(formData.get("partnerEmail") ?? "").trim(), ownEmail: user.email, existingCategories: listPlayedCategories(getDb(), user.id), entryClosesAt: tournament.entryClosesAt, tournamentStatus: tournament.status });
+      if (!validation.ok) return { error: validation.error };
+    }
+  }
+
   upsertProfile(getDb(), user.id, {
     fullName,
     dateOfBirth,
@@ -49,6 +68,7 @@ export async function saveProfile(
     plays: plays ?? null,
   });
 
+  if (registering) return submitEntry({ error: null }, formData);
   redirect("/home");
 }
 

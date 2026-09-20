@@ -9,10 +9,9 @@ import { StatusBadge } from "@/components/status-badge";
 import { db, getDb } from "@/db/client";
 import { getEventFees } from "@/db/fees";
 import { listPlayedCategories } from "@/db/partners";
-import { CATEGORIES, entries, profiles, tournaments, type Category } from "@/db/schema";
+import { CATEGORIES, entries, profiles, tournaments } from "@/db/schema";
 import { ageFromDob } from "@/lib/age";
-import { CATEGORY_LABELS, entriesOpen, isDoubles } from "@/lib/entries";
-import { eventFeeLabel } from "@/lib/fees";
+import { CATEGORY_LABELS, entriesOpen } from "@/lib/entries";
 import { formatEntryCloses } from "@/lib/format";
 import { razorpayConfig } from "@/lib/razorpay";
 import { PROVISIONAL_SCHEDULE_NOTE } from "@/lib/tournament";
@@ -48,12 +47,6 @@ export default async function RegisterPage() {
 
   const closed = !entriesOpen(tournament);
   const fees = getEventFees(getDb(), tournament.id);
-  const feeLabels = Object.fromEntries(
-    CATEGORIES.map((category) => [
-      category,
-      eventFeeLabel(fees[category], tournament.currency, isDoubles(category)),
-    ]),
-  ) as Record<Category, string>;
   const closesLabel = `${formatEntryCloses(tournament.entryClosesAt)} IST`;
   const age = ageFromDob(profile.dateOfBirth);
   const playerFacts = [
@@ -133,7 +126,7 @@ export default async function RegisterPage() {
           tournamentId={tournament.id}
           // Includes events the player joined as a doubles partner.
           enteredCategories={listPlayedCategories(getDb(), user.id)}
-          feeLabels={feeLabels}
+          feeCents={fees}
           closesLabel={closesLabel}
           paymentsEnabled={razorpayConfig(process.env) !== null}
         />

@@ -28,6 +28,36 @@ so that content is never clipped.
 
 ## Prerequisites for future deployments
 
+### Public launch deadline
+
+The organiser confirmed registration closes on **15 October 2026**. Retain the
+existing **18:00 IST** cutoff unless the organiser requests another time:
+`2026-10-15T18:00:00+05:30`. The startup seed now uses this value for new databases.
+The existing deployed database is **not updated by the seed**: set the deadline
+through admin tournament settings during launch preparation and verify the
+registration page before opening public registration. Preserve existing entries.
+
+### Early-bird offer (checkout implementation pending)
+
+The organiser's revised offer replaces the previous ₹300 early-bird proposal and
+the regular ₹500 combo discount. Through 30 September 2026, 23:59 IST:
+
+- One event: ₹200 off its standard fee.
+- Two events: ₹500 off the combined standard fees **in total**, not ₹500 plus
+  separate ₹200 discounts. Doubles counts as one event and retains its team fee.
+- From 1 October: standard fees, with **no regular combo discount**.
+
+For example, Open singles + Open doubles is ₹6,500 early bird, then ₹7,000;
+40+ singles + Open doubles is ₹6,500, then ₹7,000; Women's 30+ + Open doubles
+is ₹6,000, then ₹6,500. There is no separate 40+ doubles category.
+
+The landing-page draft displays the revised offer until
+`2026-10-01T00:00:00+05:30`, then removes it when JavaScript is enabled.
+Before publishing, implement and test matching server-side checkout pricing and
+two-event checkout. Confirm the treatment of three or more events and whether
+separate purchases qualify for the two-event offer before supporting those cases.
+The banner alone does **not** change payment amounts; checkout remains unchanged.
+
 - Authenticate `gcloud` to project `forgeon` using `tech@forgelabs.in`.
 - Choose internal demo or public registration. Google OAuth is not configured
   locally. Public registration must use Google OAuth with demo sign-in disabled.

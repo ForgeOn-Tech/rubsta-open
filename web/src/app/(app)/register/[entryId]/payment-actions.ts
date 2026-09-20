@@ -22,7 +22,7 @@ import {
   type CheckoutOrder,
   type CheckoutResult,
 } from "@/lib/razorpay";
-import { RazorpayRequestError, createRazorpayOrder } from "@/lib/razorpay-api";
+import { RazorpayRequestError, createRazorpayOrder, fetchRazorpayPayment } from "@/lib/razorpay-api";
 
 export type StartCheckoutResult = { order: CheckoutOrder; error: null } | { order: null; error: string };
 
@@ -46,7 +46,7 @@ export async function startCheckout(entryId: string): Promise<StartCheckoutResul
     if (error instanceof PaymentRejectedError) return { order: null, error: error.message };
     throw error;
   }
-  const { entry, tournament, feeCents } = payable;
+  const { entry, entries: payableEntries, tournament, feeCents } = payable;
 
   let orderId: string;
   try {
@@ -54,7 +54,7 @@ export async function startCheckout(entryId: string): Promise<StartCheckoutResul
       amountCents: feeCents,
       currency: tournament.currency,
       receipt: orderReceipt(entry.id),
-      notes: { entryId: entry.id },
+      notes: { entryId: entry.id, entryCount: String(payableEntries.length) },
     });
   } catch (error) {
     console.error(`Razorpay order for entry ${entry.id} failed.`, error);
@@ -80,13 +80,13 @@ export async function startCheckout(entryId: string): Promise<StartCheckoutResul
       orderId,
       amountCents: feeCents,
       currency: tournament.currency,
-      description: `${CATEGORY_LABELS[entry.category]} entry · ${tournament.name}`,
+      description: `${payableEntries.map(item => CATEGORY_LABELS[item.category]).join(" + ")} · ${tournament.name}`,
       prefill: { name: profile?.fullName ?? user.name, email: user.email, contact: checkoutContact(profile?.mobile ?? "") },
     },
   };
 }
 
-/** Checks Checkout's signature and, when it holds, marks the entry paid. */
+/** Verify ownership, signature, capture, amount and currency before marking paid. */
 export async function confirmCheckout(entryId: string, result: CheckoutResult): Promise<{ error: string | null }> {
   const user = await requireUser();
   const config = razorpayConfig(process.env);
@@ -94,7 +94,7 @@ export async function confirmCheckout(entryId: string, result: CheckoutResult): 
 
   const database = getDb();
   const order = database
-    .select({ id: payments.id })
+    .select()
     .from(payments)
     .where(
       and(eq(payments.orderId, result.orderId), eq(payments.entryId, entryId), eq(payments.userId, user.id)),
@@ -105,7 +105,21 @@ export async function confirmCheckout(entryId: string, result: CheckoutResult): 
     return { error: UNCONFIRMED };
   }
 
-  recordPayment(database, { orderId: result.orderId, paymentId: result.paymentId });
+  try {
+    const payment = await fetchRazorpayPayment(config, result.paymentId);
+    if (payment.order_id !== order.orderId || payment.amount !== order.amountCents || payment.currency !== order.currency) {
+      return { error: UNCONFIRMED };
+    }
+    if (payment.status !== "captured" || !payment.captured) {
+      return { error: "Payment is not yet captured. Check payment status again shortly; do not pay again." };
+    }
+    recordPayment(database, {
+      orderId: order.orderId, paymentId: payment.id,
+      amountCents: payment.amount, currency: payment.currency,
+    });
+  } catch {
+    return { error: UNCONFIRMED };
+  }
   revalidatePath(`/register/${entryId}`);
   revalidatePath("/register");
   revalidatePath("/home");

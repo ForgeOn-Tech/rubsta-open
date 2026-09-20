@@ -56,8 +56,8 @@ function paymentOf(database: TestDatabase, orderId: string) {
   return database.select().from(schema.payments).where(eq(schema.payments.orderId, orderId)).get();
 }
 
-function signedWebhook(event: string, payment: { id: string; order_id: string }) {
-  const rawBody = JSON.stringify({ event, payload: { payment: { entity: payment } } });
+function signedWebhook(event: string, payment: { id: string; order_id: string; amount?: number; currency?: string; captured?: boolean }) {
+  const rawBody = JSON.stringify({ event, payload: { payment: { entity: { amount: 300000, currency: "INR", status: "captured", captured: true, ...payment } } } });
   const signature = createHmac("sha256", WEBHOOK_SECRET).update(rawBody).digest("hex");
   return { rawBody, signature, webhookSecret: WEBHOOK_SECRET };
 }
@@ -67,13 +67,25 @@ afterEach(() => {
 });
 
 describe("getPayableEntry", () => {
-  it("charges each event's own fee", () => {
+  it("charges an approved two-event bundle once with the ₹500 early-bird offer", () => {
+    const database = setup();
+    database.insert(schema.entryBundles).values({ id: "bundle-1", userId: PLAYER, tournamentId: TOURNAMENT_ID }).run();
+    database.insert(schema.entries).values([
+      { id: "os", userId: PLAYER, tournamentId: TOURNAMENT_ID, bundleId: "bundle-1", category: "OS", status: "submitted" },
+      { id: "od", userId: PLAYER, tournamentId: TOURNAMENT_ID, bundleId: "bundle-1", category: "OD", status: "submitted" },
+    ]).run();
+
+    const payable = getPayableEntry(database, "od", PLAYER);
+    expect(payable.feeCents).toBe(650000);
+    expect(payable.entries.map(entry => entry.id).sort()).toEqual(["od", "os"]);
+  });
+  it("applies the early-bird discount to individual events", () => {
     const database = setup();
     addEntry(database, "singles", "W30", "submitted");
     addEntry(database, "doubles", "OD", "confirmed");
 
-    expect(getPayableEntry(database, "singles", PLAYER).feeCents).toBe(250000);
-    expect(getPayableEntry(database, "doubles", PLAYER).feeCents).toBe(400000);
+    expect(getPayableEntry(database, "singles", PLAYER).feeCents).toBe(230000);
+    expect(getPayableEntry(database, "doubles", PLAYER).feeCents).toBe(380000);
   });
 
   it("refuses an entry that is paid or cancelled", () => {
@@ -108,6 +120,20 @@ describe("getPayableEntry", () => {
 });
 
 describe("recordPayment", () => {
+  it("marks every entry in a paid bundle with the same payment reference", () => {
+    const database = setup();
+    database.insert(schema.entryBundles).values({ id: "bundle-1", userId: PLAYER, tournamentId: TOURNAMENT_ID }).run();
+    database.insert(schema.entries).values([
+      { id: "os", userId: PLAYER, tournamentId: TOURNAMENT_ID, bundleId: "bundle-1", category: "OS", status: "submitted" },
+      { id: "od", userId: PLAYER, tournamentId: TOURNAMENT_ID, bundleId: "bundle-1", category: "OD", status: "submitted" },
+    ]).run();
+    recordOrder(database, { entryId: "os", userId: PLAYER, orderId: "order_combo", amountCents: 650000, currency: "INR" });
+
+    recordPayment(database, { orderId: "order_combo", paymentId: "pay_combo", amountCents: 650000, currency: "INR" });
+
+    expect(entryOf(database, "os")).toMatchObject({ status: "paid", paymentRef: "pay_combo" });
+    expect(entryOf(database, "od")).toMatchObject({ status: "paid", paymentRef: "pay_combo" });
+  });
   it("marks the order and the entry paid with Razorpay's payment id", () => {
     const database = setup();
     addEntry(database, "e1", "OS", "submitted");
@@ -170,6 +196,15 @@ describe("recordPayment", () => {
 });
 
 describe("applyRazorpayWebhook", () => {
+  it.each([{ amount: 1 }, { currency: "USD" }, { captured: false }])("rejects a signed payment with incorrect details: %j", (override) => {
+    const database = setup();
+    addEntry(database, "e1", "OS", "submitted");
+    addOrder(database, "e1", "order_1");
+    expect(applyRazorpayWebhook(database, signedWebhook("payment.captured", { id: "pay_1", order_id: "order_1", ...override }))).toBe(400);
+    expect(entryOf(database, "e1")?.status).toBe("submitted");
+    expect(paymentOf(database, "order_1")?.status).toBe("created");
+  });
+
   it("marks the entry paid for a signed payment.captured event", () => {
     const database = setup();
     addEntry(database, "e1", "OS", "submitted");

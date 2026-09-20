@@ -2,6 +2,11 @@ import { desc, eq } from "drizzle-orm";
 import Link from "next/link";
 
 import { PlayerCard } from "./player-card";
+import { PaymentWelcome } from "./payment-welcome";
+import { AvatarStudio } from "./avatar-studio";
+import { avatarAccessError } from "@/lib/avatar";
+import { ageFromDob } from "@/lib/age";
+import { playerAvatars } from "@/db/schema";
 import { requireUser } from "@/auth/require";
 import { PartnerStatusBadge } from "@/components/partner-status-badge";
 import { StatusBadge } from "@/components/status-badge";
@@ -37,8 +42,11 @@ export const dynamic = "force-dynamic";
 
 const FALLBACK_TOURNAMENT_NAME = "Rubsta Open";
 
-export default async function HomePage() {
+export default async function HomePage({ searchParams }: {
+  searchParams: Promise<{ paid?: string | string[] }>;
+}) {
   const user = await requireUser();
+  const { paid } = await searchParams;
 
   const profile =
     db.select().from(profiles).where(eq(profiles.userId, user.id)).get() ?? null;
@@ -73,9 +81,16 @@ export default async function HomePage() {
   });
   const name = greetingName(profile?.fullName ?? null, user.name);
   const tournamentName = tournament?.name ?? FALLBACK_TOURNAMENT_NAME;
+  const avatar = db.select({ updatedAt: playerAvatars.updatedAt }).from(playerAvatars)
+    .where(eq(playerAvatars.userId, user.id)).get();
+  // Never trust the query string alone as proof of payment or entry ownership.
+  const paidEntry = typeof paid === "string"
+    ? myEntries.find(entry => entry.id === paid && entry.status === "paid")
+    : undefined;
 
   return (
     <div className="flex flex-col gap-16">
+      {paidEntry ? <PaymentWelcome key={paidEntry.id} name={name} eventLabel={CATEGORY_LABELS[paidEntry.category]} /> : null}
       <section
         aria-labelledby="welcome-heading"
         className="relative overflow-hidden bg-club-forest px-6 py-10 text-club-mist sm:px-10 sm:py-14"
@@ -116,6 +131,12 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {profile && (avatar || myEntries.some(entry => entry.status === "paid")) ? (
+        <AvatarStudio name={profile.fullName} enabled={!!process.env.OPENAI_API_KEY?.trim()}
+          initialVersion={avatar?.updatedAt ?? null}
+          accessError={avatarAccessError(ageFromDob(profile.dateOfBirth), myEntries.some(entry => entry.status === "paid"))} />
+      ) : null}
 
       {invitations.length === 0 ? null : (
         <section aria-labelledby="invitations-heading">

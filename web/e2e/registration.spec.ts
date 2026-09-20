@@ -24,15 +24,9 @@ test.describe.serial("registration", () => {
     await page.getByLabel("Date of birth").fill("2004-05-17");
     await page.getByLabel("Gender").selectOption("male");
     await page.getByLabel("Mobile").fill("+91 98765 43210");
-    await page.getByRole("button", { name: "Create profile" }).click();
-
-    await expect(page).toHaveURL(/\/home$/);
-    await expect(page.getByRole("heading", { name: "Welcome, Demo" })).toBeVisible();
-    await main.getByRole("link", { name: "Enter an event" }).click();
-
-    await expect(page).toHaveURL(/\/register$/);
-    await page.getByRole("radio", { name: "Open singles", exact: true }).check();
-    await page.getByRole("button", { name: "Submit entry" }).click();
+    await page.getByLabel("Choose your event").selectOption("OS");
+    await page.getByRole("button", { name: "Create profile & enter" }).click();
+    await expect(page).toHaveURL(/\/register\/[^/]+$/);
 
     await expect(page.getByRole("heading", { name: "Entry received" })).toBeVisible();
     await expect(page.getByText("Open singles · Main draw")).toBeVisible();

@@ -24,6 +24,21 @@ export const users = sqliteTable("users", {
   image: text("image"),
 });
 
+// Only generated art is retained, never the uploaded photograph.
+export const playerAvatars = sqliteTable("player_avatars", {
+  userId: text("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  png: text("png"),
+  updatedAt: integer("updated_at").notNull().default(0),
+  consentAt: integer("consent_at").notNull().default(0),
+});
+
+export const avatarAttempts = sqliteTable("avatar_attempts", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  startedAt: integer("started_at").notNull(),
+  finished: integer("finished", { mode: "boolean" }).notNull().default(false),
+}, table => [index("avatar_attempts_user_time").on(table.userId, table.startedAt)]);
+
 export const accounts = sqliteTable(
   "accounts",
   {
@@ -204,6 +219,7 @@ export const entries = sqliteTable(
     tournamentId: text("tournament_id")
       .notNull()
       .references(() => tournaments.id, { onDelete: "cascade" }),
+    bundleId: text("bundle_id").references(() => entryBundles.id, { onDelete: "set null" }),
     category: text("category", { enum: CATEGORIES }).notNull(),
     division: text("division", { enum: DIVISIONS })
       .notNull()
@@ -226,6 +242,14 @@ export const entries = sqliteTable(
   },
   (table) => [uniqueIndex("entries_user_category").on(table.userId, table.category)],
 );
+
+/** Entries created together for one approved two-event checkout. */
+export const entryBundles = sqliteTable("entry_bundles", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  tournamentId: text("tournament_id").notNull().references(() => tournaments.id, { onDelete: "cascade" }),
+  createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
+}, table => [index("entry_bundles_user").on(table.userId)]);
 
 export const PAYMENT_STATUSES = ["created", "paid"] as const;
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];

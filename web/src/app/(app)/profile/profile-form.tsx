@@ -5,6 +5,7 @@ import { startTransition, useActionState, useState } from "react";
 
 import { saveProfile, type ProfileFormState } from "./actions";
 import {
+  type Category,
   GENDERS,
   GENDER_LABELS,
   HANDS,
@@ -15,11 +16,21 @@ import {
   type Profile,
 } from "@/db/schema";
 import { ageFromDob } from "@/lib/age";
+import { REGISTRATION_OPTIONS, registrationOptionLabel } from "@/lib/registration-pricing";
+import { registrationPrice } from "@/lib/registration-pricing";
+import { formatFee } from "@/lib/format";
 
 interface ProfileFormProps {
   initial: Pick<Profile, "fullName" | "dateOfBirth" | "gender" | "mobile" | "club" | "bestRanking" | "previousTournaments" | "plays"> | null;
   fallbackName: string;
   email: string;
+  registration?: {
+    tournamentId: string;
+    enteredCategories: readonly Category[];
+    feeLabels: Record<Category, string>;
+    feeCents: Record<Category, number>;
+    paymentsEnabled: boolean;
+  };
 }
 
 interface TournamentRow {
@@ -28,7 +39,8 @@ interface TournamentRow {
   result: string;
 }
 
-export function ProfileForm({ initial, fallbackName, email }: ProfileFormProps) {
+export function ProfileForm({ initial, fallbackName, email, registration }: ProfileFormProps) {
+  const [category, setCategory] = useState("");
   const [state, formAction, pending] = useActionState<ProfileFormState, FormData>(
     saveProfile,
     { error: null },
@@ -294,6 +306,32 @@ export function ProfileForm({ initial, fallbackName, email }: ProfileFormProps) 
         )}
       </div>
 
+      {registration ? (
+        <section className="flex flex-col gap-3" aria-label="Event entry">
+          <input type="hidden" name="intent" value="register" />
+          <input type="hidden" name="tournamentId" value={registration.tournamentId} />
+          <label className="caps" htmlFor="category">Choose your event or approved combo</label>
+          <select id="category" name="selection" className="field" required
+            value={category} onChange={event => setCategory(event.target.value)}>
+            <option value="" disabled>Select an option</option>
+            {REGISTRATION_OPTIONS.map(option => (
+              <option key={option.id} value={option.id} disabled={option.categories.some(value => registration.enteredCategories.includes(value))}>
+                {registrationOptionLabel(option.id)} · {formatFee(registrationPrice(registration.feeCents, option.categories), "INR")}
+              </option>
+            ))}
+          </select>
+          {category.includes("OD") ? (
+            <>
+              <label className="caps" htmlFor="partnerName">Partner name</label>
+              <input id="partnerName" name="partnerName" className="field" required />
+              <label className="caps" htmlFor="partnerEmail">Partner email</label>
+              <input id="partnerEmail" name="partnerEmail" type="email" className="field" required />
+              <p className="text-[12px] text-muted">The doubles fee covers your team. Your partner will need to accept the invitation.</p>
+            </>
+          ) : null}
+        </section>
+      ) : null}
+
       {state.error ? (
         <p className="text-[12px]" style={{ color: "var(--color-bad)" }} role="alert">
           {state.error}
@@ -310,7 +348,7 @@ export function ProfileForm({ initial, fallbackName, email }: ProfileFormProps) 
           disabled={pending}
           style={{ height: 48 }}
         >
-          {pending ? "Saving…" : initial ? "Save profile" : "Create profile"}
+          {pending ? "Saving…" : initial ? "Save profile" : registration ? registration.paymentsEnabled ? "Continue to payment" : "Create profile & enter" : "Create profile"}
         </button>
       </div>
     </form>

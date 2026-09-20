@@ -2,12 +2,11 @@
 
 import { useActionState, useState } from "react";
 
-import { CATEGORIES, type Category } from "@/db/schema";
-import {
-  CATEGORY_LABELS,
-  isDoubles,
-  type EntryFormState,
-} from "@/lib/entries";
+import { type Category } from "@/db/schema";
+import { type EntryFormState } from "@/lib/entries";
+import { REGISTRATION_OPTIONS, registrationOptionLabel, type RegistrationOptionId } from "@/lib/registration-pricing";
+import { registrationPrice } from "@/lib/registration-pricing";
+import { formatFee } from "@/lib/format";
 
 const INITIAL_STATE: EntryFormState = { error: null };
 
@@ -18,7 +17,7 @@ export interface EntryFormProps {
   ) => Promise<EntryFormState>;
   tournamentId: string;
   enteredCategories: readonly Category[];
-  feeLabels: Record<Category, string>;
+  feeCents: Record<Category, number>;
   closesLabel: string;
   paymentsEnabled: boolean;
 }
@@ -27,19 +26,16 @@ export function EntryForm({
   action,
   tournamentId,
   enteredCategories,
-  feeLabels,
+  feeCents,
   closesLabel,
   paymentsEnabled,
 }: EntryFormProps) {
   const [state, formAction, pending] = useActionState(action, INITIAL_STATE);
-  const openCategories = CATEGORIES.filter(
-    (value) => !enteredCategories.includes(value),
-  );
-  const [category, setCategory] = useState<Category | undefined>(
-    openCategories[0],
-  );
+  const options = REGISTRATION_OPTIONS.filter(option => option.categories.every(category => !enteredCategories.includes(category)));
+  const [selection, setSelection] = useState<RegistrationOptionId | undefined>(options[0]?.id);
+  const selected = options.find(option => option.id === selection);
 
-  if (!category) {
+  if (!selected) {
     return (
       <p className="card p-4 text-[13px] text-muted" role="status">
         You have entered every event.
@@ -53,35 +49,35 @@ export function EntryForm({
       <input type="hidden" name="tournamentId" value={tournamentId} />
 
       <fieldset>
-        <legend className="caps">Event</legend>
+        <legend className="caps">Event or approved combo</legend>
         <div className="card mt-2 divide-y divide-line">
-          {CATEGORIES.map((value) => {
-            const entered = enteredCategories.includes(value);
-            const hintId = `category-${value}-hint`;
+          {REGISTRATION_OPTIONS.map((option) => {
+            const available = options.includes(option);
+            const hintId = `selection-${option.id}-hint`;
             return (
               <div
-                key={value}
+                key={option.id}
                 className="flex items-center justify-between gap-3 px-4"
               >
                 <label
                   className={`flex flex-1 items-center gap-3 py-3.5 text-[14px] font-medium ${
-                    entered ? "text-dim" : "cursor-pointer text-ink"
+                    available ? "cursor-pointer text-ink" : "text-dim"
                   }`}
                 >
                   <input
                     type="radio"
-                    name="category"
-                    value={value}
-                    checked={category === value}
-                    disabled={entered}
-                    onChange={() => setCategory(value)}
+                    name="selection"
+                    value={option.id}
+                    checked={selection === option.id}
+                    disabled={!available}
+                    onChange={() => setSelection(option.id)}
                     aria-describedby={hintId}
                     className="h-4 w-4 accent-accent"
                   />
-                  {CATEGORY_LABELS[value]}
+                  {registrationOptionLabel(option.id)}
                 </label>
                 <span id={hintId} className="mono text-[11px] text-dim">
-                  {entered ? "Entered" : isDoubles(value) ? "Partner required" : ""}
+                  {!available ? "Entered" : (option.categories as readonly Category[]).includes("OD") ? "Partner required" : ""}
                 </span>
               </div>
             );
@@ -89,7 +85,7 @@ export function EntryForm({
         </div>
       </fieldset>
 
-      {isDoubles(category) ? (
+      {(selected.categories as readonly Category[]).includes("OD") ? (
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <label className="caps" htmlFor="partnerName">
@@ -119,7 +115,7 @@ export function EntryForm({
         </div>
       ) : null}
 
-      {isDoubles(category) ? (
+      {(selected.categories as readonly Category[]).includes("OD") ? (
         <p className="-mt-2 text-[12px] text-muted">
           Your partner signs in with this email to accept. The entry goes into the draw once they
           accept. You pay the fee for the whole team.
@@ -135,13 +131,14 @@ export function EntryForm({
       <div className="card p-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <div className="caps">{CATEGORY_LABELS[category]} · Main draw</div>
+            <div className="caps">{registrationOptionLabel(selected.id)} · Main draw</div>
             <div className="mt-1 text-[12px] text-muted">
               Entry closes {closesLabel}
             </div>
           </div>
-          <div className="mono text-right text-[22px] font-semibold">{feeLabels[category]}</div>
+          <div className="mono text-right text-[16px] font-semibold">{formatFee(registrationPrice(feeCents, selected.categories), "INR")}</div>
         </div>
+        <p className="mt-1 text-[11px] text-muted">Early bird pricing applies through 30 September: ₹200 off one event or ₹500 off an approved combo.</p>
 
         <div className="mt-4 flex gap-3">
           <button type="submit" className="btn btn-primary w-full" disabled={pending}>

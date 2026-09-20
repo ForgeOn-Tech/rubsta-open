@@ -29,6 +29,8 @@ export interface CheckoutResult {
 export interface WebhookPayment {
   orderId: string;
   paymentId: string;
+  amountCents?: number;
+  currency?: string;
 }
 
 /** Events that mean the money was taken. Both can arrive for one payment; recording is idempotent. */
@@ -76,14 +78,19 @@ export function isWebhookSignatureValid(rawBody: string, signature: string, webh
 export function paidPaymentFromWebhook(rawBody: string): WebhookPayment | null {
   const event = JSON.parse(rawBody) as {
     event?: unknown;
-    payload?: { payment?: { entity?: { id?: unknown; order_id?: unknown } } };
+    payload?: { payment?: { entity?: { id?: unknown; order_id?: unknown; amount?: unknown; currency?: unknown; status?: unknown; captured?: unknown } } };
   };
   if (typeof event.event !== "string" || !PAID_EVENTS.includes(event.event)) return null;
   const payment = event.payload?.payment?.entity;
   if (typeof payment?.id !== "string" || typeof payment.order_id !== "string") {
     throw new Error(`Razorpay ${event.event} webhook has no payment id and order id.`);
   }
-  return { orderId: payment.order_id, paymentId: payment.id };
+  if (payment.status !== "captured" || payment.captured !== true ||
+      typeof payment.amount !== "number" || !Number.isSafeInteger(payment.amount) || payment.amount <= 0 ||
+      typeof payment.currency !== "string" || !/^[A-Z]{3}$/.test(payment.currency)) {
+    throw new Error("Paid webhook must contain a captured payment with a valid amount and currency.");
+  }
+  return { orderId: payment.order_id, paymentId: payment.id, amountCents: payment.amount, currency: payment.currency };
 }
 
 /** A mobile number as Checkout's prefill accepts it: digits, with a leading + kept. */

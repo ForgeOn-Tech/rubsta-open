@@ -71,12 +71,19 @@ describe("isWebhookSignatureValid", () => {
 
 describe("paidPaymentFromWebhook", () => {
   it("reads the payment from payment.captured and order.paid", () => {
-    const payment = { id: "pay_1", order_id: "order_1" };
+    const payment = { id: "pay_1", order_id: "order_1", amount: 300000, currency: "INR", status: "captured", captured: true };
     expect(paidPaymentFromWebhook(webhook("payment.captured", payment))).toEqual({
       orderId: "order_1",
       paymentId: "pay_1",
+      amountCents: 300000,
+      currency: "INR",
     });
-    expect(paidPaymentFromWebhook(webhook("order.paid", payment))).toEqual({ orderId: "order_1", paymentId: "pay_1" });
+    expect(paidPaymentFromWebhook(webhook("order.paid", payment))).toEqual({ orderId: "order_1", paymentId: "pay_1", amountCents: 300000, currency: "INR" });
+  });
+
+  it.each([{ status: "authorized" }, { captured: false }, { amount: -1 }, { amount: 1.5 }, { currency: "" }])("rejects an invalid captured payment: %j", (override) => {
+    const payment = { id: "pay_1", order_id: "order_1", amount: 300000, currency: "INR", status: "captured", captured: true, ...override };
+    expect(() => paidPaymentFromWebhook(webhook("payment.captured", payment))).toThrow(/captured payment/);
   });
 
   it("ignores other events", () => {

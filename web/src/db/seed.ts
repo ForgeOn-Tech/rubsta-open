@@ -5,7 +5,7 @@ import type { EventFees } from "@/lib/fees";
 
 export const SEED_TOURNAMENT = {
   name: "Rubsta Open 2026",
-  entryClosesAt: "2026-09-22T18:00:00+05:30",
+  entryClosesAt: "2026-10-15T18:00:00+05:30",
   currency: "INR",
   status: "open" as const,
 };

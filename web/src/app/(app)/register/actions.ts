@@ -6,11 +6,9 @@ import { redirect } from "next/navigation";
 
 import { requireUser } from "@/auth/require";
 import { db, getDb } from "@/db/client";
-import { getEventFees } from "@/db/fees";
 import { PartnerRejectedError, changePartner, listPlayedCategories } from "@/db/partners";
-import { entries, profiles, tournaments } from "@/db/schema";
+import { entries, entryBundles, profiles, tournaments } from "@/db/schema";
 import {
-  CATEGORY_LABELS,
   isDoubles,
   isUniqueViolation,
   validateEntryInput,
@@ -20,6 +18,7 @@ import type { ActionState } from "@/lib/form-state";
 import { awaitsPayment } from "@/lib/entry-status";
 import { normaliseEmail } from "@/lib/partners";
 import { razorpayConfig } from "@/lib/razorpay";
+import { registrationOption } from "@/lib/registration-pricing";
 
 export async function submitEntry(
   _prev: EntryFormState,
@@ -28,7 +27,7 @@ export async function submitEntry(
   const user = await requireUser();
 
   const tournamentId = String(formData.get("tournamentId") ?? "");
-  const category = String(formData.get("category") ?? "");
+  const selection = registrationOption(String(formData.get("selection") ?? formData.get("category") ?? ""));
   const partnerName = String(formData.get("partnerName") ?? "").trim();
   const partnerEmail = String(formData.get("partnerEmail") ?? "").trim();
 
@@ -46,39 +45,30 @@ export async function submitEntry(
     .get();
   if (!tournament) return { error: "This tournament is not available." };
 
-  const validation = validateEntryInput({
-    category,
-    partnerName,
-    partnerEmail,
-    ownEmail: user.email,
-    // Not filtered by tournament: the unique index is on (user, category).
-    existingCategories: listPlayedCategories(getDb(), user.id),
-    entryClosesAt: tournament.entryClosesAt,
-    tournamentStatus: tournament.status,
-  });
-  if (!validation.ok) return { error: validation.error };
-
-  const doubles = isDoubles(validation.category);
-  const id = crypto.randomUUID();
+  if (!selection) return { error: "Choose an event or approved combo." };
+  const existingCategories = listPlayedCategories(getDb(), user.id);
+  for (const category of selection.categories) {
+    const validation = validateEntryInput({ category, partnerName, partnerEmail, ownEmail: user.email, existingCategories, entryClosesAt: tournament.entryClosesAt, tournamentStatus: tournament.status });
+    if (!validation.ok) return { error: validation.error };
+  }
+  const ids = selection.categories.map(() => crypto.randomUUID());
+  const bundleId = selection.categories.length === 2 ? crypto.randomUUID() : null;
 
   try {
-    db.insert(entries)
-      .values({
-        id,
-        userId: user.id,
-        tournamentId: tournament.id,
-        category: validation.category,
-        partnerName: doubles ? partnerName : null,
-        partnerEmail: doubles ? normaliseEmail(partnerEmail) : null,
-        partnerStatus: doubles ? "pending" : null,
-        status: "submitted",
-      })
-      .run();
+    db.transaction((tx) => {
+      if (bundleId) tx.insert(entryBundles).values({ id: bundleId, userId: user.id, tournamentId: tournament.id }).run();
+      tx.insert(entries).values(selection.categories.map((category, index) => ({
+        id: ids[index], userId: user.id, tournamentId: tournament.id, bundleId, category,
+        partnerName: isDoubles(category) ? partnerName : null,
+        partnerEmail: isDoubles(category) ? normaliseEmail(partnerEmail) : null,
+        partnerStatus: isDoubles(category) ? "pending" as const : null, status: "submitted" as const,
+      }))).run();
+    });
   } catch (error) {
     // A double submit can pass validation twice; the index is the real guard.
     if (isUniqueViolation(error)) {
       return {
-        error: `You have already entered ${CATEGORY_LABELS[validation.category]}.`,
+        error: "You have already entered one of these events.",
       };
     }
     throw error;
@@ -87,10 +77,10 @@ export async function submitEntry(
   // When the fee is due online, the entry page opens Razorpay Checkout straight away.
   const payNow = awaitsPayment({
     paymentsOn: razorpayConfig(process.env) !== null,
-    feeCents: getEventFees(getDb(), tournament.id)[validation.category],
+    feeCents: 1,
     status: "submitted",
   });
-  redirect(payNow ? `/register/${id}?pay=1` : `/register/${id}`);
+  redirect(payNow ? `/register/${ids[0]}?pay=1` : `/register/${ids[0]}`);
 }
 
 /** Names a new doubles partner, who then has to accept. */

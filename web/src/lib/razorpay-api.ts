@@ -1,6 +1,7 @@
 import type { RazorpayConfig } from "@/lib/razorpay";
 
 const ORDERS_URL = "https://api.razorpay.com/v1/orders";
+const PAYMENTS_URL = "https://api.razorpay.com/v1/payments";
 const MAX_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 500;
 const REQUEST_TIMEOUT_MS = 10_000;
@@ -19,6 +20,34 @@ export interface OrderRequest {
   currency: string;
   receipt: string;
   notes: Record<string, string>;
+}
+
+export interface RazorpayPayment {
+  id: string;
+  order_id: string;
+  amount: number;
+  currency: string;
+  status: string;
+  captured: boolean;
+}
+
+/** Read the provider's state; a signed Checkout response may still be only authorized. */
+export async function fetchRazorpayPayment(config: RazorpayConfig, paymentId: string): Promise<RazorpayPayment> {
+  if (!/^pay_[a-zA-Z0-9]+$/.test(paymentId)) throw new RazorpayRequestError("Invalid payment reference.");
+  const credentials = Buffer.from(`${config.keyId}:${config.keySecret}`).toString("base64");
+  const response = await fetch(`${PAYMENTS_URL}/${encodeURIComponent(paymentId)}`, {
+    headers: { Authorization: `Basic ${credentials}` },
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    cache: "no-store",
+  });
+  if (!response.ok) throw new RazorpayRequestError(`Payment lookup returned HTTP ${response.status}.`);
+  const payment = await response.json() as Partial<RazorpayPayment>;
+  if (payment.id !== paymentId || typeof payment.order_id !== "string" ||
+      !Number.isSafeInteger(payment.amount) || typeof payment.currency !== "string" ||
+      typeof payment.status !== "string" || typeof payment.captured !== "boolean") {
+    throw new RazorpayRequestError("Invalid payment lookup response.");
+  }
+  return payment as RazorpayPayment;
 }
 
 function wait(milliseconds: number): Promise<void> {
