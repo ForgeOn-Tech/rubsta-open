@@ -6,6 +6,14 @@
   import /etc/caddy/access.caddy
   root * /srv/site
 
+  # Without this there is no record of who reached the site, so a Razorpay webhook
+  # that never arrives looks the same as one that arrived and was refused.
+  log {
+    output stdout
+    format json
+  }
+  log_skip /assets/*
+
   @homepage path / /index.html
   handle @homepage {
     rewrite * /index.html
