@@ -1,5 +1,16 @@
 /* Responsive section layouts; content remains free to grow. */
 html { scroll-padding-top: 0; }
+.site-header nav .nav-signin { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; white-space: nowrap; }
+@media (max-width: 760px) {
+  .site-header nav { gap: 12px; }
+  .site-header nav .nav-signin { font-size: 11px; }
+}
+@media (max-width: 360px) {
+  .site-header.wrap { padding-inline: 16px; }
+  .site-header .brand { font-size: 21px; }
+  .site-header nav { gap: 10px; }
+  .site-header .nav-cta span { margin-left: 8px; }
+}
 #prizes { min-height: 100svh; padding-block: 48px; }
 .prize-section .section-heading { display: block; text-align: center; }
 .prize-section .section-heading > p { max-width: 520px; margin: 16px auto 0; }
