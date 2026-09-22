@@ -192,7 +192,52 @@ of two, up to 128 lines, with one seed per four lines (at least two). Seeds 1 an
 take the top and bottom lines, and later seed groups draw lots, so seeds 1–4 of a
 32-line draw sit on lines 1, 16, 17 and 32. Byes go to seeds in seed order. A
 published draw is locked; move it back to draft to change seeds or generate it
-again. Players do not see draws yet.
+again. Published draws are also publicly available at `/fan`.
+
+### Team dashboard
+
+Team password sign-in is available at `/admin-login` when `ADMIN_USERNAME`,
+`ADMIN_PASSWORD_HASH` and `ADMIN_PASSWORD_VERSION` are configured and
+`admin-password@rubstaopen.invalid` is included in `ADMIN_EMAILS`. It opens `/admin`
+directly. Generate a strong password and hash with `scripts/create-admin-login.mjs`
+into a private directory outside the repository. Install only the generated hash
+configuration; keep `login.txt` private. Password sessions expire after eight hours,
+and rotating the version invalidates them. The single-process throttle allows eight
+attempts per ten minutes; use shared throttling if the app is scaled out.
+
+The live password-login release is built separately from the production baseline
+on `feat/admin-password-login`. This older dashboard branch is still a local preview;
+the live app uses the production registration database and five event categories.
+
+`/admin` brings registrations, recorded payments, draw readiness and fan-app
+availability together, with links to outstanding checks. `/admin/payments` filters
+records by player, email, reference, event and payment source; it distinguishes
+manual and demo references and highlights cancelled entries needing refund review.
+Amounts and gateway settlement status are not available in this checkout.
+`/admin/operations` shows draw readiness and warns when accepted entries or seeds
+have changed since generation. `/admin/engagement` shows public draws and the
+connection status of fan features, with a link to the interactive demo.
+All three routes enforce the existing `ADMIN_EMAILS` access control. They do not
+connect to live payment services or collect the page-local fan demo activity.
+
+### Fan app
+
+`/fan` is a public, mobile-friendly tournament hub with published brackets, player
+and team search, event filters, and favourites saved on the current device. It
+requires no sign-in. It reads published draws from the same database as the admin
+app; drafts, contact details and payment records never enter the public payload.
+Use “Refresh draws” to retrieve organisers’ latest publications or withdrawals.
+Dates and venue come from confirmed tournament settings; otherwise fans are pointed
+to the tournament website. No seed schedule is presented as confirmed information.
+
+Run `npm run dev` in `web/`, then open `http://localhost:3100/fan`.
+Open `/fan?demo=1#fan-engagement` to try fictional match predictions, reactions,
+court chat and a points leaderboard. Demo controls start matches (locking picks)
+and settle results (10 points per correct pick). Two courts keep separate state.
+This simulation is page-local, resets on reload, and does not write to the database
+or send messages to other fans. Live scoring, streaming, predictions and chat are
+not connected to production services in this version.
+This branch does not deploy the fan app or change the live website and payments.
 
 Entry status moves submitted → confirmed → paid. Any live entry can be cancelled,
 and a cancelled entry can be reinstated as submitted. Marking an entry paid by hand

@@ -8,10 +8,13 @@ export interface AdminNavItem {
 export const ADMIN_NAV: readonly AdminNavItem[] = [
   { label: "Overview", href: "/admin" },
   { label: "Entries", href: "/admin/entries" },
+  { label: "Payments", href: "/admin/payments" },
+  { label: "Match operations", href: "/admin/operations" },
   { label: "Draws", href: "/admin/draws" },
   { label: "Order of play", href: null },
   { label: "Results", href: null },
   { label: "Players", href: "/admin/players" },
+  { label: "Fan engagement", href: "/admin/engagement" },
   { label: "Certificates", href: null },
   { label: "Sponsors", href: null },
   { label: "Settings", href: "/admin/settings" },

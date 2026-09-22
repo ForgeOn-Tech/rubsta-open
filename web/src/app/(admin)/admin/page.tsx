@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { TeamSummary } from "@/components/team-summary";
+import { AdminRefresh } from "@/components/admin-refresh";
 
 import { requireAdmin } from "@/auth/require";
 import { AdminNotice } from "@/components/admin-notice";
@@ -44,12 +46,17 @@ export default async function AdminOverviewPage() {
           `Fee ${formatFee(tournament.feeCents, tournament.currency)}`,
         ]}
       >
+        <AdminRefresh />
         <Link href={ADMIN_ENTRIES_PATH} className="btn btn-outline h-8 text-[12px]">
           View entries
         </Link>
       </AdminPageHeader>
 
       <div className="flex flex-col gap-6 p-6">
+        <TeamSummary entries={rows.map((row) => row.entry)}
+          published={[...drawStatus.values()].filter((status) => status === "published").length}
+          draft={[...drawStatus.values()].filter((status) => status === "draft").length}
+          scheduleConfirmed={tournament.scheduleConfirmed} />
         <section aria-labelledby="status-heading">
           <h2 id="status-heading" className="thead">
             Entries by status

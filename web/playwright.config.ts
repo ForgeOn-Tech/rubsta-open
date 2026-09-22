@@ -3,7 +3,7 @@ import path from "node:path";
 
 import { defineConfig } from "@playwright/test";
 
-const PORT = 3100;
+const PORT = Number(process.env.E2E_PORT ?? 3100);
 const BASE_URL = process.env.BASE_URL ?? `http://localhost:${PORT}`;
 
 // A fresh database per run. A reused file keeps the demo user's entries, and
@@ -27,7 +27,7 @@ export default defineConfig({
   },
   projects: [{ name: "chromium", use: { browserName: "chromium" } }],
   webServer: {
-    command: "npm run dev",
+    command: `npm run dev -- --port ${PORT}`,
     port: PORT,
     // Never attach to a hand-started server: it has its own env and database.
     reuseExistingServer: false,

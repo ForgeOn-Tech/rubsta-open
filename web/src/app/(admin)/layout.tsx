@@ -58,7 +58,8 @@ export default async function AdminLayout({
             </div>
           ) : null}
           <div className="mt-4 truncate text-[11px] text-dim">{user.email}</div>
-          <div className="mt-2 flex items-center gap-4">
+          <div className="mt-2 flex flex-wrap items-center gap-4">
+            <Link href="/fan" className="caps">Fan view</Link>
             <Link href="/home" className="caps">
               Player view
             </Link>

@@ -1,0 +1,91 @@
+.fan { --fan-line: #d2d7c7; }
+.fan-demo { padding:12px 22px; background:#dfeb8c; text-align:center; font-size:12px; line-height:1.7; }
+.fan-demo a { margin-left:12px; text-decoration:underline; }
+.fan-engagement { max-width:1320px; margin:auto; padding:48px 40px 20px; scroll-margin-top:20px; }
+.eng-description,.eng-local { max-width:750px; font-size:13px; line-height:1.8; }
+.eng-local { color:var(--color-club-muted); font-size:11px; margin-bottom:24px; }
+.eng-points { min-width:90px; padding:12px; background:#dfeb8c; text-align:center; }
+.eng-points strong { display:block; font-family:var(--font-mono); font-size:28px; }.eng-points span { font-size:10px; }
+.eng-grid { display:grid; grid-template-columns:1.3fr 1fr; gap:24px; padding-top:24px; }
+.eng-score { background:#244d32; color:#f8f5eb; padding:22px; }
+.eng-score-heading { display:flex; justify-content:space-between; gap:15px; font-size:10px; margin-bottom:18px; }
+.eng-score-row { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:14px 0; border-top:1px solid #ffffff33; font-size:14px; }.eng-score-row .mono { white-space:pre; }
+.eng-score p { font-size:11px; line-height:1.7; opacity:.8; }
+.eng-panel { padding:22px; border:1px solid var(--fan-line); margin-bottom:20px; }.eng-score+.eng-panel { margin-top:20px; }
+.eng-panel h3 { font-size:16px; margin:0 0 10px; }.eng-panel>p { font-size:12px; line-height:1.7; color:var(--color-club-muted); }
+.eng-picks { display:grid; gap:10px; margin-top:18px; }.eng-picks button { display:flex; justify-content:space-between; gap:12px; padding:16px; background:transparent; border:1px solid var(--fan-line); text-align:left; font-size:13px; }.eng-picks button span { font-size:10px; white-space:nowrap; }.eng-picks button[aria-pressed=true] { background:#dfeb8c; border-color:#aaba69; }.eng-picks button:disabled { cursor:default; opacity:.85; }
+.eng-panel .eng-outcome { font-weight:600; color:var(--color-club-deep); }
+.eng-reactions { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }.eng-reactions button { background:transparent; border:1px solid var(--fan-line); padding:12px 5px; font-size:11px; }.eng-reactions strong { display:block; font-family:var(--font-mono); margin-top:9px; font-size:16px; }.eng-reactions button:active { background:#dfeb8c; }
+.eng-controls { background:#eeefe3; padding:20px; }.eng-controls>p:not(.fan-kicker) { font-size:12px; line-height:1.8; }.eng-controls>div { display:flex; flex-wrap:wrap; gap:10px; }.eng-controls button { padding:12px; border:1px solid var(--fan-line); background:#f8f5eb; font-size:12px; }.eng-controls span { font-size:12px; line-height:1.7; }
+.eng-messages { height:240px; overflow-y:auto; overflow-wrap:anywhere; margin:18px 0; }.eng-messages>div { border-bottom:1px solid var(--fan-line); padding:12px 0; }.eng-messages strong { font-size:11px; }.eng-messages p { font-size:13px; line-height:1.7; margin:7px 0; }
+.eng-chat form label { display:block; font-size:11px; margin-bottom:8px; }.eng-chat form>div { display:flex; gap:8px; }.eng-chat input { width:100%; min-width:0; border:1px solid var(--fan-line); background:transparent; font:inherit; font-size:12px; padding:12px; }.eng-chat button { padding:12px 16px; border:0; background:#244d32; color:#f8f5eb; font-size:12px; }
+.eng-leaderboard { list-style:none; margin:0; padding:0; }.eng-leaderboard li { display:flex; gap:16px; padding:14px 0; border-top:1px solid var(--fan-line); font-size:12px; }.eng-leaderboard strong { flex:1; }.eng-leaderboard span { font-family:var(--font-mono); }
+@media(max-width:700px) { .fan-engagement { padding:35px 22px 20px; }.eng-grid { grid-template-columns:1fr; }.eng-panel,.eng-score { padding:18px; }.eng-score-heading { flex-wrap:wrap; } }
+.fan-header,.fan-hero,.fan-facts,.fan-explore,.fan-matchday,.fan-footer { max-width: 1320px; margin-inline: auto; }
+.fan-header { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:26px 40px; }
+.fan-wordmark { font-family:var(--font-serif); font-size:32px; line-height:1; }
+.fan-wordmark span { display:block; font-family:var(--font-sans); font-size:8px; letter-spacing:2px; margin-top:10px; }
+.fan-tag,.fan-kicker { font-family:var(--font-mono); font-size:10px; letter-spacing:1.5px; text-transform:uppercase; }
+.fan-tag { border:1px solid var(--fan-line); padding:9px 12px; }
+.fan-website { font-size:12px; }
+.fan-hero { padding:68px 40px 72px; display:grid; grid-template-columns:1.4fr 1fr; gap:64px; align-items:center; }
+.fan h1 { font-family:var(--font-serif); font-size:clamp(56px,6.5vw,90px); line-height:.98; letter-spacing:-2px; margin:24px 0; font-weight:400; }
+.fan h1 em { color:#61714f; font-weight:400; }
+.fan-intro { font-size:15px; line-height:1.8; max-width:350px; color:var(--color-club-muted); }
+.fan-cta { display:inline-flex; gap:38px; background:var(--color-club-deep); color:var(--color-club-cream)!important; padding:17px 22px; margin-top:26px; font-size:12px; }
+.fan-court { position:relative; aspect-ratio:1.2; background:#294f35; border:18px solid #294f35; outline:1px solid #294f35; outline-offset:8px; transform:rotate(-5deg); }
+.fan-court::before { content:""; position:absolute; inset:0; border:1px solid #ced4aa; }
+.fan-court::after { content:""; position:absolute; left:50%; top:0; height:100%; border-left:2px solid #ece9ce; }
+.fan-court-inner { position:absolute; inset:13% 0; border-block:1px solid #ced4aa; }
+.fan-court-inner::before { content:""; position:absolute; inset:0 23%; border-inline:1px solid #ced4aa; }
+.fan-court-inner::after { content:""; position:absolute; left:23%; right:23%; top:50%; border-top:1px solid #ced4aa; }
+.fan-ball { position:absolute; width:29px; height:29px; border-radius:50%; background:#dfeb8c; top:25%; right:27%; box-shadow:5px 10px 0 #10251955; }
+.fan-court-label { position:absolute; bottom:-54px; right:0; font-family:var(--font-mono); font-size:9px; letter-spacing:2px; }
+.fan-facts { display:grid; grid-template-columns:repeat(4,1fr); border-block:1px solid var(--fan-line); padding:25px 40px; gap:26px; }
+.fan-facts span { display:block; font-size:10px; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px; color:var(--color-club-muted); }
+.fan-facts strong { font-size:13px; font-weight:500; }
+.fan-explore { padding:60px 40px 35px; scroll-margin-top:20px; }
+.fan-section-heading { display:flex; justify-content:space-between; align-items:center; gap:20px; }
+.fan h2 { font-family:var(--font-serif); font-size:40px; line-height:1.1; font-weight:400; margin:12px 0 28px; }
+.fan button { cursor:pointer; font:inherit; }
+.fan-refresh { font-size:12px!important; border:1px solid var(--fan-line); padding:12px 16px; background:transparent; }
+.fan button:disabled { opacity:.6; cursor:wait; }
+.fan-tabs { display:flex; border-bottom:1px solid var(--fan-line); gap:30px; }
+.fan-tabs button { padding:17px 0; background:transparent; border:0; border-bottom:3px solid transparent; font-size:13px; color:var(--color-club-muted); }
+.fan-tabs button[aria-pressed=true] { border-color:var(--color-club-deep); color:var(--color-club-deep); }
+.fan-filters { display:flex; align-items:end; gap:20px; padding:24px 0; }
+.fan-filters label { font-size:11px; display:grid; gap:8px; }
+.fan-filters select,.fan-filters input { min-height:44px; padding:10px 12px; border:1px solid var(--fan-line); background:transparent; font:inherit; font-size:13px; color:inherit; max-width:100%; }
+.fan-filters p { font-size:11px; color:var(--color-club-muted); max-width:280px; line-height:1.7; margin:0 0 8px auto; }
+.fan-empty { text-align:center; padding:50px 24px; background:#eeefe3; border:1px solid var(--fan-line); }
+.fan-empty>span { font-size:28px; color:#758266; }
+.fan-empty h3 { font-family:var(--font-serif); font-size:34px; font-weight:400; margin:12px 0; }
+.fan-empty p { max-width:430px; margin:auto; color:var(--color-club-muted); font-size:13px; line-height:1.9; }
+.fan-draw { margin-bottom:28px; min-width:0; }
+.fan-draw-heading { display:flex; justify-content:space-between; gap:16px; align-items:center; padding:16px 0; }
+.fan-draw h3 { margin:0; font-size:16px; font-weight:500; }
+.fan-draw-heading>span { font-size:11px; }
+.fan-players { list-style:none; padding:0; margin:0; }
+.fan-players li { display:flex; align-items:center; gap:16px; padding:20px 0; border-bottom:1px solid var(--fan-line); }
+.fan-initial { display:grid; place-items:center; width:48px; height:48px; background:#e5e9d9; font-family:var(--font-serif); font-size:28px; flex-shrink:0; }
+.fan-player-name { flex:1; min-width:0; overflow-wrap:anywhere; }
+.fan-player-name h3 { font-size:14px; margin:0 0 6px; }
+.fan-player-name p { font-size:11px; color:var(--color-club-muted); margin:0; }
+.fan-players button { border:1px solid var(--fan-line); background:transparent; padding:12px; font-size:12px; min-width:95px; }
+.fan-players button[aria-pressed=true] { background:#dfeb8c; border-color:#dfeb8c; }
+.fan-notice { font-size:12px; min-height:20px; margin-top:16px; }
+.fan-matchday { padding:35px 40px 45px; border-top:1px solid var(--fan-line); }
+.fan-matchday h2 { margin-bottom:14px; }
+.fan-matchday p { font-size:13px; max-width:560px; line-height:1.8; color:var(--color-club-muted); }
+.fan-matchday a { display:inline-block; font-size:12px; margin-top:18px; border-bottom:1px solid currentColor; padding-bottom:5px; }
+.fan-footer { padding:24px 40px; border-top:1px solid var(--fan-line); display:flex; justify-content:space-between; font-size:10px; color:var(--color-club-muted); }
+.fan-skip { position:absolute; left:16px; top:-100px; z-index:10; padding:12px; background:var(--color-club-cream); }
+.fan-skip:focus { top:10px; }
+@media(max-width:700px) {
+  .fan-header { padding:22px; }.fan-wordmark { font-size:27px; }.fan-website { display:none; }
+  .fan-hero { padding:32px 22px 50px; grid-template-columns:1fr; gap:45px; }.fan h1 { font-size:60px; }
+  .fan-court { width:70%; max-width:300px; margin:0 auto 25px; }.fan-facts { padding:22px; grid-template-columns:1fr 1fr; }
+  .fan-explore { padding:38px 22px 20px; }.fan h2 { font-size:32px; }.fan-section-heading { align-items:start; }.fan-refresh { max-width:100px; }
+  .fan-tabs { gap:20px; }.fan-tabs button { font-size:12px; }.fan-filters { flex-wrap:wrap; }.fan-filters label { flex:1; min-width:150px; }.fan-filters p { margin:0; max-width:none; width:100%; }
+  .fan-matchday { padding:28px 22px; }.fan-footer { padding:22px; gap:20px; }.fan-draw-heading { align-items:start; }
+}

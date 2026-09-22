@@ -1,0 +1,32 @@
+import { expect, test } from "@playwright/test";
+
+test("demo fans predict, react, chat and earn points on separate courts", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/fan?demo=1#fan-engagement");
+  const engagement = page.locator("#fan-engagement");
+  await engagement.getByRole("button", { name: "Arjun Mehta Select" }).click();
+  await engagement.getByRole("button", { name: "Start match", exact: true }).click();
+  await expect(engagement.getByRole("button", { name: "Rohan Shah Select" })).toBeDisabled();
+  await engagement.getByRole("button", { name: /Applause/ }).click();
+  await expect(engagement.getByRole("button", { name: /Applause/ })).toHaveText("👏 Applause1");
+  await engagement.getByLabel("Your message").fill("Come on Arjun!");
+  await engagement.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(engagement.getByRole("log")).toContainText("Come on Arjun!");
+  await engagement.getByRole("button", { name: "Arjun Mehta wins", exact: true }).click();
+  await expect(engagement.locator(".eng-points strong")).toHaveText("10");
+  await expect(engagement.getByRole("button", { name: "Arjun Mehta wins", exact: true })).toHaveCount(0);
+  await engagement.getByRole("button", { name: "Court 2 · Women" }).click();
+  await expect(engagement.getByRole("log")).not.toContainText("Come on Arjun!");
+  await engagement.getByRole("button", { name: "Ananya Rao Select" }).click();
+  await engagement.getByRole("button", { name: "Start match", exact: true }).click();
+  await engagement.getByRole("button", { name: "Tara Shah wins", exact: true }).click();
+  await expect(engagement.locator(".eng-points strong")).toHaveText("10");
+  await expect(engagement.getByText("Not this time · 0 points")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: "/tmp/rubsta-engagement-mobile.png", fullPage: true });
+  await engagement.getByRole("button", { name: "Reset demo", exact: true }).click();
+  await expect(engagement.locator(".eng-points strong")).toHaveText("0");
+  await expect(engagement.getByRole("button", { name: "Start match", exact: true })).toBeVisible();
+  await page.goto("/fan");
+  await expect(page.locator("#fan-engagement")).toHaveCount(0);
+});

@@ -1,4 +1,5 @@
 import { signInWithDemo, signInWithGoogle } from "./actions";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,7 @@ export default async function SignInPage({
           Sign in to register for the tournament.
         </p>
 
+        <Link href="/admin-login" className="mt-4 block text-sm">Team username &amp; password login →</Link>
         {unconfigured ? (
           <p
             className="mt-6 border p-4 text-[13px]"
