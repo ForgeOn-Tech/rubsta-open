@@ -33,6 +33,12 @@
     file_server
   }
 
+  @playerSponsor path /sponsor-a-player /sponsor-a-player/*
+  handle @playerSponsor {
+    header Cache-Control "no-cache"
+    file_server
+  }
+
   @policy path /terms /privacy /refunds /contact /shipping
   handle @policy {
     try_files {path}.html

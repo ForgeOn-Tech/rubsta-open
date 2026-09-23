@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sponsor a player — Rubsta Open</title>
+<meta name="description" content="How Rubsta Open sponsorship supports a player, selected for performance, on-court conduct, fighting spirit, sportsmanship and discipline. Ranking is not a selection criterion.">
+<meta name="theme-color" content="#213e2c">
+<link rel="stylesheet" href="assets/landing.css"><link rel="stylesheet" href="assets/club.css"><link rel="stylesheet" href="assets/waitlist.css"><link rel="stylesheet" href="assets/sponsor.css"><link rel="stylesheet" href="assets/player-sponsor.css">
+<script type="module" src="assets/sponsor.js"></script>
+</head>
+<body class="player-sponsor-page">
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header wrap"><a class="brand" href="../" aria-label="Rubsta Open home"><span class="club-monogram" aria-hidden="true">R<span>O</span></span><span class="brand-lockup">Rubsta Open<span class="brand-by">Powered by ForgeLabs</span></span></a><nav aria-label="Main navigation"><a class="nav-cta" href="../">Back to home <span aria-hidden="true">↗</span></a></nav></header>
+<main id="main" class="player-support wrap">
+<div class="player-support-intro"><p class="eyebrow">GIVING BACK TO THE GAME</p><h1>Sponsor<br>a <em>player.</em></h1><p class="player-support-lead">A small percentage of sponsorship funds is set aside to support a player.</p><button class="button primary" type="button" data-open-sponsor aria-haspopup="dialog" aria-controls="sponsor-dialog">Become a Sponsor <span aria-hidden="true">↗</span></button></div>
+<section class="player-selection" aria-labelledby="selection-title"><p class="eyebrow">HOW WE CHOOSE</p><h2 id="selection-title">The player.<br>The attitude.<br>The effort.</h2><p>We choose the player based on what they show on court:</p><dl>
+<div><dt>Performance</dt><dd>How they perform and compete on court.</dd></div>
+<div><dt>Conduct</dt><dd>How they carry themselves throughout a match.</dd></div>
+<div><dt>Fighting spirit</dt><dd>The determination and effort they bring to the game.</dd></div>
+<div><dt>Sportsmanship</dt><dd>The respect they show to opponents, officials and the game.</dd></div>
+<div><dt>Discipline</dt><dd>The focus and self-control they show on court.</dd></div>
+</dl><p class="ranking-note">Ranking is not a selection criterion.</p></section>
+</main>
+<footer class="wrap"><span>RUBSTA OPEN · POWERED BY FORGELABS</span><a href="../">Back to home ↗</a></footer>
+<dialog id="sponsor-dialog" aria-labelledby="sponsor-title">
+<div class="sponsor-dialog-head"><div><p class="eyebrow">RUBSTA OPEN</p><h2 id="sponsor-title">Become a Sponsor</h2></div><button class="sponsor-close" type="button" data-close-sponsor aria-label="Close">×</button></div>
+<div class="sponsor-dialog-body">
+<p id="sponsor-intro">Be part of Rubsta Open. Tell us about your brand and how you’d like to support the tournament.</p>
+<!-- The Apps Script web app that saves enquiries to the Sponsors sheet. See README.md. -->
+<form id="sponsor-form" method="post" action="https://script.google.com/macros/s/AKfycbwK1OBb529s-Omxy42otuRLWwoXRwO0iLlVG4UNP0-8OL3r0Sr5aeL6FPe9S0S9L20l/exec">
+<input type="hidden" name="type" value="sponsor">
+<div class="field"><label for="sponsor-name">Full name</label><input class="text-input" id="sponsor-name" name="name" type="text" autocomplete="name" maxlength="80" required autofocus aria-describedby="sponsor-name-error"><p class="field-error" id="sponsor-name-error" hidden></p></div>
+<div class="field"><label for="sponsor-organisation">Brand or organisation</label><input class="text-input" id="sponsor-organisation" name="organisation" type="text" autocomplete="organization" maxlength="120" required aria-describedby="sponsor-organisation-error"><p class="field-error" id="sponsor-organisation-error" hidden></p></div>
+<div class="field"><label for="sponsor-email">Email</label><input class="text-input" id="sponsor-email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" required aria-describedby="sponsor-email-error"><p class="field-error" id="sponsor-email-error" hidden></p></div>
+<div class="field"><label for="sponsor-mobile">Mobile <span class="optional">(optional)</span></label><input class="text-input" id="sponsor-mobile" name="mobile" type="tel" autocomplete="tel" maxlength="20" aria-describedby="sponsor-mobile-hint sponsor-mobile-error"><p class="field-hint" id="sponsor-mobile-hint">Only if you would like a call or message about sponsorship.</p><p class="field-error" id="sponsor-mobile-error" hidden></p></div>
+<div class="field"><label for="sponsor-message">How would you like to get involved? <span class="optional">(optional)</span></label><textarea class="text-input" id="sponsor-message" name="message" rows="3" maxlength="1000" placeholder="Tell us about your sponsorship ideas" aria-describedby="sponsor-message-error"></textarea><p class="field-error" id="sponsor-message-error" hidden></p></div>
+<div class="trap" aria-hidden="true"><label for="sponsor-website">Leave this field empty</label><input id="sponsor-website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+<div class="form-footer"><button class="button primary" type="submit">Send enquiry <span aria-hidden="true">↗</span></button><p class="form-note">We use these details only to contact you about sponsoring Rubsta Open.</p></div>
+<p class="form-status" id="sponsor-status" role="status"></p>
+</form>
+<div class="sponsor-sending" id="sponsor-sending" tabindex="-1" hidden><div class="send-court" aria-hidden="true"><span class="send-rally"><span class="tennis-ball"></span></span></div><p role="status">Sending your enquiry…</p></div>
+<div class="sponsor-done" id="sponsor-done" tabindex="-1" hidden><div class="done-badge" aria-hidden="true"><span class="done-circle"></span><svg class="done-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="tennis-ball"></span></div><p class="eyebrow">ENQUIRY RECEIVED</p><h3 id="sponsor-done-title" data-done-heading></h3><div class="done-lines" data-done-lines></div><button class="button primary" type="button" data-close-sponsor>Done</button></div>
+</div>
+</dialog>
+</body>
+</html>
