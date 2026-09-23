@@ -27,3 +27,8 @@ body:has(#sponsor-dialog[open]){overflow:hidden}
 @media(prefers-reduced-motion:reduce){.sponsor-done .eyebrow,.sponsor-done h3,.sponsor-done .button{animation:none}}
 
 .hero .sponsor-hero-cta{pointer-events:auto;background:var(--lime);border:1px solid var(--lime);color:var(--deep)}.hero .sponsor-hero-cta:hover{background:#e4efad;border-color:#e4efad}.hero .sponsor-hero-cta:focus-visible{outline:3px solid #fffbed;outline-offset:4px}
+
+.player-sponsor-nav{font:inherit;background:transparent;color:inherit;border:1px solid #f9f6e37a;cursor:pointer;white-space:nowrap}
+.player-sponsor-nav:hover{color:var(--lime)}
+.player-sponsor-nav:focus-visible{outline:3px solid var(--lime);outline-offset:4px}
+@media(max-width:760px){.site-header nav{flex-direction:column;align-items:flex-end;gap:6px}.site-header nav .nav-cta{padding:7px 11px;font-size:9px}}
