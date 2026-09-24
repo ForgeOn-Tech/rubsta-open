@@ -1,12 +1,7 @@
-// Registration runs in the Tournament OS app (web/), not on this static site.
-const LIVE_REGISTRATION_URL = 'https://register.rubstaopen.com/register';
-// Locally, `npm run dev` in web/ serves the app on port 3100.
-const LOCAL_REGISTRATION_URL = 'http://localhost:3100/register';
-const LOCAL_HOSTS = ['localhost', '127.0.0.1'];
-
-const registrationUrl = LOCAL_HOSTS.includes(window.location.hostname)
-  ? LOCAL_REGISTRATION_URL
-  : LIVE_REGISTRATION_URL;
-document.querySelectorAll('[data-register]').forEach((link) => {
-  link.href = registrationUrl;
-});
+// Hosted links are same-origin. Local static previews use the Next.js dev app.
+if (['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+  document.querySelectorAll('[data-register], [data-internal], [data-account]').forEach(link => {
+    const path = link.hasAttribute('data-account') ? '/home' : link.hasAttribute('data-internal') ? '/internal' : '/register';
+    link.href = new URL(path + new URL(link.href).hash, 'http://localhost:3100').href;
+  });
+}

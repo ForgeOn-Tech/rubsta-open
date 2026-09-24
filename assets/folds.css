@@ -1,0 +1,322 @@
+/* Responsive section layouts; content remains free to grow. */
+html { scroll-padding-top: 0; }
+#technology { gap: 64px; }
+.avatar-story h2 { margin-block: 12px 26px; }
+.avatar-feature h3 { font: 28px/1.2 var(--serif); margin: 12px 0; }
+.avatar-feature h3 em { color: #65764b; font-weight: 400; }
+.avatar-feature > p:not(.eyebrow), .planned-features > p:not(.eyebrow) { font-size: 13px; line-height: 1.8; color: var(--muted); max-width: 430px; }
+.avatar-feature .button { margin-top: 12px; }
+.avatar-feature > p.avatar-eligibility { font-size: 10px; margin-top: 12px; }
+.planned-features { border-top: 1px solid var(--line); padding-top: 14px; margin-top: 24px; }
+.avatar-preview { margin: 0; width: 100%; max-width: 430px; justify-self: end; }
+.avatar-preview img { display: block; width: 100%; height: auto; border-radius: 8px; }
+.avatar-preview figcaption { margin-top: 14px; font: italic 20px var(--serif); text-align: center; color: var(--muted); }
+@media(max-width:760px) { #technology { gap: 30px; } .avatar-preview { max-width: 340px; justify-self: center; } }
+.site-header nav .nav-signin { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; white-space: nowrap; }
+@media (max-width: 760px) {
+  .site-header nav { gap: 12px; }
+  .site-header nav .nav-signin { font-size: 11px; }
+}
+@media (max-width: 360px) {
+  .site-header.wrap { padding-inline: 16px; }
+  .site-header .brand { font-size: 21px; }
+  .site-header nav { gap: 10px; }
+  .site-header .nav-cta span { margin-left: 8px; }
+}
+#prizes { min-height: 100svh; padding-block: 48px; }
+.prize-section .section-heading { display: block; text-align: center; }
+.prize-section .section-heading > p { max-width: 520px; margin: 16px auto 0; }
+.prize-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 24px; }
+.prize-grid article { border-top: 1px solid #a6b192; padding-top: 20px; }
+.prize-grid h3 { margin: 0; font: 24px/1.2 var(--serif); }
+.prize-total { margin: 14px 0 24px; font: 34px/1 var(--serif); color: var(--deep); }
+.prize-grid dl { margin: 0; }
+.prize-grid dl > div { display: flex; justify-content: space-between; gap: 8px; margin-top: 14px; font-size: 11px; line-height: 1.5; }
+.prize-grid dt { color: var(--muted); }
+.prize-grid dd { margin: 0; text-align: right; white-space: nowrap; }
+.prize-grid small { display: block; font-size: 10px; color: var(--muted); }
+.prize-condition { margin: 20px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+@media (max-width: 1050px) {
+  .prize-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+}
+@media (max-width: 760px) {
+  #prizes .prize-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 18px; }
+  #prizes .prize-open { grid-column: 1 / -1; }
+  #prizes .prize-open dl { display: grid; grid-template-columns: 1fr 1fr; gap: 0 22px; }
+  #prizes .prize-grid article { padding-top: 12px; }
+  #prizes .prize-grid h3 { font-size: 22px; }
+  #prizes .prize-total { font-size: 28px; margin: 8px 0 12px; }
+  #prizes .prize-grid dl > div { margin-top: 8px; }
+  #prizes .prize-condition { margin-top: 12px; }
+}
+/* Final composition: readable photography and a steady rhythm between sections. */
+.hero .hero-image::after { background: linear-gradient(180deg, #09170d50 0%, #09170d00 25%, #09170d20 55%, #09170d48 100%); }
+.hero-image img { object-position: 50% 50%; }
+#digital .digital-features { max-width: 1100px; width: 100%; margin-inline: auto; }
+#digital .digital-features article { border-top: 1px solid var(--line); padding-top: 18px; }
+#gallery .gallery-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; }
+#gallery .gallery-item img { height: clamp(220px, 26vw, 380px); }
+#gallery .section-heading, #sponsors .section-heading { display: block; text-align: center; }
+#gallery .section-heading > p, #sponsors .section-heading > p { max-width: 480px; margin: 16px auto 0; }
+main > #technology { padding-block: 52px; border-top: 1px solid var(--line); }
+@media (max-width: 760px) {
+  main > section.section.wrap, main > section.event-details, main > section.sponsors { padding-block: 48px !important; }
+  #gallery .gallery-grid { grid-template-columns: 1fr; gap: 26px; }
+  #gallery .gallery-item img { height: auto; aspect-ratio: 1.6; object-fit: cover; }
+  #coach .coach-slides { height: 300px; }
+  #digital .digital-features { gap: 26px 18px; }
+  #digital .digital-features h3 { font-size: 24px; }
+  #digital .digital-features p { font-size: 13px; }
+}
+main > section { scroll-margin-top: 0; }
+main > section:not(.hero) {
+  min-height: 0;
+  padding-block: clamp(56px, 7vw, 100px);
+  align-content: center;
+}
+.section.wrap:not(.next-chapter) {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.hero.wrap {
+  height: auto;
+  min-height: 100svh;
+  padding: 100px 28px 160px;
+}
+.hero-copy { margin-top: 0; translate: none; }
+.hero-copy .early-bird {
+  display: inline-block;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  color: #fffbed;
+  font-size: 9px;
+  letter-spacing: .5px;
+  text-transform: none;
+  text-shadow: 0 1px 8px #09170d;
+}
+.early-bird span { display: block; margin-top: 4px; font-size: 9px; letter-spacing: .3px; }
+.early-bird strong { display: block; margin-top: 4px; font-size: 11px; font-weight: 400; letter-spacing: 0; text-transform: none; }
+.hero h1, .hero h1 em { font-size: clamp(76px, 16svh, 170px); }
+.hero h1 { margin-block: 12px; }
+.hero-powered { margin-block: 14px; }
+.hero .intro { margin-block: 14px; }
+.hero .digital-hero-summary { margin-bottom: 16px; }
+.hero .actions { margin-top: 16px; }
+.hero .hero-footnote { margin-block: 16px 0; }
+.hero .audience {
+  position: absolute;
+  inset: auto 0 0;
+  padding: 18px 4vw;
+  min-height: 64px;
+  width: 100%;
+}
+.hero-slide figcaption { bottom: 96px; }
+.hero .slider-controls { bottom: 90px; }
+.section-heading { margin-bottom: clamp(20px, 4svh, 40px); }
+.digital-experience .section-heading { display: block; text-align: center; }
+.digital-experience .section-heading > p { max-width: none; margin: 12px auto 0; }
+.hero-image { position: absolute; inset: 0; margin: 0; z-index: -1; }
+.hero-image img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.hero-image::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, #09170d50 0%, #09170d00 25%, #09170d20 55%, #09170d48 100%); }
+.hero-image figcaption { position: absolute; right: 4vw; bottom: 86px; z-index: 1; color: #fffbedcc; font: 7px var(--mono); letter-spacing: 1px; }
+.digital-features { gap: clamp(20px, 4svh, 36px) 40px; }
+.digital-features article { padding-top: 0; }
+.digital-features h3 { margin-block: 12px 10px; font-size: clamp(25px, 3.8svh, 32px); }
+.digital-features p { line-height: 1.6; }
+.coach-profile { width: 100%; }
+.coach-background { margin-block: 12px; color: var(--muted); font-size: 13px; line-height: 1.65; }
+.coach-background summary { cursor: pointer; color: var(--ink); min-height: 32px; padding-block: 6px; }
+.coach-background summary:focus-visible { outline: 2px solid var(--deep); outline-offset: 4px; }
+.coach-background p { margin-block: 10px; }
+.coach-carousel { max-width: min(370px, 40svh); }
+.gallery-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
+.gallery-item img { height: clamp(140px, 30svh, 320px); }
+.gallery-caption { padding-top: 12px; }
+.gallery-caption strong { font-size: 22px; line-height: 1.15; }
+.gallery-caption small { line-height: 1.5; }
+.sponsors > .wrap { width: 100%; }
+.sponsor-lead { padding-block: 20px; }
+.sponsor-grid > div { padding: 20px 12px; }
+main > section.sponsors { min-height: 0; }
+body > footer { min-height: var(--footer-h); padding-block: 16px; flex-direction: row; }
+body > footer p { margin: 0; width: auto; }
+/* Policy links sit in the footer row on wide screens and take their own row below it
+   when that row runs out of width. --footer-h must match the taller result. */
+body { --footer-h: 76px; }
+body > footer .site-footer-links { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 10px; }
+body > footer .site-footer-links a { display: inline; }
+.event-details .event-entry-fees dl > div { padding: 0; min-height: 0; }
+
+@media (max-width: 760px) {
+  body { --footer-h: 88px; }
+  body > footer { gap: 6px; padding-block: 12px; }
+  .site-header { height: 72px; padding-inline: 24px; }
+  .hero.wrap { padding: 82px 24px 166px; }
+  .hero h1, .hero h1 em { font-size: clamp(62px, 11svh, 96px); }
+  .hero .intro { font-size: 18px; max-width: 320px; }
+  .hero-copy .eyebrow { font-size: 9px; letter-spacing: 2px; }
+  .hero-powered { font-size: 9px; margin-block: 12px; }
+  .hero .actions { flex-direction: row; flex-wrap: wrap; gap: 8px 20px; }
+  .hero .hero-footnote { max-width: 320px; font-size: 9px; line-height: 1.6; }
+  .hero .audience { display: block; text-align: center; padding: 12px 20px; min-height: 70px; }
+  .hero .audience > span { font-size: 7px; }
+  .hero .audience p { font-size: 10px; margin-top: 8px; }
+  .hero .audience i { margin-inline: 3px; }
+  .hero-slide figcaption { bottom: 122px; left: 24px; }
+  .hero-slide figcaption h2 { font-size: 16px; }
+  .hero .slider-controls { bottom: 86px; left: 24px; right: 24px; }
+  .hero .concept-label { bottom: -9px; font-size: 6px; }
+  main > section.section.wrap, main > section.event-details, main > section.sponsors { padding-block: 24px; }
+  .section-heading { display: block; margin-bottom: 22px; }
+  .section-heading h2, .event-details h2, .coach-story h2 { font-size: 34px; margin-top: 8px; }
+  .section-heading > p { font-size: 12px; line-height: 1.6; margin-top: 12px; }
+  .digital-features { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 18px; }
+  .digital-feature-label { font-size: 8px; letter-spacing: 1px; }
+  .digital-features h3 { font-size: 24px; margin-block: 8px; }
+  .digital-features p { font-size: 12px; line-height: 1.5; }
+  .event-details { gap: 24px; }
+  .event-details .event-intro { font-size: 14px; margin-block: 14px 8px; }
+  .entry-deadline { margin-bottom: 16px; }
+  .event-entry-fees h3 { font-size: 24px; margin-bottom: 16px; }
+  .event-entry-fees dl { gap: 14px; }
+  .event-fee-note { margin-top: 16px; }
+  .coach-profile { gap: 18px; }
+  .coach-story h2 { margin-bottom: 12px; }
+  .coach-story > p:not(.eyebrow) { font-size: 12px; line-height: 1.6; }
+  .coach-rankings { margin-top: 12px; padding-block: 8px; }
+  .coach-credentials { gap: 8px 16px; margin-top: 8px; }
+  .coach-credentials p { margin: 0; font-size: 10px; }
+  .coach-carousel { max-width: 100%; }
+  .coach-slides { aspect-ratio: auto; height: clamp(120px, 22svh, 220px); }
+  .coach-controls { padding: 4px 8px; gap: 8px; }
+  .coach-dots { gap: 0; }
+  .coach-dots button { width: 24px; }
+  #coach-count { white-space: nowrap; flex-shrink: 0; }
+  .gallery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 14px; }
+  .gallery-item img { height: clamp(100px, 18svh, 180px); }
+  .gallery-caption { padding: 10px 18px 0 0; }
+  .gallery-caption strong { font-size: 19px; }
+  .gallery-caption small { font-size: 9px; margin-top: 5px; }
+  .gallery-caption > span { right: 0; top: 12px; }
+  .gallery-note { margin-top: 16px; line-height: 1.5; }
+  .sponsor-lead { padding-block: 12px; }
+  .sponsor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sponsor-grid > div { padding: 16px 8px; }
+  .sponsor-grid .dummy-logo { font-size: 21px; }
+  .sponsor-actions { gap: 8px 20px; }
+  body > footer { gap: 8px; }
+  footer .brand { font-size: 20px; }
+}
+
+@media (max-width: 760px) and (max-height: 700px) {
+  .hero.wrap { padding-top: 78px; padding-bottom: 148px; }
+  .hero h1, .hero h1 em { font-size: 56px; }
+  .hero .intro { font-size: 16px; }
+  .hero .digital-hero-summary { font-size: 10px; line-height: 1.5; }
+  .hero .button { padding-block: 12px; }
+  .hero .actions { gap: 6px 16px; }
+  .hero-slide figcaption { bottom: 116px; }
+  .section-heading h2, .event-details h2, .coach-story h2 { font-size: 30px; }
+  .section-heading > p { margin-top: 8px; }
+  .event-details { gap: 18px; }
+  .event-details .event-intro { line-height: 1.5; margin-top: 10px; }
+  .event-entry-fees dl { gap: 10px; }
+  .event-fee-note { margin-top: 12px; }
+  .coach-rankings dd { font-size: 24px; white-space: nowrap; }
+  .coach-rankings { gap: 8px; }
+  .coach-rankings dt { font-size: 8px; }
+  .coach-story > p.coach-ranking-note { font-size: 10px; }
+  .coach-background { margin-block: 6px; }
+  .coach-slides { height: 120px; }
+  .gallery-caption strong { font-size: 17px; }
+  .sponsors .section-heading { margin-bottom: 12px; }
+  .sponsors .section-heading > p { font-size: 11px; }
+  .sponsor-lead { padding-block: 8px; }
+  .sponsor-lead .dummy-logo { font-size: 28px; }
+  .sponsor-grid > div { padding-block: 10px; }
+  .sponsor-grid .dummy-logo { font-size: 18px; }
+  .sponsor-grid .eyebrow { font-size: 7px; letter-spacing: 1px; }
+  .sponsor-note { margin-block: 10px; }
+  .sponsor-actions .button { padding-block: 12px; }
+  body > footer { gap: 8px; }
+  footer .brand { font-size: 18px; }
+}
+
+@media (max-height: 650px) {
+  main > section.section.wrap, main > section.event-details, main > section.sponsors { padding-block: 20px; }
+  .hero h1, .hero h1 em { font-size: clamp(54px, 10svh, 76px); }
+  .hero h1, .hero-powered, .hero .intro { margin-block: 8px; }
+  .hero .digital-hero-summary { margin-bottom: 8px; line-height: 1.5; }
+  .hero .actions { margin-top: 10px; }
+  .hero .hero-footnote { margin-top: 10px; }
+  .section-heading { margin-bottom: 16px; }
+  .digital-features { row-gap: 14px; }
+  .digital-features h3 { font-size: 22px; }
+  .coach-profile { gap: 12px; }
+  .coach-slides { height: 120px; }
+  .gallery-item img { height: 100px; }
+}
+
+@media (max-width: 760px) and (max-height: 700px) {
+  .sponsor-lead { gap: 10px; }
+  .sponsor-grid .dummy-logo { margin-top: 10px; }
+  .sponsor-actions { margin-top: 14px; gap: 8px 12px; }
+  .sponsor-actions .button { font-size: 10px; gap: 12px; padding-inline: 16px; }
+  .sponsor-actions .button.secondary { padding-inline: 0; }
+}
+@media (max-width: 360px) and (max-height: 650px) {
+  .event-details { gap: 12px; }
+  .event-details .entry-deadline { margin-bottom: 10px; line-height: 1.5; }
+  .event-entry-fees h3 { margin-bottom: 10px; }
+  .event-entry-fees dl { gap: 8px; }
+  .hero-copy .early-bird { padding: 5px 8px; }
+  .early-bird span { margin-top: 2px; font-size: 8px; }
+  .early-bird strong { margin-top: 2px; font-size: 10px; }
+  .hero.wrap { padding-block: 70px 132px; }
+  .hero h1, .hero h1 em { font-size: 48px; }
+  .hero .intro { font-size: 15px; }
+  .hero .actions { gap: 4px 10px; }
+  .hero .button { font-size: 10px; gap: 12px; }
+  .hero .button.primary { padding-inline: 20px; }
+  .hero-slide figcaption { bottom: 112px; }
+  .hero-slide figcaption .eyebrow { display: none; }
+  .hero-slide figcaption h2 { font-size: 14px; }
+  .section-heading h2 { font-size: 26px; }
+  .digital-features h3 { font-size: 20px; margin-block: 6px; }
+  .digital-features { gap: 12px; }
+  .digital-feature-label { font-size: 7px; }
+  .gallery-caption strong { font-size: 16px; }
+  .gallery-grid { row-gap: 12px; }
+  .gallery-item img { height: 90px; }
+  .coach-rankings > div:first-child dd { font-size: 20px; }
+  .sponsors .section-heading { margin-bottom: 8px; }
+  .sponsors .section-heading h2 { font-size: 26px; }
+  .sponsors .section-heading > p { line-height: 1.4; }
+  .sponsor-lead { gap: 6px; padding-block: 4px; }
+  .sponsor-lead > .eyebrow { font-size: 7px; }
+  .sponsor-grid > div { padding-block: 6px; }
+  .sponsor-grid .dummy-logo { margin-top: 6px; }
+  .dummy-logo > span { margin-top: 5px; }
+  .sponsor-actions { margin-top: 4px; }
+}
+
+/* Keep the coach heading aligned with the photo at every desktop height. */
+#coach .coach-profile { align-items: start; gap: 40px 64px; }
+#coach .coach-story > .eyebrow { margin-top: 0; }
+#coach .coach-carousel { max-width: 370px; }
+#coach .coach-slides { height: auto; aspect-ratio: 1; }
+#coach .coach-rankings dd { white-space: nowrap; }
+@media (max-width: 1050px) {
+  #coach .coach-profile { column-gap: 32px; }
+}
+@media (max-width: 760px) {
+  #coach .coach-profile { gap: 24px; }
+  #coach .coach-carousel { max-width: none; }
+}
+@media (max-width: 480px) {
+  #coach .coach-rankings { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 16px; }
+  #coach .coach-rankings dd { font-size: 27px; }
+  #coach .coach-rankings dt { font-size: 10px; }
+}
