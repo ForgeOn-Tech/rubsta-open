@@ -5,8 +5,23 @@ import { revalidatePath } from "next/cache";
 
 import { requireAdmin } from "@/auth/require";
 import { db } from "@/db/client";
-import { entries } from "@/db/schema";
+import { entries, type EntryStatus } from "@/db/schema";
+import { isUniqueViolation } from "@/lib/entries";
 import { isEntryStatus, statusUpdate } from "@/lib/entry-status";
+
+/** Reinstating fails when the player has entered the same event again since it was cancelled. */
+function updateStatus(entryId: string, entry: { status: EntryStatus; paymentRef: string | null }, to: EntryStatus): number {
+  try {
+    return db
+      .update(entries)
+      .set(statusUpdate(entry, to))
+      .where(and(eq(entries.id, entryId), eq(entries.status, entry.status)))
+      .run().changes;
+  } catch (error) {
+    if (isUniqueViolation(error)) throw new Error("Player already has an active entry in this category.");
+    throw error;
+  }
+}
 
 export async function changeEntryStatus(formData: FormData): Promise<void> {
   await requireAdmin();
@@ -23,12 +38,7 @@ export async function changeEntryStatus(formData: FormData): Promise<void> {
   if (!entry) throw new Error(`Entry ${entryId} does not exist.`);
 
   // Only update if nobody changed the status since it was read.
-  const result = db
-    .update(entries)
-    .set(statusUpdate(entry, to))
-    .where(and(eq(entries.id, entryId), eq(entries.status, entry.status)))
-    .run();
-  if (result.changes === 0) {
+  if (updateStatus(entryId, entry, to) === 0) {
     throw new Error(`Entry ${entryId} changed while updating. Reload and try again.`);
   }
 

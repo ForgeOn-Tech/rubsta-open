@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/auth/require";
 import { db, getDb } from "@/db/client";
 import { PartnerRejectedError, changePartner, listPlayedCategories } from "@/db/partners";
-import { entries, entryBundles, profiles, tournaments } from "@/db/schema";
+import { entries, profiles, tournaments } from "@/db/schema";
 import {
   isDoubles,
   isUniqueViolation,
@@ -19,7 +19,7 @@ import { awaitsPayment } from "@/lib/entry-status";
 import { normaliseEmail } from "@/lib/partners";
 import { razorpayConfig } from "@/lib/razorpay";
 import { registrationOption } from "@/lib/registration-pricing";
-import { registrationState } from "@/db/registration";
+import { bundleForSelection, cancelSelection, registrationState } from "@/db/registration";
 
 export async function submitEntry(
   _prev: EntryFormState,
@@ -53,14 +53,12 @@ export async function submitEntry(
     if (!validation.ok) return { error: validation.error };
   }
   const ids = selection.categories.map(() => crypto.randomUUID());
-  const bundleId = selection.categories.length === 2 ? crypto.randomUUID() : null;
 
   try {
     db.transaction((tx) => {
       const registration = registrationState(tx, user.id, tournament.id);
-      if (registration.paid) redirect("/home");
       if (registration.pendingId) redirect(`/register/${registration.pendingId}`);
-      if (bundleId) tx.insert(entryBundles).values({ id: bundleId, userId: user.id, tournamentId: tournament.id }).run();
+      const bundleId = bundleForSelection(tx, user.id, tournament.id, selection.categories);
       tx.insert(entries).values(selection.categories.map((category, index) => ({
         id: ids[index], userId: user.id, tournamentId: tournament.id, bundleId, category,
         partnerName: isDoubles(category) ? partnerName : null,
@@ -85,6 +83,14 @@ export async function submitEntry(
     status: "submitted",
   });
   redirect(payNow ? `/register/${ids[0]}?pay=1` : `/register/${ids[0]}`);
+}
+
+/** Cancels the player's unpaid checkout and sends them back to choose again. */
+export async function changeSelection(entryId: string): Promise<void> {
+  const user = await requireUser();
+  cancelSelection(getDb(), entryId, user.id);
+  revalidatePath("/home");
+  redirect("/register");
 }
 
 /** Names a new doubles partner, who then has to accept. */
