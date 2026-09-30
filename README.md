@@ -49,12 +49,16 @@ Canvas: https://claude.ai/code/artifact/03717cab-8b12-4a02-be17-7394af9dae09
 
 ## Landing page
 
-The Rubsta Open landing page leads with “Powered by ForgeLabs” and marks event
-dates, venue, categories and registration details as coming soon. It uses the AMS
-layout and typography with powder-green
-accents. It includes keyboard-accessible tournament phase tabs and modal previews
-of the existing screen designs. All scores are illustrative; this is a frontend
-prototype with no registration, payment or live-scoring backend.
+The public page at the repository root introduces Rubsta Open and links to
+registration. It leaves out event dates, the venue and any offer until the organiser
+confirms them. `/sponsor-a-player/` explains how sponsorship supports a player; it
+keeps its own copies of the styles and form scripts in `sponsor-a-player/assets/`.
+
+Every "Become a sponsor" button opens the sponsor form in a pop-up. The form takes a
+name, an organisation, an email, an optional mobile number and an optional message.
+While the details go to Google, the pop-up shows a tennis ball rallying across a small
+court, then a confirmation. Both skip their animation when the visitor prefers reduced
+motion.
 
 Run from the repository root:
 
@@ -62,9 +66,72 @@ Run from the repository root:
 python3 -m http.server 3000 --bind 127.0.0.1
 ```
 
-Open http://127.0.0.1:3000. Serve over HTTP so the screen previews can load.
-Edit `index.html`, `assets/landing.css` and `assets/landing.js`.
-Fonts use Google Fonts with local system fallbacks.
+Serve over HTTP so the form script and the screen previews load. Fonts use Google
+Fonts with local system fallbacks.
+
+| Files | Purpose |
+| --- | --- |
+| `index.html`, `assets/landing.css`, `assets/club.css`, `assets/landing.js` | Landing page |
+| `assets/sponsor.css`, `assets/sponsor.js` | Become a Sponsor pop-up and form behaviour |
+| `assets/sponsor-form.js` | Sponsor form checks, used by the page and the tests |
+| `assets/waitlist-form.js` | Shared email and mobile checks the sponsor form imports |
+| `apps-script/waitlist.gs` | Apps Script entry point and sheet helpers; routes sponsor posts |
+| `apps-script/sponsor.gs` | The same script's handler for sponsorship enquiries |
+
+The waitlist page has closed. The Apps Script still accepts interest posts on the
+"Interest" tab, but no page sends them.
+
+### Form setup
+
+The Become a Sponsor form posts to an Apps Script web app, which writes to the
+"Sponsors" tab of a Google Sheet. Until a form has an
+`action` URL, it tells visitors that it is not open yet.
+
+1. Create a Google Sheet that only the organisers can open.
+2. In the sheet, open **Extensions > Apps Script**. Replace the editor contents with
+   `apps-script/waitlist.gs`. Add a second script file named `sponsor.gs` and paste
+   `apps-script/sponsor.gs` into it. Save.
+3. Select **Deploy > New deployment > Web app**. Set **Execute as** to *Me* and
+   **Who has access** to *Anyone*. Deploy and approve the permissions.
+4. Copy the web app URL, which ends in `/exec`. Open it in a browser to check it: it
+   shows `{"ok":true,"service":"rubsta-open-interest","forms":["interest","sponsor"]}`.
+   A reply without `"sponsor"` in `forms` means `sponsor.gs` has not been deployed
+   yet, and sponsorship enquiries will be refused.
+5. Add the URL to the sponsor form tag in `index.html` and
+   `sponsor-a-player/index.html` as `action="https://script.google.com/macros/s/…/exec"`.
+
+If **Extensions > Apps Script** shows “Sorry, unable to open the file at present”,
+create the project at https://script.google.com with **New project** instead. Paste
+the script, set `SPREADSHEET_ID` to the sheet's ID (the part of its URL between `/d/`
+and `/edit`), save, and continue from step 3. If script.google.com shows the same
+error, a Google Workspace admin has likely turned Apps Script off for the domain.
+
+The script creates an “Interest” tab on the first submission and keeps one row per
+email address. A second submission from the same address updates that row, so a
+retry never adds a duplicate. The script checks every field again, stores text that
+looks like a formula as plain text, and drops submissions that fill the hidden
+bot-trap field. After you change the script, publish it under **Deploy > Manage
+deployments** as a new version of the same deployment, so the URL stays the same.
+
+Sponsorship enquiries carry `type=sponsor`, which sends them to a “Sponsors” tab in
+the same sheet, with the columns *Submitted at*, *Updated at*, *Name*,
+*Organisation*, *Email*, *Mobile* and *Message*. They follow the same rules: one row
+per email address, a second enquiry updates that row, and the message keeps its line
+breaks. A post with no `type` goes to the Interest tab, so an older copy of the page
+keeps working.
+
+With *Anyone* access, anyone who has the URL can post to the script, and the URL is
+visible in the page source. The field checks limit what a post can write.
+
+Run the form tests with Node.js (tested with Node 26). They need no install:
+
+```sh
+node --test tests/*.test.mjs
+```
+
+The tests also check that the script accepts exactly the categories on the page, that
+both scripts use the same limits and messages as the browser checks, and that a
+sponsorship enquiry reaches the Sponsors tab without touching the Interest tab.
 
 ## Stack
 
@@ -392,18 +459,17 @@ labelled. Nothing in this update connects production services.
 
 ### Public hosting
 
-As verified on 19 September 2026, the live public website uses GitHub Pages,
-publishing `main` at `www.rubstaopen.com`. The Sites ID in `.openai/hosting.json`
-is historical and is unavailable to the currently connected account.
+`www.rubstaopen.com` is served by Caddy and the Next.js app on the `rubsta-internal`
+Compute Engine VM. Caddy serves `/`, `/sponsor-a-player/`, the policy pages and
+`/assets/*` from a static release built by `python3 scripts/build-site.py`, and sends
+every other path to the app. Pushing to `main` does not change the live site; see
+`deploy/README.md` for the release steps.
 
-The themed landing page uses `/register` and `/internal` links. In localhost
-previews, `assets/register.js` sends them to the Next.js app on port 3100.
-`/internal` requires sign-in and directs admins to `/admin`, umpires to `/score`,
-and players to `/home`; destination pages retain their existing access checks.
+The bare domain `rubstaopen.com` still points at GitHub Pages, which publishes the root
+of `main`. The `CNAME` file sets the custom domain, so GitHub redirects the bare domain
+to `www`. `_config.yml` keeps `web/`, `apps-script/` and `tests/` out of the Pages build.
 
-Deployment of these links requires a Node host with persistent SQLite storage
-and routing to the app. GitHub Pages cannot run the registration backend.
-The previously proposed `register.rubstaopen.com` domain does not currently
-resolve. Do not publish this branch over the live site until backend hosting and
-routing are configured and the current main-branch sponsorship integration is
-preserved. No payment keys or local databases belong in the deployment artifact.
+The themed landing page uses `/register` and `/internal` links. In localhost previews,
+`assets/register.js` sends them to the Next.js app on port 3100. `/internal` requires
+sign-in and directs admins to `/admin`, umpires to `/score`, and players to `/home`.
+No payment keys or local databases belong in the deployment artifact.

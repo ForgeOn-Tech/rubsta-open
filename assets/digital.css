@@ -128,7 +128,6 @@ h2, .event-details h2, .coach-story h2 { font-size: clamp(34px, 3.8vw, 52px); fo
   .event-details dl > div:nth-child(n+3), .sponsor-grid > div:nth-child(n+3) { border: 0; }
 }
 .event-details { padding-block: 56px; }
-.event-details .event-intro { margin-block: 20px 12px; font-size: 16px; line-height: 1.7; }
 .entry-deadline { font-size: 12px; color: var(--muted); line-height: 1.7; margin-bottom: 24px; }
 .event-entry-fees h3 { font: 500 28px/1.2 var(--serif); margin: 0 0 20px; }
 .event-entry-fees dl { display: flex; flex-direction: column; gap: 18px; margin: 0; }
