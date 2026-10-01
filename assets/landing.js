@@ -84,6 +84,7 @@ configureReveals();
 
 const galleryItems = [...document.querySelectorAll('[data-gallery]')];
 const galleryDialog = document.querySelector('#gallery-dialog');
+if (galleryDialog && galleryItems.length) {
 let galleryIndex = 0;
 function showGalleryImage(index) {
   galleryIndex = (index + galleryItems.length) % galleryItems.length;
@@ -104,6 +105,7 @@ galleryDialog.addEventListener('keydown', event => {
     event.preventDefault(); showGalleryImage(galleryIndex + (event.key === 'ArrowRight' ? 1 : -1));
   }
 });
+}
 
 // Coach gallery: manual navigation keeps photos still while reading the profile.
 const coachCarousel = document.querySelector('.coach-carousel');

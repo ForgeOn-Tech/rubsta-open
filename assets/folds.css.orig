@@ -280,22 +280,3 @@ body > footer .site-footer-links a { display: inline; }
   .dummy-logo > span { margin-top: 5px; }
   .sponsor-actions { margin-top: 4px; }
 }
-
-/* Keep the coach heading aligned with the photo at every desktop height. */
-#coach .coach-profile { align-items: start; gap: 40px 64px; }
-#coach .coach-story > .eyebrow { margin-top: 0; }
-#coach .coach-carousel { max-width: 370px; }
-#coach .coach-slides { height: auto; aspect-ratio: 1; }
-#coach .coach-rankings dd { white-space: nowrap; }
-@media (max-width: 1050px) {
-  #coach .coach-profile { column-gap: 32px; }
-}
-@media (max-width: 760px) {
-  #coach .coach-profile { gap: 24px; }
-  #coach .coach-carousel { max-width: none; }
-}
-@media (max-width: 480px) {
-  #coach .coach-rankings { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 16px; }
-  #coach .coach-rankings dd { font-size: 27px; }
-  #coach .coach-rankings dt { font-size: 10px; }
-}

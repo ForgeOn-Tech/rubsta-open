@@ -27,7 +27,7 @@ const baseURL = access?.PREVIEW_URL || 'http://127.0.0.1:8087';
       await expect(page.locator('main')).not.toContainText(/2026|October|Vazirani|Early bird/);
       await expect(page.locator('.hero-copy > .eyebrow')).toHaveText('TENNIS. CONNECTED.');
       const sections = page.locator('main > section');
-      await expect(sections).toHaveCount(8);
+      await expect(sections).toHaveCount(7);
       if (width >= 1280) {
         const prizeHeight = await page.locator('#prizes').evaluate(element => element.getBoundingClientRect().height);
         expect(prizeHeight, 'Prize section fits one desktop fold').toBeLessThanOrEqual(height + 2);
@@ -51,16 +51,13 @@ const baseURL = access?.PREVIEW_URL || 'http://127.0.0.1:8087';
       await page.keyboard.press('Enter');
       await page.getByRole('button', { name: 'Next coach photo' }).click();
       await expect(page.locator('#coach-count')).toHaveText('02 / 04');
-      await page.locator('[data-gallery="0"]').click();
-      await expect(page.locator('#gallery-dialog')).toBeVisible();
-      await page.getByRole('button', { name: 'Close gallery', exact: true }).click();
       await page.locator('#sponsors [data-open-sponsor]').click();
       await expect(page.locator('#sponsor-dialog')).toBeVisible();
       await expect(page.locator('#sponsor-form')).toHaveAttribute('action', /script\.google\.com/);
       await expect(page.locator('#sponsor-form button[type="submit"]')).toBeEnabled();
       await page.locator('#sponsor-dialog [data-close-sponsor]').first().click();
       expect(errors).toEqual([]);
-      console.log(`PASS ${width}×${height}: eight sections, no clipping/overflow; biography, carousel and dialogs work.`);
+      console.log(`PASS ${width}×${height}: seven sections, no clipping/overflow; biography, carousel and sponsor dialog work.`);
       await page.close();
     }
   } finally { await browser.close(); }
