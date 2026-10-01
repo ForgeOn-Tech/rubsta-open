@@ -4,7 +4,7 @@ import { csvCell, fileSlug, toCsv } from "@/lib/csv";
 
 describe("csvCell", () => {
   it("leaves plain text alone and blanks null", () => {
-    expect(csvCell("Men's singles")).toBe("Men's singles");
+    expect(csvCell("Open singles")).toBe("Open singles");
     expect(csvCell(1500)).toBe("1500");
     expect(csvCell(null)).toBe("");
   });

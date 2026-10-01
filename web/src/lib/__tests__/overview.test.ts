@@ -7,22 +7,22 @@ describe("summariseByEvent", () => {
   it("lists every event even with no entries", () => {
     const summary = summariseByEvent([]);
 
-    expect(summary.map((row) => row.category)).toEqual(["MS", "WS", "MD", "WD"]);
+    expect(summary.map((row) => row.category)).toEqual(["OS", "W30", "U15", "OD", "S40"]);
     expect(summary.every((row) => row.active === 0 && row.accepted === 0)).toBe(true);
   });
 
   it("separates awaiting review, accepted and cancelled entries", () => {
     const summary = summariseByEvent([
-      { category: "MS", status: "submitted" },
-      { category: "MS", status: "confirmed" },
-      { category: "MS", status: "paid" },
-      { category: "MS", status: "cancelled" },
-      { category: "WD", status: "paid" },
+      { category: "OS", status: "submitted" },
+      { category: "OS", status: "confirmed" },
+      { category: "OS", status: "paid" },
+      { category: "OS", status: "cancelled" },
+      { category: "OD", status: "paid" },
     ]);
 
     expect(summary[0]).toEqual({
-      category: "MS",
-      label: "Men's singles",
+      category: "OS",
+      label: "Open singles",
       active: 3,
       awaitingReview: 1,
       accepted: 2,

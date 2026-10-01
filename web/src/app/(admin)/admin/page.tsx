@@ -7,12 +7,14 @@ import { DrawStatusBadge } from "@/components/draw-status-badge";
 import { StatusBadge } from "@/components/status-badge";
 import { getDb } from "@/db/client";
 import { listDrawsWithSlots } from "@/db/draws";
+import { getEventFees } from "@/db/fees";
 import { getCurrentTournament, listTournamentEntries } from "@/db/queries";
 import { ADMIN_DRAWS_PATH } from "@/lib/draws";
 import { ENTRY_STATUS_LABELS } from "@/db/schema";
 import { ADMIN_ENTRIES_PATH, entriesHref, playerName } from "@/lib/admin-entries";
 import { CATEGORY_LABELS, STATUS_ORDER, countByStatus } from "@/lib/entries";
-import { countLabel, formatEntryTime, formatFee } from "@/lib/format";
+import { countLabel, formatEntryTime } from "@/lib/format";
+import { feeRangeLabel } from "@/lib/fees";
 import { summariseByEvent, timeToCloseLabel } from "@/lib/overview";
 
 export const dynamic = "force-dynamic";
@@ -41,7 +43,7 @@ export default async function AdminOverviewPage() {
         stats={[
           countLabel(rows.length, "entry", "entries"),
           timeToCloseLabel(tournament.entryClosesAt, new Date()),
-          `Fee ${formatFee(tournament.feeCents, tournament.currency)}`,
+          `Fees ${feeRangeLabel(getEventFees(getDb(), tournament.id), tournament.currency)}`,
         ]}
       >
         <Link href={ADMIN_ENTRIES_PATH} className="btn btn-outline h-8 text-[12px]">

@@ -1,67 +1,51 @@
+import { isSavedReply } from './waitlist-form.js';
 import {
-  confirmationCopy,
-  isSavedReply,
-  normaliseInterest,
-  toFormBody,
-  validateInterest,
-} from './waitlist-form.js';
+  normaliseSponsor,
+  sponsorConfirmationCopy,
+  toSponsorBody,
+  validateSponsor,
+} from './sponsor-form.js';
 
-const dialog = document.querySelector('#interest-dialog');
-const form = document.querySelector('#interest-form');
-const statusLine = document.querySelector('#interest-status');
-const sendingPanel = document.querySelector('#interest-sending');
-const done = document.querySelector('#interest-done');
+const dialog = document.querySelector('#sponsor-dialog');
+const form = document.querySelector('#sponsor-form');
+const statusLine = document.querySelector('#sponsor-status');
+const sendingPanel = document.querySelector('#sponsor-sending');
+const done = document.querySelector('#sponsor-done');
 const submitButton = form.querySelector('button[type="submit"]');
-const categoryInputs = [...form.querySelectorAll('input[name="categories"]')];
-const allowedCategories = categoryInputs.map((input) => input.value);
-const categoryLabels = Object.fromEntries(
-  categoryInputs.map((input) => [input.value, input.closest('label').querySelector('strong').textContent]),
-);
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
-// Links elsewhere (such as the preview page's header button) open the form with this hash.
-const OPEN_HASH = '#interest';
 // Long enough for one rally of the loader, so a fast reply does not flash it.
 const MIN_LOADER_MS = 1100;
-const DONE_TITLE_ID = 'interest-done-title';
+const DONE_TITLE_ID = 'sponsor-done-title';
 // Each field's error message has the id `${id}-error`.
 const FIELD_IDS = {
-  name: 'interest-name',
-  email: 'interest-email',
-  mobile: 'interest-mobile',
-  categories: 'interest-categories',
-  request: 'interest-request',
+  name: 'sponsor-name',
+  organisation: 'sponsor-organisation',
+  email: 'sponsor-email',
+  mobile: 'sponsor-mobile',
+  message: 'sponsor-message',
 };
 const MESSAGES = {
-  notOpen: 'The interest list is not open yet. Please check back soon.',
-  rejected: 'We could not save your details. Check the form and try again.',
+  notOpen: 'Sponsorship enquiries are not open yet. Please check back soon.',
+  rejected: 'We could not send your enquiry. Check the form and try again.',
   unsure:
-    'Your details may not have been sent. Check your connection and try again. Sending again will not add you twice.',
+    'Your enquiry may not have been sent. Check your connection and try again. Sending again will not send it twice.',
 };
 
 let sending = false;
 // CSS hides the intro and title for the "sending" and "done" states.
 dialog.dataset.state = 'form';
 
-document.querySelectorAll('[data-open-interest]').forEach((button) => {
+document.querySelectorAll('[data-open-sponsor]').forEach((button) => {
   button.addEventListener('click', () => dialog.showModal());
 });
-dialog.querySelectorAll('[data-close-interest]').forEach((button) => {
+dialog.querySelectorAll('[data-close-sponsor]').forEach((button) => {
   button.addEventListener('click', () => dialog.close());
 });
 // A click on the backdrop lands on the dialog element itself.
 dialog.addEventListener('click', (event) => {
   if (event.target === dialog) dialog.close();
 });
-// A hash change within the page does not reload it, so listen for it too.
-window.addEventListener('hashchange', openFromHash);
-// Clear the hash on close so the same link opens the form again.
-dialog.addEventListener('close', () => {
-  if (window.location.hash === OPEN_HASH) {
-    history.replaceState(null, '', window.location.pathname + window.location.search);
-  }
-});
-openFromHash();
 
 // The script checks the fields, so turn off the browser's own messages.
 form.noValidate = true;
@@ -70,8 +54,8 @@ form.addEventListener('submit', async (event) => {
   event.preventDefault();
   if (sending) return;
 
-  const interest = readInterest();
-  const errors = validateInterest(interest, allowedCategories);
+  const sponsor = readSponsor();
+  const errors = validateSponsor(sponsor);
   showErrors(errors);
   if (errors.length > 0) {
     statusLine.textContent =
@@ -82,7 +66,7 @@ form.addEventListener('submit', async (event) => {
 
   // Only bots fill the hidden website field: thank them and send nothing.
   if (form.elements.namedItem('website').value.trim()) {
-    showDone(interest);
+    showDone(sponsor);
     return;
   }
 
@@ -96,10 +80,10 @@ form.addEventListener('submit', async (event) => {
   showSending();
   try {
     const [reply] = await Promise.all([
-      sendInterest(endpoint, interest),
+      sendSponsor(endpoint, sponsor),
       pause(reduceMotion.matches ? 0 : MIN_LOADER_MS),
     ]);
-    if (isSavedReply(reply)) showDone(interest);
+    if (isSavedReply(reply)) showDone(sponsor);
     else showForm(reply === null ? MESSAGES.unsure : MESSAGES.rejected);
   } catch {
     // A network or CORS failure: the row may still have been saved.
@@ -109,13 +93,9 @@ form.addEventListener('submit', async (event) => {
   }
 });
 
-function openFromHash() {
-  if (window.location.hash === OPEN_HASH && !dialog.open) dialog.showModal();
-}
-
 /** Resolves to the parsed reply, or null when the reply is not JSON. */
-async function sendInterest(endpoint, interest) {
-  const response = await fetch(endpoint, { method: 'POST', body: toFormBody(interest) });
+async function sendSponsor(endpoint, sponsor) {
+  const response = await fetch(endpoint, { method: 'POST', body: toSponsorBody(sponsor) });
   return response.json().catch(() => null);
 }
 
@@ -123,14 +103,14 @@ function pause(milliseconds) {
   return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 }
 
-function readInterest() {
+function readSponsor() {
   const data = new FormData(form);
-  return normaliseInterest({
+  return normaliseSponsor({
     name: String(data.get('name') ?? ''),
+    organisation: String(data.get('organisation') ?? ''),
     email: String(data.get('email') ?? ''),
     mobile: String(data.get('mobile') ?? ''),
-    categories: data.getAll('categories').map(String),
-    request: String(data.get('request') ?? ''),
+    message: String(data.get('message') ?? ''),
   });
 }
 
@@ -140,17 +120,14 @@ function showErrors(errors) {
     const message = document.getElementById(`${id}-error`);
     message.textContent = error ? error.message : '';
     message.hidden = !error;
-    const controls = field === 'categories' ? categoryInputs : [document.getElementById(id)];
-    controls.forEach((control) => {
-      if (error) control.setAttribute('aria-invalid', 'true');
-      else control.removeAttribute('aria-invalid');
-    });
+    const control = document.getElementById(id);
+    if (error) control.setAttribute('aria-invalid', 'true');
+    else control.removeAttribute('aria-invalid');
   });
 }
 
 function focusField(field) {
-  const target = field === 'categories' ? categoryInputs[0] : document.getElementById(FIELD_IDS[field]);
-  target.focus();
+  document.getElementById(FIELD_IDS[field]).focus();
 }
 
 function showSending() {
@@ -169,8 +146,8 @@ function showForm(message) {
   submitButton.focus();
 }
 
-function showDone(interest) {
-  const copy = confirmationCopy(interest, categoryLabels);
+function showDone(sponsor) {
+  const copy = sponsorConfirmationCopy(sponsor);
   done.querySelector('[data-done-heading]').textContent = copy.heading;
   done.querySelector('[data-done-lines]').replaceChildren(
     ...copy.lines.map((line) => {

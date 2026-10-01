@@ -1,0 +1,40 @@
+/* The shared header is styled to overlay the landing hero. Policy pages have no
+   hero, so it sits in the flow with normal contrast. */
+.legal-page .site-header{position:static;color:var(--ink);background:var(--bg);border-bottom:1px solid var(--line);max-width:1320px;margin:auto;padding-inline:48px;height:100px}
+.legal-page .site-header .brand-by{color:var(--muted)}
+.legal-page .site-header nav a:hover{color:var(--deep)}
+.legal-page .site-header .nav-cta{border:1px solid var(--line)}
+.legal-page .site-header .nav-cta:hover{background:var(--deep);color:#fff}
+@media(max-width:1050px){.legal-page .site-header{padding-inline:28px}}
+@media(max-width:760px){.legal-page .site-header{padding-inline:22px;height:78px}}
+
+/* Policy pages: Terms, Privacy, Refunds, Contact, Shipping */
+.legal{padding-top:56px;padding-bottom:72px;max-width:860px}
+.legal h1{font-size:clamp(36px,4.4vw,52px);letter-spacing:-2.4px;margin:18px 0 0}
+.legal .legal-updated{font:10px var(--mono);letter-spacing:1px;color:var(--muted);margin:18px 0 0}
+.legal section{border-top:1px solid var(--line);margin-top:34px;padding-top:30px}
+.legal h2{font-size:22px;letter-spacing:-.6px;margin:0 0 14px}
+.legal h3{font-size:15px;font-weight:600;letter-spacing:-.2px;margin:24px 0 8px}
+.legal p,.legal li{font-size:14px;line-height:1.85;color:var(--muted)}
+.legal p{margin:0 0 14px}
+.legal ul{margin:0 0 14px;padding-left:20px}
+.legal li{margin-bottom:8px}
+.legal strong{color:var(--ink);font-weight:600}
+.legal a{color:var(--deep);text-decoration:underline;text-underline-offset:3px}
+.legal dl{display:grid;grid-template-columns:200px 1fr;gap:0;border-top:1px solid var(--line);margin:0}
+.legal dt{font:9px var(--mono);letter-spacing:1px;color:var(--muted);padding:16px 16px 16px 0;border-bottom:1px solid var(--line)}
+.legal dd{font-size:14px;line-height:1.7;margin:0;padding:16px 0;border-bottom:1px solid var(--line)}
+.legal-fees{grid-template-columns:1fr auto}
+.legal-fees dd{text-align:right;font:14px var(--mono)}
+.site-footer-links{display:flex;flex-wrap:wrap;gap:18px;font-size:11px;color:var(--muted)}
+.site-footer-links a:hover{color:var(--deep);text-decoration:underline}
+@media(max-width:760px){
+  .legal{padding-top:34px;padding-bottom:48px}
+  .legal h1{letter-spacing:-1.6px}
+  .legal dl{grid-template-columns:1fr}
+  .legal dt{padding-bottom:0;border-bottom:0}
+  .legal dd{padding-top:8px}
+  .legal-fees{grid-template-columns:1fr auto}
+  .legal-fees dt{padding:16px 16px 16px 0;border-bottom:1px solid var(--line)}
+  .legal-fees dd{padding:16px 0}
+}

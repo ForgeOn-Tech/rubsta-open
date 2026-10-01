@@ -20,17 +20,10 @@ export default async function AdminLayout({
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
-      <aside className="flex flex-none flex-col border-b border-line bg-surface-1 md:sticky md:top-0 md:h-screen md:w-[220px] md:border-b-0 md:border-r">
-        <div className="border-b border-line px-[18px] pb-[18px] pt-5">
-          <div className="flex items-center gap-[9px]">
-            <span
-              aria-hidden="true"
-              className="mono flex h-[22px] w-[22px] items-center justify-center bg-accent text-[12px] font-semibold text-accent-fg"
-            >
-              F
-            </span>
-            <span className="text-[13px] font-semibold tracking-[0.02em]">ForgeLabs</span>
-          </div>
+      <aside className="rubsta-admin-sidebar flex flex-none flex-col bg-surface-1 md:sticky md:top-0 md:h-screen md:w-[220px]">
+        <div className="px-[18px] pb-[18px] pt-5">
+          <Link href="/home" className="rubsta-wordmark">Rubsta <em>Open</em></Link>
+          <div className="mt-1 text-[9px] uppercase tracking-[1.5px] text-muted">Powered by ForgeLabs</div>
           <div className="eyebrow mt-2.5">Tournament OS · Admin</div>
         </div>
 

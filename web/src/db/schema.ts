@@ -24,6 +24,21 @@ export const users = sqliteTable("users", {
   image: text("image"),
 });
 
+// Only generated art is retained, never the uploaded photograph.
+export const playerAvatars = sqliteTable("player_avatars", {
+  userId: text("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  png: text("png"),
+  updatedAt: integer("updated_at").notNull().default(0),
+  consentAt: integer("consent_at").notNull().default(0),
+});
+
+export const avatarAttempts = sqliteTable("avatar_attempts", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  startedAt: integer("started_at").notNull(),
+  finished: integer("finished", { mode: "boolean" }).notNull().default(false),
+}, table => [index("avatar_attempts_user_time").on(table.userId, table.startedAt)]);
+
 export const accounts = sqliteTable(
   "accounts",
   {
@@ -129,7 +144,6 @@ export const tournaments = sqliteTable("tournaments", {
     .$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
   entryClosesAt: text("entry_closes_at").notNull(), // ISO 8601 with offset
-  feeCents: integer("fee_cents").notNull(),
   currency: text("currency").notNull().default("INR"),
   status: text("status", { enum: TOURNAMENT_STATUSES })
     .notNull()
@@ -143,15 +157,29 @@ export const tournaments = sqliteTable("tournaments", {
     .default(false),
 });
 
-export const CATEGORIES = ["MS", "WS", "MD", "WD"] as const;
+export const CATEGORIES = ["OS", "W30", "U15", "OD", "S40"] as const;
 export type Category = (typeof CATEGORIES)[number];
 export const CATEGORY_LABELS: Record<Category, string> = {
-  MS: "Men's singles",
-  WS: "Women's singles",
-  MD: "Men's doubles",
-  WD: "Women's doubles",
+  OS: "Open singles",
+  W30: "Women's 30+",
+  U15: "U-15 juniors",
+  OD: "Open doubles",
+  S40: "40+ singles",
 };
-export const DOUBLES_CATEGORIES: readonly Category[] = ["MD", "WD"];
+export const DOUBLES_CATEGORIES: readonly Category[] = ["OD"];
+
+/** Each event's entry fee in paise. A doubles fee covers the whole team. */
+export const eventFees = sqliteTable(
+  "event_fees",
+  {
+    tournamentId: text("tournament_id")
+      .notNull()
+      .references(() => tournaments.id, { onDelete: "cascade" }),
+    category: text("category", { enum: CATEGORIES }).notNull(),
+    feeCents: integer("fee_cents").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.tournamentId, table.category] })],
+);
 
 export const DIVISIONS = ["main"] as const;
 export type Division = (typeof DIVISIONS)[number];
@@ -191,6 +219,7 @@ export const entries = sqliteTable(
     tournamentId: text("tournament_id")
       .notNull()
       .references(() => tournaments.id, { onDelete: "cascade" }),
+    bundleId: text("bundle_id").references(() => entryBundles.id, { onDelete: "set null" }),
     category: text("category", { enum: CATEGORIES }).notNull(),
     division: text("division", { enum: DIVISIONS })
       .notNull()
@@ -212,6 +241,48 @@ export const entries = sqliteTable(
       .default(sql`(unixepoch() * 1000)`),
   },
   (table) => [uniqueIndex("entries_user_category").on(table.userId, table.category)],
+);
+
+/** Entries created together for one approved two-event checkout. */
+export const entryBundles = sqliteTable("entry_bundles", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  tournamentId: text("tournament_id").notNull().references(() => tournaments.id, { onDelete: "cascade" }),
+  createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
+}, table => [index("entry_bundles_user").on(table.userId)]);
+
+export const PAYMENT_STATUSES = ["created", "paid"] as const;
+export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
+
+/** One Razorpay order for an entry's fee. A retried checkout adds a new order. */
+export const payments = sqliteTable(
+  "payments",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    entryId: text("entry_id")
+      .notNull()
+      .references(() => entries.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    orderId: text("order_id").notNull(),
+    // Set once Razorpay confirms the payment; unique, so a replayed confirmation records nothing new.
+    paymentId: text("payment_id"),
+    amountCents: integer("amount_cents").notNull(),
+    currency: text("currency").notNull(),
+    status: text("status", { enum: PAYMENT_STATUSES }).notNull().default("created"),
+    createdAt: integer("created_at")
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+    paidAt: integer("paid_at"),
+  },
+  (table) => [
+    uniqueIndex("payments_order").on(table.orderId),
+    uniqueIndex("payments_payment").on(table.paymentId),
+    index("payments_entry").on(table.entryId),
+  ],
 );
 
 export const DRAW_STATUSES = ["draft", "published"] as const;
@@ -487,3 +558,4 @@ export type FanMessage = typeof fanMessages.$inferSelect;
 export type FanReaction = typeof fanReactions.$inferSelect;
 export type FanPrediction = typeof fanPredictions.$inferSelect;
 export type FanMute = typeof fanMutes.$inferSelect;
+export type Payment = typeof payments.$inferSelect;

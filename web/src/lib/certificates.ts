@@ -108,7 +108,8 @@ export function certificateFileName(tournamentName: string, category: Category, 
 }
 
 export function certificateText(details: CertificateDetails): CertificateText {
-  const event = CATEGORY_LABELS[details.category].toLowerCase();
+  // Event names keep their capitals: "U-15 juniors", "Women's 30+".
+  const event = CATEGORY_LABELS[details.category];
   const withPartner = details.partnerName === null ? "" : ` with ${details.partnerName}`;
   const verb = details.kind === "winner" ? "won the" : "took part in the";
   return {

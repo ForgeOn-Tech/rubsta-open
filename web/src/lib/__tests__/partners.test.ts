@@ -13,7 +13,7 @@ type InvitedEntry = Pick<Entry, "userId" | "category" | "status" | "partnerEmail
 
 const ENTRY: InvitedEntry = {
   userId: "inviter",
-  category: "MD",
+  category: "OD",
   status: "submitted",
   partnerEmail: "partner@example.com",
   partnerStatus: "pending",
@@ -88,11 +88,11 @@ describe("checkPartnerResponse", () => {
   });
 
   it("refuses to accept an event the partner already plays", () => {
-    expect(respond({ playedCategories: ["MD"] })).toEqual({
+    expect(respond({ playedCategories: ["OD"] })).toEqual({
       ok: false,
-      error: "You already play Men's doubles, so you cannot accept.",
+      error: "You already play Open doubles, so you cannot accept.",
     });
-    expect(respond({ playedCategories: ["MD"], decision: "decline" })).toEqual({ ok: true });
+    expect(respond({ playedCategories: ["OD"], decision: "decline" })).toEqual({ ok: true });
   });
 });
 

@@ -57,3 +57,16 @@ export function addDoublesInvitation(category: string, inviterName: string, part
       .run(randomUUID(), addPlayer(database, inviterName), tournamentId, category, "Demo", partnerEmail);
   });
 }
+
+/** The inviter names someone else on every doubles entry this email joined, as the change-partner form does. */
+export function replaceDoublesPartner(partnerEmail: string, newPartnerName: string, newPartnerEmail: string): void {
+  withTournament((database) => {
+    database
+      .prepare(
+        `update entries set partner_name = ?, partner_email = ?, partner_status = 'pending',
+           partner_user_id = null, partner_responded_at = null
+         where partner_email = ?`,
+      )
+      .run(newPartnerName, newPartnerEmail, partnerEmail);
+  });
+}

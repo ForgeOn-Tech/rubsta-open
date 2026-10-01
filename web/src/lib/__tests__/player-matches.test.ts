@@ -34,7 +34,7 @@ function row(id: string, overrides: Partial<Match>): ScoringMatchRow {
     updatedAt: AT,
     ...overrides,
   };
-  return { match, category: "MS", top: null, bottom: null };
+  return { match, category: "OS", top: null, bottom: null };
 }
 
 function place(day: string, courtNumber: number, position: number): PublishedPlace {

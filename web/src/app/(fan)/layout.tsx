@@ -20,7 +20,7 @@ export default async function FanLayout({ children }: { children: React.ReactNod
   const signedIn = Boolean(session?.user?.id);
 
   return (
-    <div className="club flex min-h-screen flex-col bg-club-forest text-club-mist">
+    <div className="club fan-shell flex min-h-screen flex-col bg-club-forest text-club-mist">
       <header className="border-b border-club-mist/20">
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-5">
           <Link href={FAN_LIVE_PATH} className="flex flex-col">

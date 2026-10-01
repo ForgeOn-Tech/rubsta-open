@@ -1,0 +1,57 @@
+{
+  email {$RUBSTA_TLS_EMAIL}
+}
+
+{$RUBSTA_HOST} {
+  import /etc/caddy/access.caddy
+  root * /srv/site
+
+  # Without this there is no record of who reached the site, so a Razorpay webhook
+  # that never arrives looks the same as one that arrived and was refused.
+  log {
+    output stdout
+    format json
+  }
+  log_skip /assets/*
+
+  @homepage path / /index.html
+  # Browsers also request this automatically on registration/account pages.
+  handle /favicon.ico {
+    rewrite * /assets/images/favicon.ico
+    header Cache-Control "no-cache"
+    file_server
+  }
+
+  handle /apple-touch-icon.png {
+    rewrite * /assets/images/apple-touch-icon.png
+    file_server
+  }
+
+  handle @homepage {
+    rewrite * /index.html
+    header Cache-Control "no-cache"
+    file_server
+  }
+
+  @playerSponsor path /sponsor-a-player /sponsor-a-player/*
+  handle @playerSponsor {
+    header Cache-Control "no-cache"
+    file_server
+  }
+
+  @policy path /terms /privacy /refunds /contact /shipping
+  handle @policy {
+    try_files {path}.html
+    header Cache-Control "no-cache"
+    file_server
+  }
+
+  handle /assets/* {
+    header Cache-Control "no-cache"
+    file_server
+  }
+
+  handle {
+    reverse_proxy app:3100
+  }
+}

@@ -42,16 +42,21 @@ describe("nextStep", () => {
     const step = nextStep(base);
 
     expect(step.kind).toBe("enter-first-event");
-    expect(step.action).toEqual({ label: "Enter an event", href: "/register" });
+    expect(step.action).toEqual({ label: "Choose categories", href: "/register" });
   });
 
-  it("counts the events a player can still enter", () => {
-    expect(nextStep({ ...base, enteredCount: 1 }).description).toBe(
-      "You can enter 3 more events.",
-    );
-    expect(nextStep({ ...base, enteredCount: 3 }).description).toBe(
-      "You can enter 1 more event.",
-    );
+  it("does not invite an existing player to enter another event", () => {
+    expect(nextStep({ ...base, enteredCount: 1 }).action).toBeNull();
+  });
+
+  it("prioritises payment confirmation even when registration is closed", () => {
+    const step = nextStep({ ...base, registrationPaid: true, entriesOpen: false, pendingEntryId: "old-unpaid" });
+    expect(step.kind).toBe("registration-paid");
+    expect(step.action).toBeNull();
+  });
+
+  it("resumes an existing checkout rather than creating another registration", () => {
+    expect(nextStep({ ...base, pendingEntryId: "entry-1" }).action?.href).toBe("/register/entry-1");
   });
 
   it("stops offering entry once every event is entered", () => {

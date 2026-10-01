@@ -43,33 +43,33 @@ const MINE = new Set(["mine", "my-doubles"]);
 describe("earnedCertificates", () => {
   it("gives participation for a played match and a winner's certificate for a won final", () => {
     const rows = [
-      row("semi", "MS", {}),
-      row("final", "MS", { roundIndex: 1, topSlot: { kind: "entry", entryId: "mine" }, winnerEntryId: "mine" }),
+      row("semi", "OS", {}),
+      row("final", "OS", { roundIndex: 1, topSlot: { kind: "entry", entryId: "mine" }, winnerEntryId: "mine" }),
     ];
 
     expect(earnedCertificates(rows, MINE)).toEqual([
-      { entryId: "mine", category: "MS", kind: "participation" },
-      { entryId: "mine", category: "MS", kind: "winner" },
+      { entryId: "mine", category: "OS", kind: "participation" },
+      { entryId: "mine", category: "OS", kind: "winner" },
     ]);
   });
 
   it("gives participation after a loss, and orders events as the app does", () => {
     const rows = [
-      row("doubles", "MD", { topSlot: { kind: "entry", entryId: "my-doubles" }, winnerEntryId: "theirs" }),
-      row("singles", "MS", { winnerEntryId: "theirs" }),
+      row("doubles", "OD", { topSlot: { kind: "entry", entryId: "my-doubles" }, winnerEntryId: "theirs" }),
+      row("singles", "OS", { winnerEntryId: "theirs" }),
     ];
 
     expect(earnedCertificates(rows, MINE).map((item) => [item.category, item.kind])).toEqual([
-      ["MS", "participation"],
-      ["MD", "participation"],
+      ["OS", "participation"],
+      ["OD", "participation"],
     ]);
   });
 
   it("gives nothing for matches not yet played, walkovers, or other players' results", () => {
     const rows = [
-      row("scheduled", "MS", { status: "scheduled", winnerEntryId: null, firstServer: null, startedAt: null }),
-      row("walkover", "WS", { firstServer: null, events: [], winnerEntryId: "theirs" }),
-      row("others", "WD", { topSlot: { kind: "entry", entryId: "a" }, winnerEntryId: "a" }),
+      row("scheduled", "OS", { status: "scheduled", winnerEntryId: null, firstServer: null, startedAt: null }),
+      row("walkover", "W30", { firstServer: null, events: [], winnerEntryId: "theirs" }),
+      row("others", "OD", { topSlot: { kind: "entry", entryId: "a" }, winnerEntryId: "a" }),
     ];
 
     expect(earnedCertificates(rows, MINE)).toEqual([]);
@@ -77,8 +77,8 @@ describe("earnedCertificates", () => {
 
   it("gives no winner's certificate before the final is complete", () => {
     const rows = [
-      row("semi", "MS", {}),
-      row("final", "MS", { roundIndex: 1, status: "in_progress", winnerEntryId: null }),
+      row("semi", "OS", {}),
+      row("final", "OS", { roundIndex: 1, status: "in_progress", winnerEntryId: null }),
     ];
 
     expect(earnedCertificates(rows, MINE).map((item) => item.kind)).toEqual(["participation"]);
@@ -87,11 +87,11 @@ describe("earnedCertificates", () => {
 
 describe("certificate names", () => {
   it("labels, links and names the file", () => {
-    const certificate = { entryId: "entry-1", category: "MS" as const, kind: "winner" as const };
+    const certificate = { entryId: "entry-1", category: "OS" as const, kind: "winner" as const };
 
-    expect(certificateLabel(certificate)).toBe("Men's singles · Winner's certificate");
+    expect(certificateLabel(certificate)).toBe("Open singles · Winner's certificate");
     expect(certificatePath(certificate)).toBe("/home/certificates/entry-1/winner");
-    expect(certificateFileName("Rubsta Open 2026", "MS", "winner")).toBe("rubsta-open-2026-mens-singles-winner.pdf");
+    expect(certificateFileName("Rubsta Open 2026", "OS", "winner")).toBe("rubsta-open-2026-open-singles-winner.pdf");
   });
 });
 
@@ -100,7 +100,7 @@ describe("certificateText", () => {
     kind: "participation",
     playerName: "Gaurav Pillai",
     partnerName: null,
-    category: "MS",
+    category: "OS",
     tournamentName: "Rubsta Open 2026",
     dates: "25–27 Sept 2026",
     venue: "Deccan Gymkhana, Pune",
@@ -112,16 +112,16 @@ describe("certificateText", () => {
       title: "Certificate of participation",
       lead: "This certifies that",
       name: "Gaurav Pillai",
-      statement: "took part in the men's singles at Rubsta Open 2026",
+      statement: "took part in the Open singles at Rubsta Open 2026",
       detail: "25–27 Sept 2026 · Deccan Gymkhana, Pune",
       footer: "Player ID FL-2026-0117 · Powered by ForgeLabs",
     });
   });
 
   it("names the doubles partner on a winner's certificate", () => {
-    expect(certificateText({ ...details, kind: "winner", category: "MD", partnerName: "Meera Iyer" })).toMatchObject({
+    expect(certificateText({ ...details, kind: "winner", category: "OD", partnerName: "Meera Iyer" })).toMatchObject({
       title: "Winner's certificate",
-      statement: "won the men's doubles with Meera Iyer at Rubsta Open 2026",
+      statement: "won the Open doubles with Meera Iyer at Rubsta Open 2026",
     });
   });
 

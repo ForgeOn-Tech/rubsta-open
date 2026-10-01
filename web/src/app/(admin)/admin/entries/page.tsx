@@ -9,6 +9,7 @@ import { PartnerStatusBadge } from "@/components/partner-status-badge";
 import { StatusBadge } from "@/components/status-badge";
 import { getDb } from "@/db/client";
 import { listDrawsWithSlots } from "@/db/draws";
+import { getEventFees } from "@/db/fees";
 import { getCurrentTournament, listTournamentEntries } from "@/db/queries";
 import { CATEGORIES, ENTRY_STATUS_LABELS } from "@/db/schema";
 import {
@@ -28,7 +29,8 @@ import {
   countByStatus,
   parseStatusFilter,
 } from "@/lib/entries";
-import { countLabel, formatEntryCloses, formatEntryTime, formatFee } from "@/lib/format";
+import { countLabel, formatEntryCloses, formatEntryTime } from "@/lib/format";
+import { feeRangeLabel } from "@/lib/fees";
 
 export const dynamic = "force-dynamic";
 
@@ -78,7 +80,7 @@ export default async function AdminEntriesPage({
         title="Entries"
         stats={[
           countLabel(rows.length, "entry", "entries"),
-          `Fee ${formatFee(tournament.feeCents, tournament.currency)}`,
+          `Fees ${feeRangeLabel(getEventFees(getDb(), tournament.id), tournament.currency)}`,
           `Closes ${formatEntryCloses(tournament.entryClosesAt)} IST`,
         ]}
       >

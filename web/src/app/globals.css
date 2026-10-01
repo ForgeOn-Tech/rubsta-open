@@ -1,39 +1,39 @@
 @import "tailwindcss";
 
-/* ── AMS tokens (from design/screens/Registration.dc.html) ─────────────── */
+/* Rubsta Open: shared with the public site's cream and forest palette. */
 @theme {
-  --color-surface-0: #f6f8fb;
-  --color-surface-1: #ffffff;
-  --color-surface-2: #eef2f6;
-  --color-line: #dce2e8;
-  --color-ink: #0b1620;
-  --color-muted: #46586a;
-  --color-dim: #5e7082;
-  --color-accent: #2f698e;
-  --color-accent-fg: #ffffff;
-  --color-accent-deep: #1c587c;
+  --color-surface-0: #f4f1e8;
+  --color-surface-1: #faf8f1;
+  --color-surface-2: #e8ebdc;
+  --color-line: #d8d9ca;
+  --color-ink: #23372a;
+  --color-muted: #62695b;
+  --color-dim: #62695b;
+  --color-accent: #213e2c;
+  --color-accent-fg: #fffbed;
+  --color-accent-deep: #163421;
   --color-good: #2e7d55;
   --color-warn: #8a6200;
   --color-bad: #b23a3a;
 
   --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-mono: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
 
   /* Club theme for the player home (from the landing page's assets/club.css) */
-  --color-club-cream: #f8f5eb;
-  --color-club-paper: #eeefe3;
-  --color-club-ink: #203d2a;
-  --color-club-muted: #5d6956;
-  --color-club-line: #d2d7c7;
-  --color-club-deep: #244d32;
-  --color-club-forest: #294f35;
+  --color-club-cream: #f4f1e8;
+  --color-club-paper: #e8ebdc;
+  --color-club-ink: #23372a;
+  --color-club-muted: #62695b;
+  --color-club-line: #d8d9ca;
+  --color-club-deep: #213e2c;
+  --color-club-forest: #203c2c;
   --color-club-mist: #f3f1df;
-  --color-club-lime: #dfeb8c;
+  --color-club-lime: #d5e794;
 
   --font-serif: "Cormorant Garamond", Baskerville, "Times New Roman", serif;
 }
 
-/* Sharp corners everywhere (AMS house rule). */
+/* Crisp content surfaces; rounded action buttons are defined below. */
 *,
 *::before,
 *::after {
@@ -176,6 +176,7 @@ a:hover {
     border: 1px solid transparent;
     cursor: pointer;
     font-family: var(--font-sans);
+    border-radius: 999px;
   }
   .btn-primary {
     background: var(--color-accent);
@@ -201,7 +202,7 @@ a:hover {
 
   .card {
     background: var(--color-surface-1);
-    border: 1px solid var(--color-line);
+    border: 0;
   }
 
   /* Status badges — the only place status colors appear */
@@ -229,4 +230,47 @@ a:hover {
   .badge-cancelled {
     color: var(--color-bad);
   }
+}
+/* Shared Rubsta typography and shell. Tables and field outlines retain their
+   structural borders; page chrome and decorative card separators do not. */
+.rubsta-theme h1 {
+  font-family: var(--font-serif);
+  font-size: clamp(34px, 4vw, 48px);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -.025em;
+}
+.rubsta-theme h2:not(.caps):not(.eyebrow):not(.uppercase) {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: 26px;
+  line-height: 1.2;
+  letter-spacing: -.015em;
+}
+.rubsta-wordmark {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -.4px;
+}
+.rubsta-theme :is(header, footer),
+.rubsta-admin-sidebar > .border-t {
+  border: 0;
+}
+.rubsta-theme .card.divide-y > * { border-block-width: 0; }
+.rubsta-theme .btn { border-radius: 999px; }
+.rubsta-theme :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
+.rubsta-entry-header { background: var(--color-club-forest); color: var(--color-club-mist); }
+.rubsta-entry-header a,
+.rubsta-entry-header a:hover,
+.rubsta-entry-header .caps,
+.rubsta-entry-header .eyebrow { color: inherit; }
+.rubsta-entry-header :focus-visible { outline-color: var(--color-club-lime); }
+.rubsta-admin-sidebar [aria-current="page"] { border: 0; background: var(--color-surface-2); }
+.club.fan-shell { background: var(--color-club-forest); color: var(--color-club-mist); }
+.rubsta-theme .club :focus-visible { outline-color: currentColor; }
+.rubsta-theme .club .pill-primary:focus-visible { outline-color: var(--color-club-deep); }
+@media print {
+  .rubsta-theme { background: white; color: black; }
 }

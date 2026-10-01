@@ -30,7 +30,7 @@ describe("entries unique index", () => {
     const database = migratedDb();
     database.insert(schema.users).values({ id: "user-1", email: "player@example.com" }).run();
     database.insert(schema.tournaments).values({ id: "tournament-1", ...SEED_TOURNAMENT }).run();
-    const entry = { userId: "user-1", tournamentId: "tournament-1", category: "MS" as const };
+    const entry = { userId: "user-1", tournamentId: "tournament-1", category: "OS" as const };
     database.insert(schema.entries).values(entry).run();
 
     const error = captureError(() => database.insert(schema.entries).values(entry).run());
@@ -45,7 +45,7 @@ describe("entries unique index", () => {
     const error = captureError(() =>
       database
         .insert(schema.entries)
-        .values({ userId: "user-1", tournamentId: "missing", category: "MS" })
+        .values({ userId: "user-1", tournamentId: "missing", category: "OS" })
         .run(),
     );
 

@@ -43,7 +43,7 @@ const BASE: Match = {
 };
 
 function row(match: Partial<Match>): ScoringMatchRow {
-  return { match: { ...BASE, ...match }, category: "MS", top: null, bottom: null };
+  return { match: { ...BASE, ...match }, category: "OS", top: null, bottom: null };
 }
 
 function started(events: MatchEvent[], status: Match["status"], winnerEntryId: string | null) {

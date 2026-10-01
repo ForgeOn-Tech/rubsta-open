@@ -13,22 +13,75 @@
 #sponsor-dialog[data-state=sending] #sponsor-intro,
 #sponsor-dialog[data-state=done] #sponsor-intro,
 #sponsor-dialog[data-state=done] #sponsor-title{display:none}
+body:has(#sponsor-dialog[open]){overflow:hidden}
 
-/* The loader and confirmation reuse the court, badge and keyframes from waitlist.css. */
+/* Form fields. The Sponsor a player page keeps its own copy in sponsor-a-player/assets/. */
+.field{display:grid;gap:8px;margin:0;padding:0;border:0;min-width:0}
+.field label{font-size:12px;font-weight:600}
+.optional{font-weight:400;color:var(--muted)}
+.text-input{width:100%;font:15px Inter,system-ui,sans-serif;color:var(--ink);background:#fffdf6;border:1px solid #b3bda7;border-radius:0;padding:13px 14px}
+.text-input::placeholder{color:#7d8676}
+.text-input:focus-visible{outline:3px solid #37794f;outline-offset:2px}
+.text-input[aria-invalid=true]{border-color:#9b2c1f}
+.field-hint{margin:0;font-size:11px;line-height:1.6;color:var(--muted)}
+.field-error{margin:0;font-size:12px;font-weight:500;color:#9b2c1f}
+.trap{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
+.form-footer{display:flex;align-items:center;justify-content:space-between;gap:18px 24px;flex-wrap:wrap}
+.form-note{margin:0;font-size:11px;line-height:1.6;color:var(--muted);max-width:260px}
+.form-status{margin:0;font-size:12px;line-height:1.6}
+.form-status:empty{display:none}
+
+/* Sending: a tennis ball rallies across a small court. */
 .sponsor-sending{display:flex;flex-direction:column;align-items:center;gap:26px;padding:56px 0 44px;text-align:center;outline:none}
 .sponsor-sending[hidden],.sponsor-done[hidden]{display:none}
 .sponsor-sending p{margin:0;font:10px var(--mono);letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+.send-court{position:relative;width:180px;height:96px;border:1px solid #b3bda7;background:linear-gradient(90deg,transparent calc(50% - .5px),#b3bda7 calc(50% - .5px),#b3bda7 calc(50% + .5px),transparent calc(50% + .5px)),#eef2dc}
+.send-court:after{content:'';position:absolute;left:-12px;right:-12px;top:50%;border-top:1px solid #b3bda7}
+.send-rally{position:absolute;left:14px;top:30px;width:34px;height:34px;z-index:1;animation:send-rally 1.1s ease-in-out infinite alternate}
+.send-rally .tennis-ball{width:34px;height:34px;box-shadow:3px 6px 6px #23412c26;animation:send-bounce .55s ease-in-out infinite alternate}
+.send-rally .tennis-ball:before,.send-rally .tennis-ball:after{border-width:2px}
+
+/* Confirmation */
 .sponsor-done{display:flex;flex-direction:column;align-items:center;padding:30px 0 6px;text-align:center;outline:none}
 .sponsor-done .eyebrow{margin:0;animation:done-rise .5s ease .45s both}
 .sponsor-done h3{font:40px/1.08 var(--serif);font-weight:400;letter-spacing:-1px;margin:14px 0 14px;animation:done-rise .5s ease .55s both}
 .sponsor-done .button{margin-top:28px;animation:done-rise .5s ease .75s both}
-body:has(#sponsor-dialog[open]){overflow:hidden}
+.done-badge{position:relative;width:76px;height:76px;margin-bottom:14px}
+.done-circle{position:absolute;inset:0;border-radius:50%;background:var(--deep);animation:done-pop .45s cubic-bezier(.3,1.5,.6,1) both}
+.done-check{position:absolute;inset:21px;fill:none;stroke:#fffbed;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.done-check path{stroke-dasharray:22;stroke-dashoffset:22;animation:done-draw .4s ease .35s forwards}
+.done-badge .tennis-ball{position:absolute;width:28px;height:28px;right:-12px;top:-8px;box-shadow:2px 4px 5px #23412c33;animation:done-drop .8s cubic-bezier(.25,1.35,.5,1) .15s both}
+.done-badge .tennis-ball:before,.done-badge .tennis-ball:after{border-width:2px}
+.done-lines{max-width:440px;animation:done-rise .5s ease .65s both}
+.done-lines p{margin:0;font-size:13px;line-height:1.8;color:var(--muted);overflow-wrap:anywhere}
+.done-lines p+p{margin-top:6px}
+.done-lines p:last-child{color:var(--ink)}
+
+@keyframes send-rally{to{transform:translateX(118px)}}
+@keyframes send-bounce{from{transform:translateY(-24px) rotate(-30deg)}to{transform:translateY(12px) rotate(30deg)}}
+@keyframes done-pop{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}
+@keyframes done-draw{to{stroke-dashoffset:0}}
+@keyframes done-drop{0%{opacity:0;transform:translate(-46px,-70px) rotate(-140deg)}55%{opacity:1}100%{opacity:1;transform:none}}
+@keyframes done-rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
 @media(max-width:760px){.sponsor-dialog-head{padding:22px 20px 0}.sponsor-dialog-head h2{font-size:34px}.sponsor-dialog-body{padding:12px 20px 24px}.sponsor-done h3{font-size:34px}}
-@media(prefers-reduced-motion:reduce){.sponsor-done .eyebrow,.sponsor-done h3,.sponsor-done .button{animation:none}}
+@media(prefers-reduced-motion:reduce){
+.send-rally,.send-rally .tennis-ball,.done-circle,.done-check path,.done-badge .tennis-ball,.done-lines,.sponsor-done .eyebrow,.sponsor-done h3,.sponsor-done .button{animation:none}
+.send-rally{transform:translateX(59px)}
+.done-check path{stroke-dashoffset:0}
+}
 
-.hero .sponsor-hero-cta{pointer-events:auto;background:var(--lime);border:1px solid var(--lime);color:var(--deep)}.hero .sponsor-hero-cta:hover{background:#e4efad;border-color:#e4efad}.hero .sponsor-hero-cta:focus-visible{outline:3px solid #fffbed;outline-offset:4px}
-
-.player-sponsor-nav{font:inherit;background:transparent;color:inherit;border:1px solid #f9f6e37a;cursor:pointer;white-space:nowrap}
-.player-sponsor-nav:hover{color:var(--lime)}
-.player-sponsor-nav:focus-visible{outline:3px solid var(--lime);outline-offset:4px}
-@media(max-width:760px){.site-header nav{flex-direction:column;align-items:flex-end;gap:6px}.site-header nav .nav-cta{padding:7px 11px;font-size:9px}}
+/* Tournament partner: real logo artwork replaces the placeholder lockups. */
+.sponsor-lead{flex-direction:column;align-items:center;text-align:center;gap:18px;padding-block:34px}
+.partner-logo{width:min(320px,70vw);height:auto;display:block}
+.sponsor-partners{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:40px;max-width:900px;margin-inline:auto;align-items:start}
+.partner-logo-sp{max-height:190px;object-fit:contain;mix-blend-mode:multiply}
+@media(max-width:760px){.sponsor-partners{grid-template-columns:1fr;gap:24px}.partner-logo-sp{max-height:150px}}
+.partner-name{display:flex;flex-direction:column;gap:7px;font:11px var(--mono);letter-spacing:3px;color:var(--ink);text-transform:uppercase}
+.partner-name em{font:13px/1.5 Inter,system-ui,sans-serif;font-style:italic;letter-spacing:0;text-transform:none;color:var(--muted)}
+@media(max-width:760px){
+  .sponsor-lead{gap:14px;padding-block:22px}
+  .partner-logo{width:min(240px,64vw)}
+  .partner-name{font-size:9px;letter-spacing:2px}
+  .partner-name em{font-size:12px}
+}

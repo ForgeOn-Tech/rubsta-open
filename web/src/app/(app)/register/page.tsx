@@ -7,12 +7,15 @@ import { EntryForm } from "./entry-form";
 import { requireUser } from "@/auth/require";
 import { StatusBadge } from "@/components/status-badge";
 import { db, getDb } from "@/db/client";
+import { getEventFees } from "@/db/fees";
 import { listPlayedCategories } from "@/db/partners";
-import { entries, profiles, tournaments } from "@/db/schema";
+import { CATEGORIES, entries, profiles, tournaments } from "@/db/schema";
 import { ageFromDob } from "@/lib/age";
 import { CATEGORY_LABELS, entriesOpen } from "@/lib/entries";
-import { formatEntryCloses, formatFee } from "@/lib/format";
+import { formatEntryCloses } from "@/lib/format";
+import { razorpayConfig } from "@/lib/razorpay";
 import { PROVISIONAL_SCHEDULE_NOTE } from "@/lib/tournament";
+import { registrationState } from "@/db/registration";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +38,10 @@ export default async function RegisterPage() {
     );
   }
 
+  const registration = registrationState(getDb(), user.id, tournament.id);
+  if (registration.paid) redirect("/home");
+  if (registration.pendingId) redirect(`/register/${registration.pendingId}`);
+
   // Not filtered by tournament: the unique index is on (user, category).
   const myEntries = db
     .select()
@@ -44,7 +51,7 @@ export default async function RegisterPage() {
     .all();
 
   const closed = !entriesOpen(tournament);
-  const feeLabel = formatFee(tournament.feeCents, tournament.currency);
+  const fees = getEventFees(getDb(), tournament.id);
   const closesLabel = `${formatEntryCloses(tournament.entryClosesAt)} IST`;
   const age = ageFromDob(profile.dateOfBirth);
   const playerFacts = [
@@ -58,11 +65,12 @@ export default async function RegisterPage() {
       <div>
         <div className="eyebrow">{tournament.name} · Entry</div>
         <h1 className="mt-2 text-[20px] font-semibold tracking-[-0.01em]">
-          Choose your event
+          Choose your categories
         </h1>
         <p className="mt-1.5 text-[13px] text-muted">
-          You can enter each event once. Doubles entries need your
-          partner&apos;s name and email.
+          Choose your event or combination before paying. One payment covers your
+          selection; categories cannot be added after payment. Doubles entries need
+          your partner&apos;s name and email.
         </p>
       </div>
 
@@ -124,9 +132,9 @@ export default async function RegisterPage() {
           tournamentId={tournament.id}
           // Includes events the player joined as a doubles partner.
           enteredCategories={listPlayedCategories(getDb(), user.id)}
-          feeLabel={feeLabel}
+          feeCents={fees}
           closesLabel={closesLabel}
-          paymentsEnabled={process.env.NEXT_PUBLIC_PAYMENTS_ENABLED === "true"}
+          paymentsEnabled={razorpayConfig(process.env) !== null}
         />
       )}
 

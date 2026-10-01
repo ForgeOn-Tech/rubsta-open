@@ -4,10 +4,11 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { requireAdmin } from "@/auth/require";
-import { db, getDb } from "@/db/client";
+import { getDb } from "@/db/client";
 import { CourtInUseError, addCourt, deleteCourt, updateCourt } from "@/db/courts";
 import { getCurrentTournament } from "@/db/queries";
-import { tournaments } from "@/db/schema";
+import { saveEventFees } from "@/db/fees";
+import { CATEGORIES, tournaments, type Category } from "@/db/schema";
 import type { ActionState } from "@/lib/form-state";
 import { validateCourt } from "@/lib/schedule";
 import { validateSettings, type SettingsFormState } from "@/lib/settings";
@@ -87,18 +88,23 @@ export async function saveTournamentSettings(
     endsOn: String(formData.get("endsOn") ?? ""),
     venue: String(formData.get("venue") ?? ""),
     entryClosesAt: String(formData.get("entryClosesAt") ?? ""),
-    feeRupees: String(formData.get("feeRupees") ?? ""),
+    feeRupees: Object.fromEntries(
+      CATEGORIES.map((category) => [category, String(formData.get(`fee-${category}`) ?? "")]),
+    ) as Record<Category, string>,
     status: String(formData.get("status") ?? ""),
     scheduleConfirmed: formData.get("scheduleConfirmed") === "on",
   });
   if (!validation.ok) return { error: validation.error, savedAt: null };
 
-  const result = db
-    .update(tournaments)
-    .set(validation.settings)
-    .where(eq(tournaments.id, tournamentId))
-    .run();
-  if (result.changes === 0) throw new Error(`Tournament ${tournamentId} does not exist.`);
+  getDb().transaction((tx) => {
+    const result = tx
+      .update(tournaments)
+      .set(validation.settings)
+      .where(eq(tournaments.id, tournamentId))
+      .run();
+    if (result.changes === 0) throw new Error(`Tournament ${tournamentId} does not exist.`);
+    saveEventFees(tx, tournamentId, validation.fees);
+  });
 
   // Dates, venue and the provisional note appear on player and admin pages.
   revalidatePath("/", "layout");

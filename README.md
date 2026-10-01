@@ -49,28 +49,16 @@ Canvas: https://claude.ai/code/artifact/03717cab-8b12-4a02-be17-7394af9dae09
 
 ## Landing page
 
-The public page at the repository root is the Rubsta Open waitlist. The first fold
-shows the tournament at a glance: October dates, cash prizes, six courts and five
-categories. Exact dates and prize amounts are marked as coming soon.
+The public page at the repository root introduces Rubsta Open and links to
+registration. It leaves out event dates, the venue and any offer until the organiser
+confirms them. `/sponsor-a-player/` explains how sponsorship supports a player; it
+keeps its own copies of the styles and form scripts in `sponsor-a-player/assets/`.
 
-Every “Show interest” button opens the form in a pop-up, and so does a link to
-`#interest`. The form takes a name, an email, an optional mobile number, the
-categories a player wants and a free-text category request. A request with no
-category ticked is a valid submission. While the details go to Google, the Send
-button's pop-up shows a tennis ball rallying across a small court. A confirmation
-screen then names the player's categories and any request. Both skip their animation
-when the visitor prefers reduced motion.
-
-On the first page load of a browser session, a short entrance plays: a tennis ball
-bounces onto a court, then the page fades in. It skips when the visitor prefers
-reduced motion and when a link opens the form directly.
-
-Below the first fold, “Be the first to hear” lists the five categories with their
-planned draw sizes.
-
-The earlier full landing page now lives at `preview/`. It keeps the gallery,
-technology catalogue, phase tabs and screen-design previews, and asks search engines
-not to index it. All scores there are illustrative.
+Every "Become a sponsor" button opens the sponsor form in a pop-up. The form takes a
+name, an organisation, an email, an optional mobile number and an optional message.
+While the details go to Google, the pop-up shows a tennis ball rallying across a small
+court, then a confirmation. Both skip their animation when the visitor prefers reduced
+motion.
 
 Run from the repository root:
 
@@ -78,24 +66,25 @@ Run from the repository root:
 python3 -m http.server 3000 --bind 127.0.0.1
 ```
 
-Open http://127.0.0.1:3000 for the waitlist and http://127.0.0.1:3000/preview/ for
-the full page. Serve over HTTP so the form script and the screen previews load.
-Fonts use Google Fonts with local system fallbacks.
+Serve over HTTP so the form script and the screen previews load. Fonts use Google
+Fonts with local system fallbacks.
 
 | Files | Purpose |
 | --- | --- |
-| `index.html`, `assets/waitlist.css`, `assets/waitlist.js` | Waitlist page and form behaviour |
-| `assets/waitlist-form.js` | Interest form checks, used by the page and the tests |
+| `index.html`, `assets/landing.css`, `assets/club.css`, `assets/landing.js` | Landing page |
 | `assets/sponsor.css`, `assets/sponsor.js` | Become a Sponsor pop-up and form behaviour |
 | `assets/sponsor-form.js` | Sponsor form checks, used by the page and the tests |
-| `apps-script/waitlist.gs` | Google Apps Script that saves interest to a Google Sheet |
+| `assets/waitlist-form.js` | Shared email and mobile checks the sponsor form imports |
+| `apps-script/waitlist.gs` | Apps Script entry point and sheet helpers; routes sponsor posts |
 | `apps-script/sponsor.gs` | The same script's handler for sponsorship enquiries |
-| `preview/index.html`, `assets/landing.css`, `assets/club.css`, `assets/landing.js` | Full landing page |
+
+The waitlist page has closed. The Apps Script still accepts interest posts on the
+"Interest" tab, but no page sends them.
 
 ### Form setup
 
-The Show interest form and the Become a Sponsor form both post to one Apps Script web
-app, which writes them to two tabs of the same Google Sheet. Until a form has an
+The Become a Sponsor form posts to an Apps Script web app, which writes to the
+"Sponsors" tab of a Google Sheet. Until a form has an
 `action` URL, it tells visitors that it is not open yet.
 
 1. Create a Google Sheet that only the organisers can open.
@@ -108,8 +97,8 @@ app, which writes them to two tabs of the same Google Sheet. Until a form has an
    shows `{"ok":true,"service":"rubsta-open-interest","forms":["interest","sponsor"]}`.
    A reply without `"sponsor"` in `forms` means `sponsor.gs` has not been deployed
    yet, and sponsorship enquiries will be refused.
-5. In `index.html`, add the URL to both form tags as
-   `action="https://script.google.com/macros/s/…/exec"`.
+5. Add the URL to the sponsor form tag in `index.html` and
+   `sponsor-a-player/index.html` as `action="https://script.google.com/macros/s/…/exec"`.
 
 If **Extensions > Apps Script** shows “Sorry, unable to open the file at present”,
 create the project at https://script.google.com with **New project** instead. Paste
@@ -168,8 +157,8 @@ npm run dev                  # http://localhost:3100
 | `/signin` | Everyone | Google sign-in when configured; demo account when `DEMO_AUTH=true` |
 | `/home` | Players | Next step, partner invitations, entries, next match, player card with record and certificates, tournament details |
 | `/profile` | Players | Name, date of birth, gender, mobile, club, best ranking, past tournaments |
-| `/register` | Players | Choose an event (MS, WS, MD, WD); doubles need a partner name and email |
-| `/register/<entry id>` | Players | Entry confirmation, visible only to the player who entered; for doubles, the partner link and a way to change partner |
+| `/register` | Players | Choose an event (Open singles, Women's 30+, U-15 juniors, Open doubles, 40+ singles); doubles need a partner name and email |
+| `/register/<entry id>` | Players | Entry confirmation and, while unpaid, the Pay button, visible only to the player who entered; for doubles, the partner link and a way to change partner |
 | `/partner/<entry id>` | Invited partners | Accept or decline a doubles invitation, visible only to the invited email |
 | `/draws` and `/draws/<event>` | Everyone | Published draws with scores; a signed-in player's own lines are marked |
 | `/results` and `/results/<match id>` | Everyone | Matches in progress and completed by event, and one match's score and statistics |
@@ -189,7 +178,7 @@ npm run dev                  # http://localhost:3100
 | `/admin/results/<match id>` | Admins | One match's score and statistics |
 | `/admin/players` | Admins | Everyone with a profile or entry, their entries, and search by name, email, club or mobile |
 | `/admin/fan` | Admins | Every court chat message with the account behind it; hide a message or mute a fan |
-| `/admin/settings` | Admins | Name, dates, venue, closing time (IST), fee, entries open or closed, schedule confirmed, courts, stream links |
+| `/admin/settings` | Admins | Name, dates, venue, closing time (IST), a fee for each event, entries open or closed, schedule confirmed, courts, stream links |
 | `/score` | Admins and umpires | Matches in progress, ready to start, waiting on earlier results, and completed |
 | `/score/<match id>` | Admins and umpires | Umpire scoring screen, which keeps working when the signal drops |
 | `/score/schedule/<day>` | Admins and umpires | A day's published order of play |
@@ -267,8 +256,10 @@ A retired match has statistics up to the retirement.
 The statistics show under the result on the scoring screen when a match ends,
 and on each match's page in `/admin/results`.
 
-Entry status moves submitted → confirmed → paid. Any live entry can be cancelled,
-and a cancelled entry can be reinstated as submitted. Marking an entry paid by hand
+Entry status moves submitted → confirmed → paid. A Razorpay payment moves a
+submitted or confirmed entry straight to paid and stores Razorpay's payment id
+(`pay_…`) as the payment reference. Any live entry can be cancelled, and a
+cancelled entry can be reinstated as submitted. Marking an entry paid by hand
 records the payment reference `manual`.
 
 ### Player pages
@@ -304,14 +295,40 @@ app sends no email. A doubles entry goes into a draw only after the partner
 accepts. After a decline, or while waiting, the player can name a new partner,
 unless the entry is already in a published draw.
 
-Payments are off by default, and an entry is stored as `submitted`. With
-`NEXT_PUBLIC_PAYMENTS_ENABLED=true`, a stub checkout stores the entry as `paid`
-with `paymentRef: razorpay-stub`. No money moves in either mode.
+### Payments
+
+Payments go through Razorpay. They are off until `RAZORPAY_KEY_ID` and
+`RAZORPAY_KEY_SECRET` are set; until then an entry is stored as `submitted` and
+nobody is charged.
+
+With the keys set, "Continue to payment" saves the entry and opens Razorpay
+Checkout on the entry page. The server creates each order from the event's fee in
+`/admin/settings`, never from the browser. The player who enters doubles pays the
+whole team fee. When Checkout reports success, the server checks Razorpay's
+signature before it marks the entry paid. A player who closes Checkout can pay
+later from the entry page, which creates a new order.
+
+Razorpay also posts payments to `/api/payments/razorpay/webhook`. It marks the
+entry paid when the player closes the page before Checkout reports back. Set it
+up in the Razorpay dashboard under **Webhooks**, with the `payment.captured` and
+`order.paid` events, and put its secret in `RAZORPAY_WEBHOOK_SECRET`. Razorpay
+cannot reach `localhost`, so locally only the Checkout path runs.
+
+Each order is a row in the `payments` table. A payment for an entry that is
+already paid or cancelled is kept there, and the server logs it for a refund in
+the Razorpay dashboard. Refunds are made in the dashboard; the app does not issue
+them.
+
+To try it, create test keys in the Razorpay dashboard (Account & Settings > API
+Keys, test mode) and add them to `web/.env.local`. Test mode takes Razorpay's test
+cards and UPI IDs and moves no money.
 
 Only emails listed in `ADMIN_EMAILS` can open `/admin`, and demo mode does not
 change that. To use the admin interface locally, add `demo@rubstaopen.local`
 to `ADMIN_EMAILS` in `.env.local`. The database migrates and seeds Rubsta Open 2026 on
-first use. The seeded fee (₹1,500) and closing time (22 Sep, 18:00 IST) come
+first use. The seeded fees are the Rubsta Open 2026 fees: Open singles ₹3,000,
+Open doubles ₹4,000 per team (₹2,000 each), 40+ singles ₹3,000, U-15 juniors
+₹2,000 and Women's 30+ ₹2,500. The seeded closing time (22 Sep, 18:00 IST) comes
 from the design artboard, not a confirmed schedule. Player pages call the fee and
 closing time provisional until an admin ticks "Schedule confirmed" in
 `/admin/settings`, which needs a start date and venue.
@@ -442,24 +459,17 @@ labelled. Nothing in this update connects production services.
 
 ### Public hosting
 
-GitHub Pages publishes the root of `main`. The `CNAME` file sets the custom domain to
-https://www.rubstaopen.com. GitHub redirects the bare domain and the old
-https://forgeon-tech.github.io/rubsta-open/ address to it. Every push to `main`
-redeploys the site. `_config.yml` keeps `web/`, `apps-script/` and `tests/` out of the
-Pages build. After a push, check the “pages build and deployment” run in GitHub Actions.
+`www.rubstaopen.com` is served by Caddy and the Next.js app on the `rubsta-internal`
+Compute Engine VM. Caddy serves `/`, `/sponsor-a-player/`, the policy pages and
+`/assets/*` from a static release built by `python3 scripts/build-site.py`, and sends
+every other path to the app. Pushing to `main` does not change the live site; see
+`deploy/README.md` for the release steps.
 
-The rubstaopen.com DNS records live at GoDaddy and point to GitHub Pages:
+The bare domain `rubstaopen.com` still points at GitHub Pages, which publishes the root
+of `main`. The `CNAME` file sets the custom domain, so GitHub redirects the bare domain
+to `www`. `_config.yml` keeps `web/`, `apps-script/` and `tests/` out of the Pages build.
 
-| Type | Name | Value |
-| --- | --- | --- |
-| A | @ | 185.199.108.153 |
-| A | @ | 185.199.109.153 |
-| A | @ | 185.199.110.153 |
-| A | @ | 185.199.111.153 |
-| CNAME | www | forgeon-tech.github.io |
-
-GitHub issues the HTTPS certificate after DNS points to it. Then turn on **Enforce
-HTTPS** in the repository's Pages settings.
-
-`python3 scripts/build-site.py` assembles the public files, including `preview/`, into
-`dist/` for other static hosts. It leaves out the original large PNG and repository files.
+The themed landing page uses `/register` and `/internal` links. In localhost previews,
+`assets/register.js` sends them to the Next.js app on port 3100. `/internal` requires
+sign-in and directs admins to `/admin`, umpires to `/score`, and players to `/home`.
+No payment keys or local databases belong in the deployment artifact.

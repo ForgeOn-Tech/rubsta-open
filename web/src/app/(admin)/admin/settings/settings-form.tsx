@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 
-import { TOURNAMENT_STATUSES, type TournamentStatus } from "@/db/schema";
+import { CATEGORIES, CATEGORY_LABELS, TOURNAMENT_STATUSES, type Category, type TournamentStatus } from "@/db/schema";
 import type { SettingsForm as SettingsValues, SettingsFormState } from "@/lib/settings";
 
 const INITIAL_STATE: SettingsFormState = { error: null, savedAt: null };
@@ -24,6 +24,10 @@ export function SettingsForm({ tournamentId, initial, action }: SettingsFormProp
 
   function update<Key extends keyof SettingsValues>(key: Key, value: SettingsValues[Key]) {
     setValues((current) => ({ ...current, [key]: value }));
+  }
+
+  function updateFee(category: Category, value: string) {
+    setValues((current) => ({ ...current, feeRupees: { ...current.feeRupees, [category]: value } }));
   }
 
   return (
@@ -101,24 +105,33 @@ export function SettingsForm({ tournamentId, initial, action }: SettingsFormProp
             required
           />
         </div>
-        <div>
-          <label className="caps" htmlFor="feeRupees">
-            Entry fee (₹)
-          </label>
-          <input
-            id="feeRupees"
-            name="feeRupees"
-            type="number"
-            min={0}
-            step={1}
-            inputMode="numeric"
-            className="field mono"
-            value={values.feeRupees}
-            onChange={(event) => update("feeRupees", event.target.value)}
-            required
-          />
-        </div>
       </div>
+
+      <fieldset>
+        <legend className="caps">Entry fees (₹)</legend>
+        <p className="mt-1 text-[12px] text-muted">A doubles fee covers the whole team.</p>
+        <div className="mt-2 grid gap-3 sm:grid-cols-3">
+          {CATEGORIES.map((category) => (
+            <div key={category}>
+              <label className="caps" htmlFor={`fee-${category}`}>
+                {CATEGORY_LABELS[category]}
+              </label>
+              <input
+                id={`fee-${category}`}
+                name={`fee-${category}`}
+                type="number"
+                min={0}
+                step={1}
+                inputMode="numeric"
+                className="field mono"
+                value={values.feeRupees[category]}
+                onChange={(event) => updateFee(category, event.target.value)}
+                required
+              />
+            </div>
+          ))}
+        </div>
+      </fieldset>
 
       <div>
         <label className="caps" htmlFor="status">

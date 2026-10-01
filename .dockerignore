@@ -1,0 +1,15 @@
+**/node_modules
+**/.next
+**/.env
+**/.env.*
+**/data
+**/*.db
+**/*.db-*
+**/*.sqlite*
+.git
+.claude
+.openai
+dist
+**/test-results
+**/playwright-report
+**/*.tsbuildinfo

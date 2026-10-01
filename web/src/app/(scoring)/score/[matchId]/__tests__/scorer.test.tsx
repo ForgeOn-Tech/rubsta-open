@@ -43,7 +43,7 @@ function scorerProps(initial: MatchSnapshot, courts: ScorerProps["courts"]): Sco
   return {
     matchId: MATCH_ID,
     matchNumber: 2,
-    heading: "Men's singles · Semi-finals",
+    heading: "Open singles · Semi-finals",
     court: 1,
     courts,
     sides: { top: { name: "Asha Anand", seed: 1 }, bottom: { name: "Bela Rao", seed: null } },

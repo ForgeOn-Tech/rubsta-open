@@ -48,7 +48,7 @@ function setup() {
       id: "doubles",
       userId: INVITER.userId,
       tournamentId: TOURNAMENT_ID,
-      category: "MD",
+      category: "OD",
       partnerName: "Meera",
       partnerEmail: PARTNER.email,
       partnerStatus: "pending",
@@ -102,7 +102,7 @@ describe("respondToInvitation", () => {
     });
     expect(entry(database).partnerRespondedAt).not.toBeNull();
     expect(listPartneredEntries(database, PARTNER.userId).map((item) => item.entry.id)).toEqual(["doubles"]);
-    expect(listPlayedCategories(database, PARTNER.userId)).toEqual(["MD"]);
+    expect(listPlayedCategories(database, PARTNER.userId)).toEqual(["OD"]);
     expect(listTeamEntryIds(database, PARTNER.userId)).toEqual(["doubles"]);
     expect(listTeamEntryIds(database, INVITER.userId)).toEqual(["doubles"]);
     expect(listPendingInvitations(database, PARTNER.email)).toEqual([]);
@@ -128,11 +128,11 @@ describe("respondToInvitation", () => {
     const database = setup();
     database
       .insert(schema.entries)
-      .values({ userId: PARTNER.userId, tournamentId: TOURNAMENT_ID, category: "MD", partnerStatus: "pending" })
+      .values({ userId: PARTNER.userId, tournamentId: TOURNAMENT_ID, category: "OD", partnerStatus: "pending" })
       .run();
 
     expect(() => respondToInvitation(database, "doubles", PARTNER, "accept")).toThrow(
-      "You already play Men's doubles, so you cannot accept.",
+      "You already play Open doubles, so you cannot accept.",
     );
   });
 
@@ -172,7 +172,7 @@ describe("changePartner", () => {
 
   it("refuses an entry in a published draw", () => {
     const database = setup();
-    database.insert(schema.draws).values({ id: "draw", tournamentId: TOURNAMENT_ID, category: "MD", size: 2 }).run();
+    database.insert(schema.draws).values({ id: "draw", tournamentId: TOURNAMENT_ID, category: "OD", size: 2 }).run();
     database.insert(schema.drawSlots).values({ drawId: "draw", position: 1, entryId: "doubles" }).run();
 
     expect(isInPublishedDraw(database, "doubles")).toBe(false);
