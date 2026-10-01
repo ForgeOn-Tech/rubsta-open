@@ -13,6 +13,7 @@ import {
 } from "react";
 
 import { saveScore, type SaveOutcome } from "./save-score";
+import { MatchStatsTable } from "@/components/match-stats-table";
 import {
   MATCH_TIEBREAK_POINTS,
   SIDES,
@@ -36,6 +37,7 @@ import {
   type DeviceScore,
   type ScoreRecord,
 } from "@/lib/score-record";
+import { statRows, statsOfRecord } from "@/lib/match-stats";
 import type { CourtOption } from "@/lib/schedule";
 import { formatElapsed, situationLabel, type SideLabel } from "@/lib/scoring-display";
 import {
@@ -260,7 +262,7 @@ function LiveScorer({
             </div>
           ) : null}
           {finished ? (
-            <Result state={state} match={match} sides={sides} />
+            <Result state={state} record={record} match={match} sides={sides} />
           ) : finalEvent !== null && shown ? (
             <FinalConfirmation match={shown} sides={sides} dispatch={dispatch} />
           ) : match ? (
@@ -592,10 +594,12 @@ function FinalConfirmation({
 
 function Result({
   state,
+  record,
   match,
   sides,
 }: {
   state: ScorerState;
+  record: ScoreRecord | null;
   match: MatchState | null;
   sides: Record<Side, SideLabel>;
 }) {
@@ -620,6 +624,14 @@ function Result({
       <Link href="/score" className="btn btn-outline mt-2">
         Back to matches
       </Link>
+      {record === null ? null : (
+        <div className="mt-3 border-t border-line pt-3">
+          <MatchStatsTable
+            rows={statRows(statsOfRecord(record))}
+            names={{ top: sides.top.name, bottom: sides.bottom.name }}
+          />
+        </div>
+      )}
     </section>
   );
 }

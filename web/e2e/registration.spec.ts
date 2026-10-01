@@ -246,6 +246,14 @@ test.describe.serial("registration", () => {
     await expect(score).toContainText("30");
     await page.getByRole("link", { name: "All matches" }).click();
     await expect(page.getByRole("region", { name: /In progress/ })).toContainText("Court 2");
+
+    // Admin results show the match live, with statistics from its two points.
+    await page.goto("/admin/results");
+    const menSingles = page.getByRole("region", { name: "Men's singles" });
+    await menSingles.getByRole("row").filter({ hasText: "Live" }).getByRole("link").click();
+    await expect(page).toHaveURL(/\/admin\/results\/[^/]+$/);
+    const stats = page.getByRole("table", { name: "Match statistics" });
+    await expect(stats.getByRole("row", { name: /Points won/ })).toHaveText(/^2\s*Points won\s*0$/);
   });
 
   test("a scoring page opened once still loads with no signal", async ({ page, context }) => {
