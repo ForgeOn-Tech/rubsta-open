@@ -5,6 +5,7 @@ import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 
 import { authConfig } from "./config";
+import { adminPasswordConfigured, PASSWORD_ADMIN_EMAIL, verifyAdminPassword } from "./admin-password";
 import { db, getDb } from "@/db/client";
 import { accounts, sessions, users, verificationTokens } from "@/db/schema";
 
@@ -62,6 +63,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth(() => ({
     verificationTokensTable: verificationTokens,
   }),
   providers: [
+    ...(adminPasswordConfigured() ? [Credentials({
+      id: "admin-password",
+      name: "Team username and password",
+      credentials: { username: { type: "text" }, password: { type: "password" } },
+      async authorize(credentials) {
+        if (!await verifyAdminPassword(credentials.username, credentials.password)) return null;
+        // Dedicated internal identity; never reuse a player's Google account.
+        db.insert(users).values({ id: crypto.randomUUID(), email: PASSWORD_ADMIN_EMAIL, name: "Rubsta Team Admin" })
+          .onConflictDoNothing({ target: users.email }).run();
+        const user = db.select().from(users).where(eq(users.email, PASSWORD_ADMIN_EMAIL)).get();
+        return user ? { id: user.id, email: user.email, name: user.name, image: null } : null;
+      },
+    })] : []),
     ...(googleConfigured
       ? [
           Google({

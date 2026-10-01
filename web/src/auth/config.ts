@@ -16,10 +16,18 @@ export const authConfig: NextAuthConfig = {
     signIn: "/signin",
   },
   callbacks: {
-    jwt({ token, user }) {
+    jwt({ token, user, account }) {
       if (user) {
         token.id = user.id ?? token.sub ?? "";
       }
+      if (account?.provider === "admin-password") {
+        token.adminPasswordVersion = process.env.ADMIN_PASSWORD_VERSION;
+        token.adminPasswordExpires = Date.now() + 8 * 60 * 60 * 1000;
+      }
+      if (token.adminPasswordVersion && (
+        !process.env.ADMIN_PASSWORD_HASH || token.adminPasswordVersion !== process.env.ADMIN_PASSWORD_VERSION
+        || typeof token.adminPasswordExpires !== "number" || Date.now() >= token.adminPasswordExpires
+      )) return null;
       return token;
     },
     session({ session, token }) {
