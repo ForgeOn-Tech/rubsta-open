@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { signOutAction } from "@/auth/actions";
-import { canAccessAdmin, requireUser } from "@/auth/require";
+import { canAccessAdmin, canScoreMatches, requireUser } from "@/auth/require";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +13,7 @@ export default async function PlayerLayout({
 }) {
   const user = await requireUser();
   const admin = canAccessAdmin(user.email);
+  const scorer = canScoreMatches(user.email);
   const demoMode = process.env.DEMO_AUTH === "true";
 
   return (
@@ -57,6 +58,7 @@ export default async function PlayerLayout({
           <div className="flex flex-wrap items-center gap-4 text-[10px] font-medium uppercase tracking-[1.5px] text-club-muted">
             <span>Powered by ForgeLabs</span>
             {admin ? <Link href="/admin">Admin</Link> : null}
+            {scorer ? <Link href="/score">Scoring</Link> : null}
             {demoMode ? (
               <span className="badge badge-submitted">Demo mode</span>
             ) : null}

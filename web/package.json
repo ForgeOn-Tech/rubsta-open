@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:e2e:production": "E2E_TARGET=production playwright test",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { signOutAction } from "@/auth/actions";
 import { auth } from "@/auth/auth";
-import { canAccessAdmin } from "@/auth/require";
+import { canAccessAdmin, canScoreMatches } from "@/auth/require";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +17,7 @@ export default async function AppLayout({
 
   const demoMode = process.env.DEMO_AUTH === "true";
   const admin = canAccessAdmin(session.user.email ?? "");
+  const scorer = canScoreMatches(session.user.email ?? "");
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -60,6 +61,11 @@ export default async function AppLayout({
             {admin ? (
               <Link href="/admin" className="caps">
                 Admin
+              </Link>
+            ) : null}
+            {scorer ? (
+              <Link href="/score" className="caps">
+                Scoring
               </Link>
             ) : null}
             {demoMode ? (

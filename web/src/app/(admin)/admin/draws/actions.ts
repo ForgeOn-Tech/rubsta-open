@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 
 import { requireAdmin } from "@/auth/require";
 import { getDb } from "@/db/client";
-import { getDrawWithSlots, saveGeneratedDraw, saveSeeds, setDrawStatus } from "@/db/draws";
+import { getDrawWithSlots, saveGeneratedDraw, saveSeeds } from "@/db/draws";
+import { hasPlayedMatches, publishDraw, unpublishDraw } from "@/db/matches";
 import { getCurrentTournament, listTournamentEntries } from "@/db/queries";
 import { draws, type Category } from "@/db/schema";
 import { parseCategoryFilter } from "@/lib/admin-entries";
@@ -125,9 +126,13 @@ export async function changeDrawStatus(
     if (current && hasDrawChanges(drawChanges(current.slots, entrants))) {
       return failed("Entries or seeds changed since this draw was made. Generate it again first.");
     }
-    setDrawStatus(database, drawId, "draft", "published");
+    // Publishing freezes the bracket as scoreable matches.
+    publishDraw(database, draw, current?.slots ?? []);
   } else {
-    setDrawStatus(database, drawId, "published", "draft");
+    if (hasPlayedMatches(database, drawId)) {
+      return failed("Matches in this draw have started, so it cannot go back to draft.");
+    }
+    unpublishDraw(database, drawId);
   }
   return saved();
 }

@@ -15,6 +15,20 @@
       "when": 1789127792247,
       "tag": "0001_admin",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1789131993457,
+      "tag": "0002_busy_spot",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1789135729077,
+      "tag": "0003_match_version",
+      "breakpoints": true
     }
   ]
 }
