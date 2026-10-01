@@ -38,6 +38,20 @@ describe("entries unique index", () => {
     expect(isUniqueViolation(error)).toBe(true);
   });
 
+  it("lets a player enter an event again once the earlier entry is cancelled", () => {
+    const database = migratedDb();
+    database.insert(schema.users).values({ id: "user-1", email: "player@example.com" }).run();
+    database.insert(schema.tournaments).values({ id: "tournament-1", ...SEED_TOURNAMENT }).run();
+    const entry = { userId: "user-1", tournamentId: "tournament-1", category: "OS" as const };
+    database.insert(schema.entries).values({ ...entry, status: "cancelled" }).run();
+
+    database.insert(schema.entries).values(entry).run();
+    const error = captureError(() => database.insert(schema.entries).values(entry).run());
+
+    expect(database.select().from(schema.entries).all()).toHaveLength(2);
+    expect(isUniqueViolation(error)).toBe(true);
+  });
+
   it("does not treat a missing tournament as a unique violation", () => {
     const database = migratedDb();
     database.insert(schema.users).values({ id: "user-1", email: "player@example.com" }).run();

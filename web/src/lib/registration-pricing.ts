@@ -30,6 +30,30 @@ export function registrationPrice(fees: Record<Category, number>, categories: re
   return standard - (categories.length === 2 ? 50000 : 20000);
 }
 
+/** The first paid event that forms an approved combo with `newCategory`, or null. */
+export function comboPartner(newCategory: Category, paidSingles: readonly Category[]): Category | null {
+  const combos: readonly (readonly Category[])[] = REGISTRATION_OPTIONS
+    .map(option => option.categories)
+    .filter(categories => categories.length === 2);
+  return paidSingles.find(paid => combos.some(combo => combo.includes(paid) && combo.includes(newCategory) && paid !== newCategory)) ?? null;
+}
+
+/**
+ * The fee for `newCategory` when it completes a combo with an event already paid for:
+ * the combo price less what was paid, never more than the single price and never below zero.
+ */
+export function topUpPrice(
+  fees: Record<Category, number>,
+  paidCategory: Category,
+  newCategory: Category,
+  amountPaidCents: number,
+  now: Date,
+): number {
+  const single = registrationPrice(fees, [newCategory], now);
+  const difference = registrationPrice(fees, [paidCategory, newCategory], now) - amountPaidCents;
+  return Math.max(0, Math.min(single, difference));
+}
+
 export function registrationOptionLabel(id: RegistrationOptionId): string {
   return ({ OS: "Open singles", W30: "Women's 30+", U15: "U-15 juniors", OD: "Open doubles", S40: "40+ singles", OS_OD: "Open singles + Open doubles", S40_OD: "40+ singles + Open doubles", W30_OD: "Women's 30+ + Open doubles" })[id];
 }

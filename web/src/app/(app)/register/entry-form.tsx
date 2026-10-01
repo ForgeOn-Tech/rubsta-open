@@ -5,7 +5,6 @@ import { useActionState, useState } from "react";
 import { type Category } from "@/db/schema";
 import { type EntryFormState } from "@/lib/entries";
 import { REGISTRATION_OPTIONS, registrationOptionLabel, type RegistrationOptionId } from "@/lib/registration-pricing";
-import { registrationPrice } from "@/lib/registration-pricing";
 import { formatFee } from "@/lib/format";
 
 const INITIAL_STATE: EntryFormState = { error: null };
@@ -17,7 +16,8 @@ export interface EntryFormProps {
   ) => Promise<EntryFormState>;
   tournamentId: string;
   enteredCategories: readonly Category[];
-  feeCents: Record<Category, number>;
+  /** What each option costs this player now, in paise, including any combo top-up. */
+  optionPrices: Record<RegistrationOptionId, number>;
   closesLabel: string;
   paymentsEnabled: boolean;
 }
@@ -26,7 +26,7 @@ export function EntryForm({
   action,
   tournamentId,
   enteredCategories,
-  feeCents,
+  optionPrices,
   closesLabel,
   paymentsEnabled,
 }: EntryFormProps) {
@@ -136,7 +136,7 @@ export function EntryForm({
               Entry closes {closesLabel}
             </div>
           </div>
-          <div className="mono text-right text-[16px] font-semibold">{formatFee(registrationPrice(feeCents, selected.categories), "INR")}</div>
+          <div className="mono text-right text-[16px] font-semibold">{formatFee(optionPrices[selected.id], "INR")}</div>
         </div>
         <p className="mt-1 text-[11px] text-muted">Early bird pricing applies through 30 September: ₹200 off one event or ₹500 off an approved combo.</p>
 

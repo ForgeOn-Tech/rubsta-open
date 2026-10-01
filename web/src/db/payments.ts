@@ -3,9 +3,9 @@ import { and, eq } from "drizzle-orm";
 import type { Database } from "./draws";
 import { getEventFees } from "./fees";
 import { entries, payments, tournaments, type Entry, type Tournament } from "./schema";
-import { registrationPrice } from "@/lib/registration-pricing";
+import { registrationPrice, topUpPrice } from "@/lib/registration-pricing";
 import { isPayable } from "@/lib/entry-status";
-import { registrationState } from "./registration";
+import { capturedAmount } from "./registration";
 import { isWebhookSignatureValid, paidPaymentFromWebhook, type WebhookPayment } from "@/lib/razorpay";
 
 /** The player cannot pay for this entry. Its message is for the player. */
@@ -16,10 +16,16 @@ export class PaymentRejectedError extends Error {
   }
 }
 
-/** An entry the signed-in player can pay for, with the fee it costs. */
+/**
+ * An entry the signed-in player can pay for, with the fee it costs. `entries` are the unpaid
+ * entries this payment covers. `paidEntries` holds an event already paid that this payment
+ * tops up to a combo, with `amountPaidCents` its earlier payment.
+ */
 export interface PayableEntry {
   entry: Entry;
   entries: Entry[];
+  paidEntries: Entry[];
+  amountPaidCents: number;
   tournament: Tournament;
   feeCents: number;
 }
@@ -42,18 +48,27 @@ export function getPayableEntry(database: Database, entryId: string, userId: str
   if (!row) throw new Error(`Entry ${entryId} does not belong to user ${userId}.`);
   if (row.entry.status === "paid") throw new PaymentRejectedError("This entry is already paid.");
   if (!isPayable(row.entry.status)) throw new PaymentRejectedError("This entry was cancelled, so it cannot be paid.");
-  if (registrationState(database, userId, row.tournament.id).paid) {
-    throw new PaymentRejectedError("Your tournament registration is already paid. No additional payment is needed. Contact the organiser about category changes.");
-  }
   const bundled = row.entry.bundleId
     ? database.select().from(entries).where(and(eq(entries.bundleId, row.entry.bundleId), eq(entries.userId, userId))).all()
     : [row.entry];
-  if (bundled.length === 0 || bundled.some(entry => entry.status === "paid" || !isPayable(entry.status))) {
+  const paidEntries = bundled.filter(entry => entry.status === "paid");
+  const unpaid = bundled.filter(entry => entry.status !== "paid");
+  if (unpaid.some(entry => !isPayable(entry.status)) || paidEntries.length > 1) {
     throw new PaymentRejectedError("This entry is no longer available to pay.");
   }
-  const feeCents = registrationPrice(getEventFees(database, row.tournament.id), bundled.map(entry => entry.category));
+  const fees = getEventFees(database, row.tournament.id);
+  const now = new Date();
+  const [paidEntry] = paidEntries;
+  const amountPaidCents = paidEntry ? capturedAmount(database, paidEntry) : 0;
+  if (amountPaidCents === null) {
+    // For example, the organiser marked one event of a combo paid by hand.
+    throw new PaymentRejectedError("Part of this selection was marked paid by the organiser. Email tech@forgelabs.in to finish paying.");
+  }
+  const feeCents = paidEntry
+    ? topUpPrice(fees, paidEntry.category, row.entry.category, amountPaidCents, now)
+    : registrationPrice(fees, unpaid.map(entry => entry.category), now);
   if (feeCents <= 0) throw new PaymentRejectedError("This event has no entry fee to pay.");
-  return { ...row, entries: bundled, feeCents };
+  return { ...row, entries: unpaid, paidEntries, amountPaidCents, feeCents };
 }
 
 /** Stores a new Razorpay order against an entry, before Checkout opens. */
@@ -67,8 +82,9 @@ export function recordOrder(
 /**
  * Marks an order paid and, if the entry still waits for payment, marks the entry paid with
  * Razorpay's payment id. Safe to call twice: Checkout and the webhook both report a payment.
- * An entry cancelled or already paid keeps its status, and the payment row shows the money
- * to refund.
+ * In a bundle, only the members still unpaid are marked; an event paid earlier (a top-up)
+ * keeps its own payment. An entry cancelled or already paid keeps its status, and the
+ * payment row shows the money to refund.
  */
 export function recordPayment(database: Database, paid: WebhookPayment): PaymentRecord {
   return database.transaction((tx) => {
@@ -94,13 +110,14 @@ export function recordPayment(database: Database, paid: WebhookPayment): Payment
     const entry = tx.select().from(entries).where(eq(entries.id, payment.entryId)).get();
     if (!entry) throw new Error(`Payment ${payment.id} names entry ${payment.entryId}, which does not exist.`);
     if (isPayable(entry.status)) {
-      const paidEntries = entry.bundleId
+      const bundled = entry.bundleId
         ? tx.select().from(entries).where(eq(entries.bundleId, entry.bundleId)).all()
         : [entry];
-      if (paidEntries.some(item => !isPayable(item.status))) {
+      const unpaid = bundled.filter(item => item.status !== "paid");
+      if (unpaid.some(item => !isPayable(item.status))) {
         console.warn(`Payment ${paid.paymentId} arrived for a changed bundle; refund it in Razorpay.`);
       } else {
-        for (const item of paidEntries) tx.update(entries).set({ status: "paid", paymentRef: paid.paymentId }).where(eq(entries.id, item.id)).run();
+        for (const item of unpaid) tx.update(entries).set({ status: "paid", paymentRef: paid.paymentId }).where(eq(entries.id, item.id)).run();
       }
     } else {
       console.warn(

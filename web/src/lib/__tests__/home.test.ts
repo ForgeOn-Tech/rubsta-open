@@ -49,10 +49,26 @@ describe("nextStep", () => {
     expect(nextStep({ ...base, enteredCount: 1 }).action).toBeNull();
   });
 
-  it("prioritises payment confirmation even when registration is closed", () => {
-    const step = nextStep({ ...base, registrationPaid: true, entriesOpen: false, pendingEntryId: "old-unpaid" });
+  it("confirms payment without an action once entries close", () => {
+    const step = nextStep({ ...base, registrationPaid: true, entriesOpen: false, enteredCount: 1 });
     expect(step.kind).toBe("registration-paid");
     expect(step.action).toBeNull();
+  });
+
+  it("offers a paid player another category while entries are open", () => {
+    const step = nextStep({ ...base, registrationPaid: true, enteredCount: 1 });
+    expect(step.kind).toBe("registration-paid");
+    expect(step.action).toEqual({ label: "Add a category", href: "/register" });
+  });
+
+  it("offers a paid player no action once every event is entered", () => {
+    expect(nextStep({ ...base, registrationPaid: true, enteredCount: CATEGORY_COUNT }).action).toBeNull();
+  });
+
+  it("resumes an unpaid checkout before offering a paid player more", () => {
+    const step = nextStep({ ...base, registrationPaid: true, enteredCount: 2, pendingEntryId: "top-up" });
+    expect(step.kind).toBe("complete-registration");
+    expect(step.action?.href).toBe("/register/top-up");
   });
 
   it("resumes an existing checkout rather than creating another registration", () => {

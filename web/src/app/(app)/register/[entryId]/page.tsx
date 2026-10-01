@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { changePartnerAction } from "../actions";
+import { changePartnerAction, changeSelection } from "../actions";
 import { ChangePartnerForm } from "./change-partner-form";
 import { InviteLink } from "./invite-link";
 import { PayButton } from "./pay-button";
@@ -19,10 +19,20 @@ import { eventFeeLabel } from "@/lib/fees";
 import { formatDate, formatFee } from "@/lib/format";
 import { partnerInvitationPath } from "@/lib/partners";
 import { razorpayConfig } from "@/lib/razorpay";
-import { registrationState } from "@/db/registration";
-import { getPayableEntry } from "@/db/payments";
+import { PaymentRejectedError, getPayableEntry, type PayableEntry } from "@/db/payments";
+import { selectionChangeBlock } from "@/db/registration";
 
 export const dynamic = "force-dynamic";
+
+/** The checkout for an unpaid entry, or the reason it cannot be paid. */
+function checkoutFor(entryId: string, userId: string): PayableEntry | PaymentRejectedError {
+  try {
+    return getPayableEntry(getDb(), entryId, userId);
+  } catch (error) {
+    if (error instanceof PaymentRejectedError) return error;
+    throw error;
+  }
+}
 
 interface Detail {
   label: string;
@@ -54,14 +64,26 @@ export default async function EntryConfirmationPage({
   const partnerStatus = entry.partnerStatus;
   const feeCents = getEventFees(getDb(), tournament.id)[entry.category];
   const feeLabel = eventFeeLabel(feeCents, tournament.currency, isDoubles(entry.category));
-  const registration = registrationState(getDb(), user.id, tournament.id);
-  const awaitingPayment = !registration.paid && awaitsPayment({
+  const awaitingPayment = awaitsPayment({
     paymentsOn: razorpayConfig(process.env) !== null,
     feeCents,
     status: entry.status,
   });
-  const checkout = awaitingPayment ? getPayableEntry(getDb(), entry.id, user.id) : null;
+  const result = awaitingPayment ? checkoutFor(entry.id, user.id) : null;
+  const checkout = result instanceof PaymentRejectedError ? null : result;
   const checkoutAmount = checkout ? formatFee(checkout.feeCents, tournament.currency) : feeLabel;
+  const [toppedUp] = checkout?.paidEntries ?? [];
+  const checkoutNote = checkout && toppedUp
+    ? `Completes your ${CATEGORY_LABELS[toppedUp.category]} + ${CATEGORY_LABELS[entry.category]} combo. ${formatFee(checkout.amountPaidCents, tournament.currency)} already paid.`
+    : `${checkout?.entries.map(item => CATEGORY_LABELS[item.category]).join(" + ")}.`;
+
+  const changeSelectionForm = selectionChangeBlock(getDb(), entry) === null ? (
+    <form action={changeSelection.bind(null, entry.id)}>
+      <button type="submit" className="btn btn-outline w-full">
+        Change selection
+      </button>
+    </form>
+  ) : null;
 
   const partner: Detail[] = entry.partnerName
     ? [
@@ -120,12 +142,16 @@ export default async function EntryConfirmationPage({
         </p>
       </div>
 
-      {registration.paid && entry.status !== "paid" ? <p className="card p-4 text-[13px] text-muted" role="status">
-        Your tournament registration is already paid. This earlier unpaid entry is not part of that payment.
-        Contact the organiser if your selected categories need a correction; no additional checkout is available.
+      {entry.status === "paid" ? <p className="card p-4 text-[13px] text-muted" role="status">
+        To change a paid category, email tech@forgelabs.in before entries close.
       </p> : null}
 
-      {awaitingPayment ? (
+      {result instanceof PaymentRejectedError ? <section className="card flex flex-col gap-3 p-4">
+        <p className="text-[13px] text-muted" role="status">{result.message}</p>
+        {changeSelectionForm}
+      </section> : null}
+
+      {checkout ? (
         <section aria-labelledby="payment-heading" className="card flex flex-col gap-3 p-4">
           <div className="flex items-center justify-between gap-3">
             <h2 id="payment-heading" className="text-[14px] font-semibold">
@@ -133,7 +159,7 @@ export default async function EntryConfirmationPage({
             </h2>
             <span className="mono text-right text-[16px] font-semibold">{checkoutAmount}</span>
           </div>
-          <p className="text-[12px] text-muted">{checkout?.entries.map(item => CATEGORY_LABELS[item.category]).join(" + ")}. Pay once by UPI, card or netbanking. Categories cannot be added after payment.</p>
+          <p className="text-[12px] text-muted">{checkoutNote} Pay once by UPI, card or netbanking.</p>
           <PayButton
             entryId={entry.id}
             amountLabel={checkoutAmount}
@@ -141,6 +167,7 @@ export default async function EntryConfirmationPage({
             start={startCheckout}
             confirm={confirmCheckout}
           />
+          {changeSelectionForm}
         </section>
       ) : null}
 

@@ -5,10 +5,17 @@ import Database from "better-sqlite3";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { saveEventFees } from "@/db/fees";
-import { registrationState } from "@/db/registration";
+import { listPlayedCategories } from "@/db/partners";
+import {
+  SelectionRejectedError,
+  bundleForSelection,
+  cancelSelection,
+  registrationState,
+  topUpBase,
+} from "@/db/registration";
 import {
   PaymentRejectedError,
   applyRazorpayWebhook,
@@ -18,10 +25,13 @@ import {
 } from "@/db/payments";
 import * as schema from "@/db/schema";
 import { SEED_FEES, SEED_TOURNAMENT } from "@/db/seed";
+import { isUniqueViolation } from "@/lib/entries";
 
 const TOURNAMENT_ID = "tournament-1";
 const PLAYER = "player";
 const WEBHOOK_SECRET = "whsec";
+const EARLY_BIRD_DAY = new Date("2026-09-30T12:00:00+05:30");
+const AFTER_EARLY_BIRD = new Date("2026-10-01T12:00:00+05:30");
 
 function setup() {
   const sqlite = new Database(":memory:");
@@ -63,18 +73,40 @@ function signedWebhook(event: string, payment: { id: string; order_id: string; a
   return { rawBody, signature, webhookSecret: WEBHOOK_SECRET };
 }
 
+/** Adds entries the way the entry form does, including a top-up bundle when one applies. */
+function addSelection(database: TestDatabase, ids: readonly string[], categories: readonly schema.Category[]): void {
+  const bundleId = bundleForSelection(database, PLAYER, TOURNAMENT_ID, categories);
+  database.insert(schema.entries).values(categories.map((category, index) => ({
+    id: ids[index], userId: PLAYER, tournamentId: TOURNAMENT_ID, bundleId, category, status: "submitted" as const,
+  }))).run();
+}
+
+/** Pays the entry's checkout at the price it shows, as Razorpay would. */
+function payCheckout(database: TestDatabase, entryId: string, paymentId: string): number {
+  const { feeCents } = getPayableEntry(database, entryId, PLAYER);
+  recordOrder(database, { entryId, userId: PLAYER, orderId: `order_${paymentId}`, amountCents: feeCents, currency: "INR" });
+  recordPayment(database, { orderId: `order_${paymentId}`, paymentId, amountCents: feeCents, currency: "INR" });
+  return feeCents;
+}
+
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(EARLY_BIRD_DAY);
+});
+
 afterEach(() => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
 });
 
 describe("getPayableEntry", () => {
-  it("blocks another checkout after payment and preserves the existing entries", () => {
+  it("lets a paid player pay for another event at its single price", () => {
     const database = setup();
     addEntry(database, "paid", "OS", "paid");
-    addEntry(database, "old-unpaid", "S40", "submitted");
-    expect(registrationState(database, PLAYER, TOURNAMENT_ID)).toEqual({ paid: true, pendingId: null });
-    expect(() => getPayableEntry(database, "old-unpaid", PLAYER)).toThrow("already paid");
-    expect(entryOf(database, "old-unpaid")?.status).toBe("submitted");
+    addEntry(database, "unpaid", "S40", "submitted");
+
+    expect(registrationState(database, PLAYER, TOURNAMENT_ID)).toEqual({ paid: true, pendingId: "unpaid" });
+    expect(getPayableEntry(database, "unpaid", PLAYER).feeCents).toBe(280000);
   });
 
   it("resumes an unpaid registration after a failed checkout", () => {
@@ -132,6 +164,180 @@ describe("getPayableEntry", () => {
     expect(() => getPayableEntry(database, "mine", "someone-else")).toThrow(
       "Entry mine does not belong to user someone-else.",
     );
+  });
+});
+
+describe("adding a category after payment", () => {
+  it("charges a single event that completes a combo only the top-up, and keeps the first payment", () => {
+    const database = setup();
+    addSelection(database, ["os"], ["OS"]);
+    payCheckout(database, "os", "pay_os");
+
+    addSelection(database, ["od"], ["OD"]);
+    const payable = getPayableEntry(database, "od", PLAYER);
+    payCheckout(database, "od", "pay_od");
+
+    // OS + OD combo ₹6,500 less ₹2,800 paid for OS.
+    expect(payable).toMatchObject({ feeCents: 370000, amountPaidCents: 280000 });
+    expect(payable.entries.map(entry => entry.id)).toEqual(["od"]);
+    expect(payable.paidEntries.map(entry => entry.id)).toEqual(["os"]);
+    expect(entryOf(database, "os")).toMatchObject({ status: "paid", paymentRef: "pay_os" });
+    expect(entryOf(database, "od")).toMatchObject({ status: "paid", paymentRef: "pay_od" });
+  });
+
+  it("refuses a combo that overlaps an event already paid for", () => {
+    const database = setup();
+    addSelection(database, ["os"], ["OS"]);
+    payCheckout(database, "os", "pay_os");
+
+    const error = (() => {
+      try { addSelection(database, ["os-2", "od"], ["OS", "OD"]); }
+      catch (caught) { return caught; }
+      return null;
+    })();
+
+    expect(listPlayedCategories(database, PLAYER)).toContain("OS");
+    expect(isUniqueViolation(error)).toBe(true);
+  });
+
+  it("charges the single price after a paid combo", () => {
+    const database = setup();
+    addSelection(database, ["os", "od"], ["OS", "OD"]);
+    payCheckout(database, "os", "pay_combo");
+
+    addSelection(database, ["w30"], ["W30"]);
+
+    expect(entryOf(database, "w30")?.bundleId).toBeNull();
+    expect(getPayableEntry(database, "w30", PLAYER).feeCents).toBe(230000);
+  });
+
+  it("gives the combo discount once per paid event", () => {
+    const database = setup();
+    addSelection(database, ["od"], ["OD"]);
+    payCheckout(database, "od", "pay_od");
+    addSelection(database, ["os"], ["OS"]);
+    // OS + OD combo ₹6,500 less ₹3,800 paid for OD.
+    expect(payCheckout(database, "os", "pay_os")).toBe(270000);
+
+    addSelection(database, ["s40"], ["S40"]);
+
+    expect(entryOf(database, "s40")?.bundleId).toBeNull();
+    expect(getPayableEntry(database, "s40", PLAYER).feeCents).toBe(280000);
+  });
+
+  it("caps the top-up at the single price once early bird ends", () => {
+    const database = setup();
+    addSelection(database, ["os"], ["OS"]);
+    payCheckout(database, "os", "pay_os");
+    vi.setSystemTime(AFTER_EARLY_BIRD);
+
+    addSelection(database, ["od"], ["OD"]);
+
+    // Combo ₹7,000 less ₹2,800 is ₹4,200; the single price is ₹4,000.
+    expect(getPayableEntry(database, "od", PLAYER).feeCents).toBe(400000);
+  });
+
+  it("charges the single price when the paid event was marked paid by hand", () => {
+    const database = setup();
+    addEntry(database, "os", "OS", "paid");
+    database.update(schema.entries).set({ paymentRef: "manual" }).where(eq(schema.entries.id, "os")).run();
+
+    addSelection(database, ["od"], ["OD"]);
+
+    expect(entryOf(database, "od")?.bundleId).toBeNull();
+    expect(getPayableEntry(database, "od", PLAYER).feeCents).toBe(380000);
+  });
+
+  it("lets the player enter an event again after the organiser cancels the paid entry", () => {
+    const database = setup();
+    addSelection(database, ["os"], ["OS"]);
+    payCheckout(database, "os", "pay_os");
+    database.update(schema.entries).set({ status: "cancelled" }).where(eq(schema.entries.id, "os")).run();
+
+    addSelection(database, ["os-again"], ["OS"]);
+
+    expect(listPlayedCategories(database, PLAYER)).toEqual(["OS"]);
+    expect(getPayableEntry(database, "os-again", PLAYER).feeCents).toBe(280000);
+  });
+});
+
+describe("cancelSelection", () => {
+  it("cancels an unpaid combo so the player can choose one event instead", () => {
+    const database = setup();
+    addSelection(database, ["os", "od"], ["OS", "OD"]);
+
+    cancelSelection(database, "od", PLAYER);
+    addSelection(database, ["os-only"], ["OS"]);
+
+    expect(entryOf(database, "os")?.status).toBe("cancelled");
+    expect(entryOf(database, "od")?.status).toBe("cancelled");
+    expect(registrationState(database, PLAYER, TOURNAMENT_ID).pendingId).toBe("os-only");
+    expect(getPayableEntry(database, "os-only", PLAYER).feeCents).toBe(280000);
+  });
+
+  it("cancels only the unpaid top-up and frees the paid event for another top-up", () => {
+    const database = setup();
+    addSelection(database, ["os"], ["OS"]);
+    payCheckout(database, "os", "pay_os");
+    addSelection(database, ["od"], ["OD"]);
+
+    cancelSelection(database, "od", PLAYER);
+
+    expect(entryOf(database, "od")?.status).toBe("cancelled");
+    expect(entryOf(database, "os")).toMatchObject({ status: "paid", paymentRef: "pay_os", bundleId: null });
+    expect(topUpBase(database, PLAYER, TOURNAMENT_ID, "OD")?.entry.id).toBe("os");
+  });
+
+  it("refuses a paid entry and another player's entry", () => {
+    const database = setup();
+    addSelection(database, ["os"], ["OS"]);
+    payCheckout(database, "os", "pay_os");
+    addSelection(database, ["od"], ["OD"]);
+
+    expect(() => cancelSelection(database, "os", PLAYER)).toThrow(SelectionRejectedError);
+    expect(() => cancelSelection(database, "od", "someone-else")).toThrow(
+      "Entry od does not belong to user someone-else.",
+    );
+    expect(entryOf(database, "od")?.status).toBe("submitted");
+  });
+
+  it("refuses once entries close", () => {
+    const database = setup();
+    addSelection(database, ["os"], ["OS"]);
+    vi.setSystemTime(new Date("2026-10-16T12:00:00+05:30"));
+
+    expect(() => cancelSelection(database, "os", PLAYER)).toThrow(
+      new SelectionRejectedError("Entries are closed, so this selection cannot be changed."),
+    );
+    expect(entryOf(database, "os")?.status).toBe("submitted");
+  });
+
+  it("refuses a combo with an event in a published draw", () => {
+    const database = setup();
+    addSelection(database, ["os", "od"], ["OS", "OD"]);
+    database.insert(schema.draws).values({ id: "draw-os", tournamentId: TOURNAMENT_ID, category: "OS", status: "published", size: 2 }).run();
+    database.insert(schema.drawSlots).values({ drawId: "draw-os", position: 1, entryId: "os" }).run();
+
+    expect(() => cancelSelection(database, "od", PLAYER)).toThrow(
+      new SelectionRejectedError("This entry is in a published draw, so it cannot be changed."),
+    );
+    expect(entryOf(database, "od")?.status).toBe("submitted");
+  });
+
+  it("keeps a cancelled top-up cancelled when its payment arrives late", () => {
+    const database = setup();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    addSelection(database, ["os"], ["OS"]);
+    payCheckout(database, "os", "pay_os");
+    addSelection(database, ["od"], ["OD"]);
+    recordOrder(database, { entryId: "od", userId: PLAYER, orderId: "order_late", amountCents: 370000, currency: "INR" });
+
+    cancelSelection(database, "od", PLAYER);
+    recordPayment(database, { orderId: "order_late", paymentId: "pay_late", amountCents: 370000, currency: "INR" });
+
+    expect(entryOf(database, "od")).toMatchObject({ status: "cancelled", paymentRef: null });
+    expect(entryOf(database, "os")).toMatchObject({ status: "paid", paymentRef: "pay_os" });
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("refund it in Razorpay"));
   });
 });
 

@@ -14,7 +14,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { db, getDb } from "@/db/client";
 import { getEventFees } from "@/db/fees";
 import { listScoringMatches, type ScoringMatchRow } from "@/db/matches";
-import { listPartneredEntries, listPendingInvitations, listTeamEntryIds } from "@/db/partners";
+import { listPartneredEntries, listPendingInvitations, listPlayedCategories, listTeamEntryIds } from "@/db/partners";
 import { listPublishedDays } from "@/db/schedule";
 import { CATEGORIES, entries, profiles, tournaments } from "@/db/schema";
 import { CATEGORY_LABELS, entriesOpen } from "@/lib/entries";
@@ -80,7 +80,8 @@ export default async function HomePage({ searchParams }: {
     pendingEntryId: registration.pendingId,
     hasProfile: profile !== null,
     entriesOpen: tournament ? entriesOpen(tournament) : null,
-    enteredCount: myEntries.length + partnered.length,
+    // Cancelled entries release their event, so they do not count.
+    enteredCount: listPlayedCategories(getDb(), user.id).length,
     categoryCount: CATEGORIES.length,
   });
   const name = greetingName(profile?.fullName ?? null, user.name);

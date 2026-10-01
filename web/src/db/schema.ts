@@ -240,10 +240,18 @@ export const entries = sqliteTable(
       .notNull()
       .default(sql`(unixepoch() * 1000)`),
   },
-  (table) => [uniqueIndex("entries_user_category").on(table.userId, table.category)],
+  // A cancelled entry does not hold its event, so the player can enter it again.
+  (table) => [
+    uniqueIndex("entries_user_category")
+      .on(table.userId, table.category)
+      .where(sql`${table.status} != 'cancelled'`),
+  ],
 );
 
-/** Entries created together for one approved two-event checkout. */
+/**
+ * Entries priced together as one approved combo. Usually both are paid in one checkout. In
+ * a top-up, one entry was paid earlier and the other pays the rest of the combo price.
+ */
 export const entryBundles = sqliteTable("entry_bundles", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),

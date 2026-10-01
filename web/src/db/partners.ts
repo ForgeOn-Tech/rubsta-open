@@ -99,9 +99,16 @@ function playsIn(userId: string) {
   );
 }
 
-/** The events a user plays: their own entries and the entries they joined as a partner. */
+/**
+ * The events a user plays: their own entries and the entries they joined as a partner.
+ * A cancelled entry releases its event, so the user can enter it again.
+ */
 export function listPlayedCategories(database: Database, userId: string): Category[] {
-  const rows = database.select({ category: entries.category }).from(entries).where(playsIn(userId)).all();
+  const rows = database
+    .select({ category: entries.category })
+    .from(entries)
+    .where(and(playsIn(userId), ne(entries.status, "cancelled")))
+    .all();
   return [...new Set(rows.map((row) => row.category))];
 }
 

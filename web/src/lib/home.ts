@@ -31,6 +31,7 @@ export interface NextStepInput {
 }
 
 const ENTER_EVENT: NextStepAction = { label: "Choose categories", href: "/register" };
+const ADD_CATEGORY: NextStepAction = { label: "Add a category", href: "/register" };
 
 /** The one action the player home leads with. */
 export function nextStep({
@@ -41,11 +42,14 @@ export function nextStep({
   enteredCount,
   categoryCount,
 }: NextStepInput): NextStep {
-  if (registrationPaid) {
-    return { kind: "registration-paid", title: "Your registration is paid", description: "Your selected categories and payment confirmation are listed below. You’re ready for the tournament.", action: null };
-  }
   if (pendingEntryId) {
     return { kind: "complete-registration", title: "Complete your registration", description: "Your categories are selected. Complete one payment for your registration.", action: { label: "Continue to payment", href: `/register/${pendingEntryId}` } };
+  }
+  if (registrationPaid && entriesOpen && enteredCount < categoryCount) {
+    return { kind: "registration-paid", title: "Your registration is paid", description: "Your selected categories and payment confirmation are listed below. You can add another category before entries close.", action: ADD_CATEGORY };
+  }
+  if (registrationPaid) {
+    return { kind: "registration-paid", title: "Your registration is paid", description: "Your selected categories and payment confirmation are listed below. You’re ready for the tournament.", action: null };
   }
   if (!hasProfile) {
     return {

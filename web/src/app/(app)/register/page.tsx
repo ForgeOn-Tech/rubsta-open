@@ -9,13 +9,19 @@ import { StatusBadge } from "@/components/status-badge";
 import { db, getDb } from "@/db/client";
 import { getEventFees } from "@/db/fees";
 import { listPlayedCategories } from "@/db/partners";
-import { CATEGORIES, entries, profiles, tournaments } from "@/db/schema";
+import { entries, profiles, tournaments, type Category } from "@/db/schema";
 import { ageFromDob } from "@/lib/age";
 import { CATEGORY_LABELS, entriesOpen } from "@/lib/entries";
 import { formatEntryCloses } from "@/lib/format";
 import { razorpayConfig } from "@/lib/razorpay";
 import { PROVISIONAL_SCHEDULE_NOTE } from "@/lib/tournament";
-import { registrationState } from "@/db/registration";
+import { registrationState, topUpBase } from "@/db/registration";
+import {
+  REGISTRATION_OPTIONS,
+  registrationPrice,
+  topUpPrice,
+  type RegistrationOptionId,
+} from "@/lib/registration-pricing";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +45,6 @@ export default async function RegisterPage() {
   }
 
   const registration = registrationState(getDb(), user.id, tournament.id);
-  if (registration.paid) redirect("/home");
   if (registration.pendingId) redirect(`/register/${registration.pendingId}`);
 
   // Not filtered by tournament: the unique index is on (user, category).
@@ -52,6 +57,17 @@ export default async function RegisterPage() {
 
   const closed = !entriesOpen(tournament);
   const fees = getEventFees(getDb(), tournament.id);
+  const now = new Date();
+  // A single event that completes a combo with a paid event costs only the top-up.
+  const optionPrice = (categories: readonly Category[]): number => {
+    const base = categories.length === 1 ? topUpBase(getDb(), user.id, tournament.id, categories[0]) : null;
+    return base
+      ? topUpPrice(fees, base.entry.category, categories[0], base.amountPaidCents, now)
+      : registrationPrice(fees, categories, now);
+  };
+  const optionPrices = Object.fromEntries(
+    REGISTRATION_OPTIONS.map((option) => [option.id, optionPrice(option.categories)]),
+  ) as Record<RegistrationOptionId, number>;
   const closesLabel = `${formatEntryCloses(tournament.entryClosesAt)} IST`;
   const age = ageFromDob(profile.dateOfBirth);
   const playerFacts = [
@@ -69,8 +85,9 @@ export default async function RegisterPage() {
         </h1>
         <p className="mt-1.5 text-[13px] text-muted">
           Choose your event or combination before paying. One payment covers your
-          selection; categories cannot be added after payment. Doubles entries need
-          your partner&apos;s name and email.
+          selection. You can add a category after paying. If it completes an approved
+          combo with an event you paid for, you pay only the difference. Doubles entries
+          need your partner&apos;s name and email.
         </p>
       </div>
 
@@ -132,7 +149,7 @@ export default async function RegisterPage() {
           tournamentId={tournament.id}
           // Includes events the player joined as a doubles partner.
           enteredCategories={listPlayedCategories(getDb(), user.id)}
-          feeCents={fees}
+          optionPrices={optionPrices}
           closesLabel={closesLabel}
           paymentsEnabled={razorpayConfig(process.env) !== null}
         />

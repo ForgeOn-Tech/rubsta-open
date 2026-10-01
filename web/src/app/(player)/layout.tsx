@@ -41,9 +41,9 @@ export default async function PlayerLayout({
             <Link href="/order-of-play" className="hidden sm:inline">
               Order of play
             </Link>
-            {!registration.paid ? <Link href={registration.pendingId ? `/register/${registration.pendingId}` : "/register"} className="hidden sm:inline">
-              {registration.pendingId ? "Complete registration" : "Register"}
-            </Link> : null}
+            <Link href={registration.pendingId ? `/register/${registration.pendingId}` : "/register"} className="hidden sm:inline">
+              {registration.pendingId ? "Complete registration" : registration.paid ? "Add a category" : "Register"}
+            </Link>
             <Link href="/profile" className="hidden sm:inline">
               Profile
             </Link>

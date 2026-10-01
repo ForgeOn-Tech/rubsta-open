@@ -16,7 +16,7 @@ const BASE_PROPS: EntryFormProps = {
   action: rejectingAction,
   tournamentId: "tournament-1",
   enteredCategories: [],
-  feeCents: { OS: 300000, W30: 250000, U15: 200000, OD: 400000, S40: 300000 },
+  optionPrices: { OS: 280000, W30: 230000, U15: 180000, OD: 380000, S40: 280000, OS_OD: 650000, S40_OD: 650000, W30_OD: 600000 },
   closesLabel: "22 Sep, 18:00 IST",
   paymentsEnabled: false,
 };
@@ -66,6 +66,15 @@ describe("EntryForm", () => {
 
     expect(screen.getByText("₹3,800")).toBeInTheDocument();
     expect(screen.getByText(/You pay the fee for the whole team\./)).toBeInTheDocument();
+  });
+
+  it("shows the price the server worked out for the option, such as a combo top-up", async () => {
+    const user = userEvent.setup();
+    render(<EntryForm {...BASE_PROPS} enteredCategories={["OS"]} optionPrices={{ ...BASE_PROPS.optionPrices, OD: 370000 }} />);
+
+    await user.click(screen.getByRole("radio", { name: "Open doubles" }));
+
+    expect(screen.getByText("₹3,700")).toBeInTheDocument();
   });
 
   it("shows the error returned by the server action", async () => {
