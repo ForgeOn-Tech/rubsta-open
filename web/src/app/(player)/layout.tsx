@@ -32,6 +32,12 @@ export default async function PlayerLayout({
             aria-label="Player"
             className="flex items-center gap-5 text-[11px] font-medium uppercase tracking-[1.5px]"
           >
+            <Link href="/draws" className="hidden sm:inline">
+              Draws
+            </Link>
+            <Link href="/order-of-play" className="hidden sm:inline">
+              Order of play
+            </Link>
             <Link href="/register" className="hidden sm:inline">
               Enter an event
             </Link>

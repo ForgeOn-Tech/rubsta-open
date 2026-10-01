@@ -6,6 +6,8 @@ import {
   type TournamentStatus,
 } from "@/db/schema";
 
+import { isEmailAddress, normaliseEmail } from "@/lib/partners";
+
 export { CATEGORY_LABELS, DOUBLES_CATEGORIES };
 
 const SQLITE_UNIQUE_VIOLATION = "SQLITE_CONSTRAINT_UNIQUE";
@@ -48,12 +50,15 @@ export interface EntryFormState {
 
 /**
  * Pure entry-submission rules, unit-tested in __tests__. `existingCategories`
- * is the set of categories this user already has an entry in.
+ * are the events this user already plays: their own entries, and entries
+ * where they accepted as a doubles partner.
  */
 export function validateEntryInput(input: {
   category: string;
   partnerName?: string | null;
   partnerEmail?: string | null;
+  /** The signed-in player's email, which cannot also be the partner's. */
+  ownEmail: string;
   existingCategories: readonly string[];
   entryClosesAt: string;
   tournamentStatus: TournamentStatus;
@@ -88,11 +93,14 @@ export function validateEntryInput(input: {
         error: `Partner name and email are required for ${CATEGORY_LABELS[category]}.`,
       };
     }
-    if (!partnerEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(partnerEmail.trim())) {
+    if (!partnerEmail || !isEmailAddress(partnerEmail)) {
       return {
         ok: false,
         error: "Enter a valid partner email address.",
       };
+    }
+    if (normaliseEmail(partnerEmail) === normaliseEmail(input.ownEmail)) {
+      return { ok: false, error: "Enter your partner's email, not your own." };
     }
   }
   return { ok: true, category };

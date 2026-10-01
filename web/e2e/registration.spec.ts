@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import { addConfirmedEntrants } from "./fixtures";
+import { addConfirmedEntrants, addDoublesInvitation } from "./fixtures";
 
 async function signInAsDemo(page: Page) {
   await page.goto("/signin");
@@ -302,5 +302,70 @@ test.describe.serial("registration", () => {
     await page.goto(matchUrl);
     await expect(score).toContainText("40");
     await expect(page.getByRole("status")).toHaveText("Saved");
+  });
+
+  test("a player accepts a doubles invitation, then waits on a partner of their own", async ({ page }) => {
+    // The demo account is the only browser identity, so another player invites it.
+    addDoublesInvitation("MD", "Riya Singh", "demo@rubstaopen.local");
+    await signInAsDemo(page);
+
+    await page.getByRole("region", { name: "Partner invitations" }).getByRole("link", { name: /Men's doubles/ }).click();
+    await expect(page).toHaveURL(/\/partner\/[^/]+$/);
+    await expect(
+      page.getByRole("heading", { name: "Riya Singh wants you as their Men's doubles partner" }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Accept" }).click();
+    await expect(page.getByText("You are playing Men's doubles with Riya Singh.")).toBeVisible();
+
+    await page.getByRole("link", { name: "Back to home" }).click();
+    await expect(page.getByRole("region", { name: "Partner invitations" })).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "Your entries" })).toContainText(
+      "With Riya Singh · You joined as partner",
+    );
+
+    // The accepted event is taken; a new doubles entry waits for its own partner.
+    await page.goto("/register");
+    await expect(page.getByRole("radio", { name: "Men's doubles", exact: true })).toBeDisabled();
+    await page.getByRole("radio", { name: "Women's doubles", exact: true }).check();
+    await page.getByLabel("Partner name").fill("Asha Rao");
+    await page.getByLabel("Partner email").fill("asha@example.com");
+    await page.getByRole("button", { name: "Submit entry" }).click();
+    await expect(page.getByRole("heading", { name: "Your partner needs to accept" })).toBeVisible();
+    await expect(page.getByLabel("Link for your partner")).toHaveValue(/\/partner\/[^/]+$/);
+  });
+
+  test("a player sees their next match, their draw and the order of play", async ({ page }) => {
+    await signInAsDemo(page);
+
+    // Seed 1 had a bye, so their semi-final waits on match 2, which has no time yet.
+    const next = page.getByRole("region", { name: "Your next match" });
+    await expect(next).toContainText("Men's singles · Semi-finals · M5");
+    await expect(next).toContainText("v Winner of M2");
+    await expect(next).toContainText("Time to be announced");
+    const card = page.getByRole("region", { name: "Your record" });
+    await expect(card).toContainText(/FL-\d{4}-0001/);
+    await expect(card).toContainText("Certificates appear here after your first match.");
+
+    // Headless Chromium has no share sheet here; without one the card saves as a file.
+    await page.evaluate(() => Object.defineProperty(navigator, "canShare", { value: undefined }));
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      card.getByRole("button", { name: "Share card" }).click(),
+    ]);
+    expect(download.suggestedFilename()).toBe("rubsta-open-player-card.png");
+    const image = await page.request.get("/home/card-image");
+    expect(image.headers()["content-type"]).toBe("image/png");
+    // A certificate the player has not earned is not there.
+    expect((await page.request.get("/home/certificates/not-an-entry/participation")).status()).toBe(404);
+
+    await next.getByRole("link", { name: /See the draw/ }).click();
+    await expect(page).toHaveURL(/\/draws\/MS$/);
+    await expect(page.getByRole("heading", { name: "Men's singles" })).toBeVisible();
+    await expect(page.getByRole("article", { name: "Match 5", exact: true })).toContainText("You");
+    await expect(page.getByRole("article", { name: "Match 1", exact: true })).toContainText("Bye");
+
+    await page.goto("/order-of-play");
+    await expect(page.getByRole("region", { name: "Court 1" })).toContainText("Not before 15:30");
+    await expect(page.getByRole("region", { name: "Court 2" })).toContainText("Serve Speed Challenge");
   });
 });

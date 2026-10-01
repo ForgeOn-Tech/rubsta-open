@@ -5,6 +5,7 @@ import { EntryStatusActions } from "./entry-status-actions";
 import { requireAdmin } from "@/auth/require";
 import { AdminNotice } from "@/components/admin-notice";
 import { AdminPageHeader } from "@/components/admin-page-header";
+import { PartnerStatusBadge } from "@/components/partner-status-badge";
 import { StatusBadge } from "@/components/status-badge";
 import { getDb } from "@/db/client";
 import { listDrawsWithSlots } from "@/db/draws";
@@ -168,6 +169,11 @@ export default async function AdminEntriesPage({
                             <div className="mono mt-0.5 text-[11px] text-dim">
                               {entry.partnerEmail}
                             </div>
+                            {entry.partnerStatus === null ? null : (
+                              <div className="mt-1">
+                                <PartnerStatusBadge status={entry.partnerStatus} />
+                              </div>
+                            )}
                           </>
                         ) : (
                           EMPTY_CELL

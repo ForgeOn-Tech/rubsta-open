@@ -19,6 +19,8 @@ function profile(fullName: string, club: string | null, mobile: string): Profile
     club,
     bestRanking: null,
     previousTournaments: [],
+    plays: null,
+    playerNumber: null,
     createdAt: 0,
     updatedAt: 0,
   };

@@ -2,12 +2,17 @@ import { and, eq } from "drizzle-orm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { changePartnerAction } from "../actions";
+import { ChangePartnerForm } from "./change-partner-form";
+import { InviteLink } from "./invite-link";
 import { requireUser } from "@/auth/require";
+import { PartnerStatusBadge } from "@/components/partner-status-badge";
 import { StatusBadge } from "@/components/status-badge";
 import { db } from "@/db/client";
 import { entries, tournaments } from "@/db/schema";
 import { CATEGORY_LABELS, entryReference } from "@/lib/entries";
 import { formatDate, formatFee } from "@/lib/format";
+import { partnerInvitationPath } from "@/lib/partners";
 
 export const dynamic = "force-dynamic";
 
@@ -35,9 +40,20 @@ export default async function EntryConfirmationPage({
 
   const { entry, tournament } = row;
   const categoryLabel = CATEGORY_LABELS[entry.category];
+  const partnerStatus = entry.partnerStatus;
 
   const partner: Detail[] = entry.partnerName
-    ? [{ label: "Partner", value: `${entry.partnerName} · ${entry.partnerEmail}` }]
+    ? [
+        {
+          label: "Partner",
+          value: (
+            <span className="flex flex-col items-end gap-1">
+              {`${entry.partnerName} · ${entry.partnerEmail}`}
+              {partnerStatus === null ? null : <PartnerStatusBadge status={partnerStatus} />}
+            </span>
+          ),
+        },
+      ]
     : [];
   const payment: Detail[] = entry.paymentRef
     ? [{ label: "Payment", value: <span className="mono">{entry.paymentRef}</span> }]
@@ -92,6 +108,21 @@ export default async function EntryConfirmationPage({
           </div>
         ))}
       </dl>
+
+      {(partnerStatus === "pending" || partnerStatus === "declined") && entry.status !== "cancelled" ? (
+        <section aria-labelledby="partner-heading" className="card flex flex-col gap-4 p-4">
+          <h2 id="partner-heading" className="text-[14px] font-semibold">
+            {partnerStatus === "pending" ? "Your partner needs to accept" : "Your partner declined"}
+          </h2>
+          <p className="text-[13px] text-muted">
+            {partnerStatus === "pending"
+              ? `This entry goes into the draw once ${entry.partnerName} accepts. Send them this link. They sign in with ${entry.partnerEmail} to answer.`
+              : `${entry.partnerName} declined. Name a new partner to keep this entry.`}
+          </p>
+          {partnerStatus === "pending" ? <InviteLink path={partnerInvitationPath(entry.id)} /> : null}
+          <ChangePartnerForm entryId={entry.id} action={changePartnerAction} />
+        </section>
+      ) : null}
 
       <div className="flex items-center justify-between gap-3">
         <Link href="/home" className="caps">

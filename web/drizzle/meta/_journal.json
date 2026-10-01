@@ -36,6 +36,20 @@
       "when": 1789139391911,
       "tag": "0004_order_of_play",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1789143674895,
+      "tag": "0005_doubles_partners",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1789144248288,
+      "tag": "0006_player_card",
+      "breakpoints": true
     }
   ]
 }
