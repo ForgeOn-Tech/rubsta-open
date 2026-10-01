@@ -368,4 +368,54 @@ test.describe.serial("registration", () => {
     await expect(page.getByRole("region", { name: "Court 1" })).toContainText("Not before 15:30");
     await expect(page.getByRole("region", { name: "Court 2" })).toContainText("Serve Speed Challenge");
   });
+
+  test("a fan watches a court, joins in, and an admin hides a message", async ({ page }) => {
+    // Signed out. The match the umpire started above is on court 2, in the
+    // first game. The production run scores one more point on it than the dev
+    // run, which skips the offline test, so the point reads 30 or 40.
+    await page.goto("/live");
+    const courtCard = page.getByRole("link", { name: /Court 2/ });
+    await expect(courtCard).toContainText("Live");
+    await expect(courtCard).toContainText(/· (30|40)/);
+    await courtCard.click();
+
+    await expect(page).toHaveURL(/\/live\/2$/);
+    const score = page.getByRole("region", { name: "Score" });
+    await expect(score).toContainText("Semi-finals");
+    await expect(page.getByText(/\d+ watching/)).toBeVisible();
+    // Watching is free; joining in needs an account.
+    await expect(page.getByRole("button", { name: /^Applause/ })).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "Court chat" })).toContainText("to join the chat");
+
+    await signInAsDemo(page);
+    await page.goto("/live/2");
+    await page.getByRole("button", { name: /^Applause/ }).click();
+    await expect(page.getByRole("button", { name: "Applause: 1" })).toBeDisabled();
+
+    const prediction = page.getByRole("region", { name: /Who takes set 1/ });
+    await expect(prediction).toContainText("Closes at 5 games");
+    await prediction.getByRole("button").first().click();
+    await expect(prediction.getByRole("button").first()).toHaveAttribute("aria-pressed", "true");
+
+    // Blocked language is refused, and the message that follows it posts.
+    const chat = page.getByRole("region", { name: "Court chat" });
+    await chat.getByLabel("Message").fill("you bastard");
+    await chat.getByRole("button", { name: "Send" }).click();
+    await expect(chat.getByRole("alert")).toContainText("not allowed");
+    await chat.getByLabel("Message").fill("What a rally");
+    await chat.getByRole("button", { name: "Send" }).click();
+    await expect(chat).toContainText("What a rally");
+
+    // An admin hides it, and it leaves the court chat.
+    await page.goto("/admin/fan");
+    const row = page.getByRole("row", { name: /What a rally/ });
+    await row.getByRole("button", { name: "Hide" }).click();
+    await expect(row.getByRole("button", { name: "Show" })).toBeVisible();
+    await page.goto("/live/2");
+    await expect(page.getByRole("region", { name: "Court chat" })).not.toContainText("What a rally");
+
+    // The set is still being played, so nobody has scored a point yet.
+    await page.goto("/live/leaderboard");
+    await expect(page.getByRole("status")).toContainText("Nobody has called a finished set yet");
+  });
 });

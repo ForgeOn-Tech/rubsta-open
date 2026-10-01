@@ -9,6 +9,7 @@ import {
 } from "@/db/schema";
 import { MAX_COURT } from "@/lib/score-record";
 import { isCalendarDate } from "@/lib/settings";
+import { checkStreamUrl } from "@/lib/stream";
 
 export const ADMIN_ORDER_OF_PLAY_PATH = "/admin/order-of-play";
 export const MAX_SCHEDULE_DAYS = 31;
@@ -71,6 +72,7 @@ export interface ScheduleEntry {
 export interface CourtFields {
   name: string | null;
   surface: string | null;
+  streamUrl: string | null;
 }
 
 export interface BlockFields {
@@ -248,7 +250,11 @@ function optionalText(value: string): string | null {
   return trimmed === "" ? null : trimmed;
 }
 
-export function validateCourt(input: { name: string; surface: string }): Validation<CourtFields> {
+export function validateCourt(input: {
+  name: string;
+  surface: string;
+  streamUrl: string;
+}): Validation<CourtFields> {
   const name = optionalText(input.name);
   const surface = optionalText(input.surface);
   if (name !== null && name.length > MAX_COURT_NAME_LENGTH) {
@@ -257,7 +263,9 @@ export function validateCourt(input: { name: string; surface: string }): Validat
   if (surface !== null && surface.length > MAX_COURT_SURFACE_LENGTH) {
     return { ok: false, error: `Surfaces can be up to ${MAX_COURT_SURFACE_LENGTH} characters.` };
   }
-  return { ok: true, value: { name, surface } };
+  const stream = checkStreamUrl(input.streamUrl);
+  if (!stream.ok) return { ok: false, error: stream.error };
+  return { ok: true, value: { name, surface, streamUrl: optionalText(input.streamUrl) } };
 }
 
 /** A timing from the form. "At" and "not before" need a time; following on drops it. */

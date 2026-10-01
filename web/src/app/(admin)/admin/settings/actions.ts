@@ -29,6 +29,7 @@ function courtFieldsFrom(formData: FormData) {
   return validateCourt({
     name: String(formData.get("name") ?? ""),
     surface: String(formData.get("surface") ?? ""),
+    streamUrl: String(formData.get("streamUrl") ?? ""),
   });
 }
 
@@ -36,6 +37,8 @@ function courtsSaved(): ActionState {
   // Court names show on the admin order of play and the umpires' start form.
   revalidatePath("/admin", "layout");
   revalidatePath("/score", "layout");
+  // Stream links show in the Fan Zone.
+  revalidatePath("/live", "layout");
   return { error: null, savedAt: Date.now() };
 }
 

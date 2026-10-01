@@ -62,8 +62,12 @@ function setup() {
 
   const rows = database.select().from(schema.matches).where(eq(schema.matches.drawId, drawId)).all();
   const byNumber = (matchNumber: number) => rows.find((row) => row.matchNumber === matchNumber)!;
-  addCourt(database, TOURNAMENT_ID, { name: "Centre", surface: "Hard" });
-  addCourt(database, TOURNAMENT_ID, { name: null, surface: null });
+  addCourt(database, TOURNAMENT_ID, {
+    name: "Centre",
+    surface: "Hard",
+    streamUrl: "https://youtu.be/dQw4w9WgXcQ",
+  });
+  addCourt(database, TOURNAMENT_ID, { name: null, surface: null, streamUrl: null });
   return { database, drawId, bye: byNumber(1), semi: byNumber(2), final: byNumber(3) };
 }
 
@@ -103,21 +107,34 @@ describe("courts", () => {
   it("renames a court and keeps its number", () => {
     const { database } = setup();
 
-    updateCourt(database, TOURNAMENT_ID, 2, { name: "Show court", surface: "Clay" });
+    updateCourt(database, TOURNAMENT_ID, 2, {
+      name: "Show court",
+      surface: "Clay",
+      streamUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    });
 
     expect(listCourts(database, TOURNAMENT_ID)[1]).toMatchObject({
       number: 2,
       name: "Show court",
       surface: "Clay",
+      streamUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
     });
+  });
+
+  it("clears a stream link", () => {
+    const { database } = setup();
+
+    updateCourt(database, TOURNAMENT_ID, 1, { name: "Centre", surface: "Hard", streamUrl: null });
+
+    expect(listCourts(database, TOURNAMENT_ID)[0].streamUrl).toBeNull();
   });
 
   it("rejects a change to a court that does not exist", () => {
     const { database } = setup();
 
-    expect(() => updateCourt(database, TOURNAMENT_ID, 9, { name: null, surface: null })).toThrow(
-      "Court 9 does not exist.",
-    );
+    expect(() =>
+      updateCourt(database, TOURNAMENT_ID, 9, { name: null, surface: null, streamUrl: null }),
+    ).toThrow("Court 9 does not exist.");
   });
 
   it("deletes an unused court", () => {

@@ -1,6 +1,7 @@
 import { and, eq, gt, inArray, isNotNull } from "drizzle-orm";
 
 import { setDrawStatus, type Database } from "./draws";
+import { clearMatchFanData } from "./fan";
 import {
   CATEGORIES,
   draws,
@@ -245,23 +246,26 @@ export function setMatchCourt(database: Database, matchId: string, court: number
  * can never be reset.
  */
 export function resetMatch(database: Database, matchId: string): Match {
-  const row = loadMatch(database, matchId);
-  if (row.status !== "in_progress") {
-    throw new Error("Only a match in progress can be reset.");
-  }
-  database
-    .update(matches)
-    .set({
-      events: [],
-      status: "scheduled",
-      startedAt: null,
-      firstServer: null,
-      version: row.version + 1,
-      updatedAt: Date.now(),
-    })
-    .where(eq(matches.id, matchId))
-    .run();
-  return loadMatch(database, matchId);
+  return database.transaction((tx) => {
+    const row = loadMatch(tx, matchId);
+    if (row.status !== "in_progress") {
+      throw new Error("Only a match in progress can be reset.");
+    }
+    tx.update(matches)
+      .set({
+        events: [],
+        status: "scheduled",
+        startedAt: null,
+        firstServer: null,
+        version: row.version + 1,
+        updatedAt: Date.now(),
+      })
+      .where(eq(matches.id, matchId))
+      .run();
+    // The sets fans predicted never happened, so their picks go with the score.
+    clearMatchFanData(tx, matchId);
+    return loadMatch(tx, matchId);
+  });
 }
 
 /**
