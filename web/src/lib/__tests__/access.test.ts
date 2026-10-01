@@ -1,8 +1,21 @@
 import { describe, expect, it } from "vitest";
 
-import { isListedEmail } from "@/lib/access";
+import { isListedEmail, listedEmails } from "@/lib/access";
 
 const ADMINS = "draws@rubstaopen.local, Organiser@Example.com";
+
+describe("listedEmails", () => {
+  it("lists each email once, in lower case, without blanks", () => {
+    expect(listedEmails(" Ump@Example.com,,ump@example.com, second@example.com ")).toEqual([
+      "ump@example.com",
+      "second@example.com",
+    ]);
+  });
+
+  it("is empty for an empty list", () => {
+    expect(listedEmails("")).toEqual([]);
+  });
+});
 
 describe("isListedEmail", () => {
   it("matches a listed email regardless of case and spacing", () => {

@@ -9,7 +9,7 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
   { label: "Overview", href: "/admin" },
   { label: "Entries", href: "/admin/entries" },
   { label: "Draws", href: "/admin/draws" },
-  { label: "Order of play", href: null },
+  { label: "Order of play", href: "/admin/order-of-play" },
   // Opens the umpire screens, outside the admin shell.
   { label: "Scoring", href: "/score" },
   { label: "Results", href: null },

@@ -16,7 +16,7 @@ describe("AdminNav", () => {
   it("shows unbuilt sections as text, not links", () => {
     render(<AdminNav />);
 
-    expect(screen.queryByRole("link", { name: /Order of play/ })).not.toBeInTheDocument();
-    expect(screen.getByText("Order of play")).toHaveAttribute("aria-disabled", "true");
+    expect(screen.queryByRole("link", { name: /Results/ })).not.toBeInTheDocument();
+    expect(screen.getByText("Results")).toHaveAttribute("aria-disabled", "true");
   });
 });

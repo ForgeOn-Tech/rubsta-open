@@ -36,6 +36,7 @@ import {
   type DeviceScore,
   type ScoreRecord,
 } from "@/lib/score-record";
+import type { CourtOption } from "@/lib/schedule";
 import { formatElapsed, situationLabel, type SideLabel } from "@/lib/scoring-display";
 import {
   deviceScoreOf,
@@ -54,7 +55,10 @@ export interface ScorerProps {
   matchNumber: number;
   /** e.g. "Men's singles · Semi-finals" */
   heading: string;
+  /** The court the match is on, or its place on the published order of play. */
   court: number | null;
+  /** The tournament's courts. With none, the umpire types a court number. */
+  courts: readonly CourtOption[];
   sides: Record<Side, SideLabel>;
   /** Both sides are drawn entries, so the match can start. */
   ready: boolean;
@@ -157,6 +161,7 @@ function LiveScorer({
   matchNumber,
   heading,
   court,
+  courts,
   sides,
   ready,
   initial,
@@ -237,6 +242,7 @@ function LiveScorer({
           <StartForm
             sides={sides}
             court={court}
+            courts={courts}
             onStart={(start) =>
               dispatch({ type: "start", record: { ...start, startedAt: Date.now(), events: [] } })
             }
@@ -339,12 +345,15 @@ function ConflictBanner({
 function StartForm({
   sides,
   court,
+  courts,
   onStart,
 }: {
   sides: Record<Side, SideLabel>;
   court: number | null;
+  courts: readonly CourtOption[];
   onStart: (start: Pick<ScoreRecord, "firstServer" | "decidingSet" | "court">) => void;
 }) {
+  const courtListed = court === null || courts.some((option) => option.number === court);
   const [error, setError] = useState<string | null>(null);
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -383,10 +392,25 @@ function StartForm({
           </label>
         ))}
       </fieldset>
-      <label className="caps block">
-        Court
-        <input name="court" type="number" inputMode="numeric" min={1} max={MAX_COURT} defaultValue={court ?? ""} className="field" />
-      </label>
+      {courts.length === 0 ? (
+        <label className="caps block">
+          Court
+          <input name="court" type="number" inputMode="numeric" min={1} max={MAX_COURT} defaultValue={court ?? ""} className="field" />
+        </label>
+      ) : (
+        <label className="caps block">
+          Court
+          <select name="court" defaultValue={court ?? ""} className="field">
+            <option value="">No court</option>
+            {courtListed ? null : <option value={court}>Court {court}</option>}
+            {courts.map((option) => (
+              <option key={option.number} value={option.number}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       {error ? (
         <p className="text-[13px] text-bad" role="alert">
           {error}

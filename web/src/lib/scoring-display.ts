@@ -6,6 +6,7 @@ import {
   deriveState,
   isDeuce,
   scoreLine,
+  setScores,
   standardFormat,
   type MatchState,
   type Side,
@@ -36,6 +37,21 @@ export const SCORING_GROUP_TITLES: Record<ScoringGroup, string> = {
 
 const MS_PER_MINUTE = 60_000;
 const MINUTES_PER_HOUR = 60;
+const SHORT_ROUND_NAMES = new Map([
+  ["Final", "Final"],
+  ["Semi-finals", "SF"],
+  ["Quarter-finals", "QF"],
+]);
+const ROUND_OF = /^Round of (\d+)$/;
+
+/** A round name from lib/draws short enough for a narrow card, e.g. "QF" or "R16". */
+export function shortRoundName(roundName: string): string {
+  const short = SHORT_ROUND_NAMES.get(roundName);
+  if (short !== undefined) return short;
+  const roundOf = ROUND_OF.exec(roundName);
+  if (roundOf === null) throw new Error(`"${roundName}" is not a round name from lib/draws.`);
+  return `R${roundOf[1]}`;
+}
 
 export function sideLabel(info: MatchSideInfo | null, slot: MatchSlot): SideLabel {
   switch (slot.kind) {
@@ -116,6 +132,22 @@ export function situationLabel(state: MatchState, sides: Record<Side, SideLabel>
   }
   if (state.faultPending) parts.push("Second serve");
   return parts.length === 0 ? null : parts.join(" · ");
+}
+
+/**
+ * Games in each set for each side, e.g. "6 3", once a match has started: the
+ * current set too while it plays, finished sets only once it is over.
+ */
+export function setGamesBySide(row: ScoringMatchRow): Record<Side, string> | null {
+  const record = snapshotOf(row.match).record;
+  if (row.match.status === "scheduled" || record === null) return null;
+  const state = deriveState(record.events, standardFormat(record.decidingSet), record.firstServer);
+  const cells = setScores(state);
+  const shown = row.match.status === "completed" ? state.sets.length : cells.top.length;
+  return {
+    top: cells.top.slice(0, shown).join(" "),
+    bottom: cells.bottom.slice(0, shown).join(" "),
+  };
 }
 
 /** Match time in hours and minutes, e.g. "1:42". */

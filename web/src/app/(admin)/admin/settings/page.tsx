@@ -1,8 +1,11 @@
-import { saveTournamentSettings } from "./actions";
+import { addCourtAction, deleteCourtAction, saveTournamentSettings, updateCourtAction } from "./actions";
+import { CourtsCard } from "./courts-card";
 import { SettingsForm } from "./settings-form";
 import { requireAdmin } from "@/auth/require";
 import { AdminNotice } from "@/components/admin-notice";
 import { AdminPageHeader } from "@/components/admin-page-header";
+import { getDb } from "@/db/client";
+import { listCourts } from "@/db/courts";
 import { getCurrentTournament } from "@/db/queries";
 import { formatFee, formatTournamentDates } from "@/lib/format";
 import { isoToIstLocal } from "@/lib/settings";
@@ -29,7 +32,7 @@ export default async function AdminSettingsPage() {
           tournament.scheduleConfirmed ? "Schedule confirmed" : "Schedule provisional",
         ]}
       />
-      <div className="p-6">
+      <div className="flex flex-col gap-5 p-6">
         <SettingsForm
           tournamentId={tournament.id}
           action={saveTournamentSettings}
@@ -43,6 +46,12 @@ export default async function AdminSettingsPage() {
             status: tournament.status,
             scheduleConfirmed: tournament.scheduleConfirmed,
           }}
+        />
+        <CourtsCard
+          courts={listCourts(getDb(), tournament.id)}
+          addAction={addCourtAction}
+          updateAction={updateCourtAction}
+          deleteAction={deleteCourtAction}
         />
       </div>
     </>

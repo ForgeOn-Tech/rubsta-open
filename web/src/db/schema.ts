@@ -1,6 +1,7 @@
 import type { AdapterAccountType } from "next-auth/adapters";
 import { sql } from "drizzle-orm";
 import {
+  index,
   integer,
   primaryKey,
   sqliteTable,
@@ -9,6 +10,7 @@ import {
 } from "drizzle-orm/sqlite-core";
 
 import type { MatchEvent, Side } from "@/lib/match";
+import type { ScheduleEntry } from "@/lib/schedule";
 
 // ── Auth.js adapter tables (shape per @auth/drizzle-adapter docs) ─────────
 
@@ -278,6 +280,83 @@ export const matches = sqliteTable(
   (table) => [uniqueIndex("matches_draw_number").on(table.drawId, table.matchNumber)],
 );
 
+export const courts = sqliteTable(
+  "courts",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    tournamentId: text("tournament_id")
+      .notNull()
+      .references(() => tournaments.id, { onDelete: "cascade" }),
+    // Matches and umpires' phones record a court by this number, so it never changes.
+    number: integer("number").notNull(),
+    name: text("name"), // e.g. "Centre"
+    surface: text("surface"), // e.g. "Hard"
+  },
+  (table) => [uniqueIndex("courts_tournament_number").on(table.tournamentId, table.number)],
+);
+
+export const SCHEDULE_ITEM_KINDS = ["match", "block"] as const;
+export type ScheduleItemKind = (typeof SCHEDULE_ITEM_KINDS)[number];
+
+/** A start time, a "not before" time, or straight after the item above it on the court. */
+export const SCHEDULE_TIMINGS = ["at", "notBefore", "followOn"] as const;
+export type ScheduleTiming = (typeof SCHEDULE_TIMINGS)[number];
+
+/** The admins' working order of play. Umpires see only what publishing copied. */
+export const scheduleItems = sqliteTable(
+  "schedule_items",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    tournamentId: text("tournament_id")
+      .notNull()
+      .references(() => tournaments.id, { onDelete: "cascade" }),
+    day: text("day").notNull(), // YYYY-MM-DD
+    courtNumber: integer("court_number").notNull(),
+    position: integer("position").notNull(), // 1.. down the court's list
+    kind: text("kind", { enum: SCHEDULE_ITEM_KINDS }).notNull(),
+    // Moving a draw back to draft deletes its matches, and their places here with them.
+    matchId: text("match_id").references(() => matches.id, { onDelete: "cascade" }),
+    title: text("title"), // blocks only, e.g. "Serve Speed Challenge"
+    note: text("note"), // blocks only
+    timing: text("timing", { enum: SCHEDULE_TIMINGS }).notNull(),
+    time: text("time"), // HH:MM at the venue; null when following on
+    endTime: text("end_time"), // blocks only
+    umpireEmail: text("umpire_email"), // matches only, lower case
+    createdAt: integer("created_at")
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+    updatedAt: integer("updated_at")
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+  },
+  (table) => [
+    // A match has one place in the order of play. SQLite allows many nulls, one per block.
+    uniqueIndex("schedule_items_match").on(table.matchId),
+    index("schedule_items_tournament_day").on(table.tournamentId, table.day),
+  ],
+);
+
+/** What umpires see for a day: the items as they stood when an admin last published. */
+export const scheduleDays = sqliteTable(
+  "schedule_days",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    tournamentId: text("tournament_id")
+      .notNull()
+      .references(() => tournaments.id, { onDelete: "cascade" }),
+    day: text("day").notNull(), // YYYY-MM-DD
+    publishedAt: integer("published_at").notNull(),
+    items: text("items", { mode: "json" }).$type<ScheduleEntry[]>().notNull(),
+  },
+  (table) => [uniqueIndex("schedule_days_tournament_day").on(table.tournamentId, table.day)],
+);
+
 export type User = typeof users.$inferSelect;
 export type Profile = typeof profiles.$inferSelect;
 export type Tournament = typeof tournaments.$inferSelect;
@@ -285,3 +364,6 @@ export type Entry = typeof entries.$inferSelect;
 export type Draw = typeof draws.$inferSelect;
 export type DrawSlot = typeof drawSlots.$inferSelect;
 export type Match = typeof matches.$inferSelect;
+export type Court = typeof courts.$inferSelect;
+export type ScheduleItem = typeof scheduleItems.$inferSelect;
+export type ScheduleDay = typeof scheduleDays.$inferSelect;
