@@ -1,0 +1,11 @@
+0.0–1.6s | brand |  | zoom
+1.6–3.2s | slam | YOUR BRAND. / IN THE GAME. | whip
+3.2–5.6s | predict |  | split
+5.6–7.2s | challenge |  | zoom
+7.2–8.8s | premium |  | diagonal
+8.8–11.2s | assess |  | split
+11.2–13.6s | partners |  | whip
+13.6–15.2s | back |  | zoom
+15.2–16.8s | date |  | diagonal
+16.8–19.2s | event |  | split
+19.2–24.0s | end |  | whip

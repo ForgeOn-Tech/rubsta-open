@@ -1,0 +1,19 @@
+0.0–0.8s | slam | READY? | zoom
+0.8–1.6s | slam | PLAY. | hard
+1.6–3.2s | action | BRING YOUR GAME. | split
+3.2–4.8s | brand |  | whip
+4.8–6.4s | stat | 6|COURTS | zoom
+6.4–8.0s | stat | 5|CATEGORIES | hard
+8.0–9.6s | slam | FANS. / YOU’RE IN. | diagonal
+9.6–12.0s | predict |  | whip
+12.0–13.6s | react |  | split
+13.6–15.2s | challenge |  | zoom
+15.2–16.8s | premium |  | diagonal
+16.8–19.2s | assess |  | split
+19.2–20.8s | slam | BRANDS. / STEP IN. | whip
+20.8–22.4s | partner | FAN|ENGAGEMENT | diagonal
+22.4–24.0s | partner | PREMIUM|ASSESSMENTS | split
+24.0–25.6s | back |  | zoom
+25.6–27.2s | date |  | whip
+27.2–28.8s | event |  | split
+28.8–32.0s | end |  | diagonal
