@@ -49,6 +49,7 @@ function scorerProps(initial: MatchSnapshot, courts: ScorerProps["courts"]): Sco
     sides: { top: { name: "Asha Anand", seed: 1 }, bottom: { name: "Bela Rao", seed: null } },
     ready: true,
     initial,
+    completedAt: null,
     retireAction: vi.fn(),
     resetAction: vi.fn(),
   };
@@ -197,6 +198,28 @@ describe("Scorer", () => {
 
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Saved"));
     expect(mockedSave).toHaveBeenCalledTimes(3);
+  });
+
+  it("stops the clock on a match that is over", async () => {
+    // Six love games twice: two sets, so the match is complete.
+    const POINTS_FOR_TWO_SETS = 48;
+    const ONE_HOUR_MS = 3_600_000;
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    mockedSave.mockImplementation(savedAsSent);
+    const finished: MatchSnapshot = {
+      version: 4,
+      status: "completed",
+      winner: "top",
+      record: record(Array.from({ length: POINTS_FOR_TWO_SETS }, () => point("top"))),
+    };
+    render(<Scorer {...scorerProps(finished, [])} completedAt={STARTED_AT + ONE_HOUR_MS} />);
+
+    const clock = screen.getByText(/elapsed/);
+    expect(clock).toHaveTextContent("1:00 elapsed");
+
+    await act(() => vi.advanceTimersByTimeAsync(ONE_HOUR_MS));
+
+    expect(clock).toHaveTextContent("1:00 elapsed");
   });
 
   it("resumes unsaved points kept on the device after a reload", async () => {

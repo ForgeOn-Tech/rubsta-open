@@ -47,6 +47,7 @@ export default async function ScoreMatchPage({
       }}
       ready={match.topSlot.kind === "entry" && match.bottomSlot.kind === "entry"}
       initial={snapshotOf(match)}
+      completedAt={match.completedAt}
       retireAction={retireMatchAction}
       resetAction={resetMatchAction}
     />

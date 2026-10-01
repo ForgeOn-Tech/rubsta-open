@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { AutoRefresh } from "./auto-refresh";
+import { AutoRefresh } from "@/components/auto-refresh";
 import { getDb } from "@/db/client";
 import { listCourts } from "@/db/courts";
 import { listScoringMatches } from "@/db/matches";

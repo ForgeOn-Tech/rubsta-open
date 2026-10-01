@@ -1,4 +1,4 @@
-import { AutoRefresh } from "../auto-refresh";
+import { AutoRefresh } from "@/components/auto-refresh";
 import { getDb } from "@/db/client";
 import { fanLeaderboard } from "@/db/fan";
 import { getCurrentTournament } from "@/db/queries";

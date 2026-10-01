@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { requireUser } from "@/auth/require";
+import { auth } from "@/auth/auth";
 import { getDb } from "@/db/client";
 import { listCourts } from "@/db/courts";
 import { listScoringMatches, type ScoringMatchRow } from "@/db/matches";
@@ -26,13 +26,14 @@ import { matchSummary, sideLabel } from "@/lib/scoring-display";
 
 export const dynamic = "force-dynamic";
 
-/** A day's published order of play for players, marking their own matches. */
-export default async function PlayerOrderOfPlayPage({
+/** A day's published order of play, marking a signed-in player's own matches. */
+export default async function OrderOfPlayPage({
   searchParams,
 }: {
   searchParams: Promise<{ day?: string | string[] }>;
 }) {
-  const user = await requireUser();
+  const session = await auth();
+  const userId = session?.user?.id ?? null;
   const tournament = getCurrentTournament();
   const database = getDb();
   const publishedDays = tournament ? listPublishedDays(database, tournament.id) : [];
@@ -53,7 +54,8 @@ export default async function PlayerOrderOfPlayPage({
   const columns = courtColumns(tournament ? listCourts(database, tournament.id) : [], entries).filter(
     (column) => column.items.length > 0,
   );
-  const team = new Set(listTeamEntryIds(database, user.id));
+  // Signed-out visitors have no entries, so no match is marked as theirs.
+  const team = new Set(userId === null ? [] : listTeamEntryIds(database, userId));
   const matchNumberOf = (matchId: string | null): number | null =>
     matchId === null ? null : (rowsById.get(matchId)?.match.matchNumber ?? null);
 

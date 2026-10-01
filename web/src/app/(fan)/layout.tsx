@@ -2,6 +2,11 @@ import Link from "next/link";
 
 import { auth } from "@/auth/auth";
 import { FAN_LEADERBOARD_PATH, FAN_LIVE_PATH } from "@/lib/fan-chat";
+import {
+  PLAYER_DRAWS_PATH,
+  PLAYER_ORDER_OF_PLAY_PATH,
+  PUBLIC_RESULTS_PATH,
+} from "@/lib/player-matches";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +32,18 @@ export default async function FanLayout({ children }: { children: React.ReactNod
             className="flex items-center gap-5 text-[11px] font-medium uppercase tracking-[1.5px]"
           >
             <Link href={FAN_LIVE_PATH}>Live</Link>
-            <Link href={FAN_LEADERBOARD_PATH}>Leaderboard</Link>
+            <Link href={FAN_LEADERBOARD_PATH} className="hidden sm:inline">
+              Leaderboard
+            </Link>
+            <Link href={PLAYER_DRAWS_PATH} className="hidden sm:inline">
+              Draws
+            </Link>
+            <Link href={PUBLIC_RESULTS_PATH} className="hidden sm:inline">
+              Results
+            </Link>
+            <Link href={PLAYER_ORDER_OF_PLAY_PATH} className="hidden sm:inline">
+              Order of play
+            </Link>
             {signedIn ? <Link href="/home">Your account</Link> : <Link href="/signin">Sign in</Link>}
           </nav>
         </div>

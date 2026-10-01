@@ -65,6 +65,8 @@ export interface ScorerProps {
   /** Both sides are drawn entries, so the match can start. */
   ready: boolean;
   initial: MatchSnapshot;
+  /** When the server recorded the match as finished, else null. */
+  completedAt: number | null;
   retireAction: (matchId: string, retiringSide: Side) => Promise<MatchSnapshot>;
   resetAction: (matchId: string) => Promise<MatchSnapshot>;
 }
@@ -123,10 +125,14 @@ function deriveMatch(record: ScoreRecord, extra: ScoreRecord["events"]): MatchSt
   );
 }
 
-/** Epoch milliseconds, refreshed every `intervalMs`; null until the first tick. */
-function useNow(intervalMs: number): number | null {
+/**
+ * Epoch milliseconds, refreshed every `intervalMs`; null until the first tick.
+ * While paused it holds the last time it read, so a clock stops where it was.
+ */
+function useNow(intervalMs: number, paused: boolean): number | null {
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
+    if (paused) return;
     const tick = () => setNow(Date.now());
     const first = window.setTimeout(tick, 0);
     const timer = window.setInterval(tick, intervalMs);
@@ -134,7 +140,7 @@ function useNow(intervalMs: number): number | null {
       window.clearTimeout(first);
       window.clearInterval(timer);
     };
-  }, [intervalMs]);
+  }, [intervalMs, paused]);
   return now;
 }
 
@@ -167,6 +173,7 @@ function LiveScorer({
   sides,
   ready,
   initial,
+  completedAt,
   retireAction,
   resetAction,
 }: ScorerProps) {
@@ -208,6 +215,10 @@ function LiveScorer({
   const shown = record !== null && finalEvent !== null ? deriveMatch(record, [finalEvent]) : match;
   const finished = state.status === "completed" || match?.status === "completed";
   const menuBlocked = unsaved || state.failures > 0 || state.conflict !== null;
+
+  // Only the server knows when a match reopened later finished. A match that
+  // finishes on this device stops its own clock, in Elapsed below.
+  const endedAt = completedAt;
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col">
@@ -258,7 +269,7 @@ function LiveScorer({
         <>
           {shown && record ? (
             <div className="px-5 pt-4">
-              <Scoreboard match={shown} sides={sides} startedAt={record.startedAt} />
+              <Scoreboard match={shown} sides={sides} startedAt={record.startedAt} endedAt={endedAt} />
             </div>
           ) : null}
           {finished ? (
@@ -428,19 +439,35 @@ function StartForm({
   );
 }
 
-function Elapsed({ startedAt }: { startedAt: number }) {
-  const now = useNow(CLOCK_INTERVAL_MS);
-  return <>{now === null ? "–:––" : formatElapsed(now - startedAt)}</>;
+/**
+ * Time on court. It counts up while the match is being played, and stops when
+ * the match ends: on the server's time for a match opened after it finished,
+ * else where the clock stood when the last point went in.
+ */
+function Elapsed({
+  startedAt,
+  endedAt,
+  running,
+}: {
+  startedAt: number;
+  endedAt: number | null;
+  running: boolean;
+}) {
+  const now = useNow(CLOCK_INTERVAL_MS, !running);
+  const at = endedAt ?? now;
+  return <>{at === null ? "–:––" : formatElapsed(at - startedAt)}</>;
 }
 
 function Scoreboard({
   match,
   sides,
   startedAt,
+  endedAt,
 }: {
   match: MatchState;
   sides: Record<Side, SideLabel>;
   startedAt: number;
+  endedAt: number | null;
 }) {
   const finished = match.status === "completed";
   const inMatchTiebreak = match.tiebreak && match.tiebreakTarget === MATCH_TIEBREAK_POINTS;
@@ -507,7 +534,8 @@ function Scoreboard({
           {situation ?? ""}
         </span>
         <span className="mono flex-none text-[11px] uppercase text-dim">
-          <Elapsed startedAt={startedAt} /> elapsed · Game {currentGameNumber(match)}
+          <Elapsed startedAt={startedAt} endedAt={endedAt} running={!finished} /> elapsed · Game{" "}
+          {currentGameNumber(match)}
         </span>
       </div>
     </div>

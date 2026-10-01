@@ -4,6 +4,7 @@ import type { PublishedPlace } from "@/lib/schedule";
 
 export const PLAYER_DRAWS_PATH = "/draws";
 export const PLAYER_ORDER_OF_PLAY_PATH = "/order-of-play";
+export const PUBLIC_RESULTS_PATH = "/results";
 
 export interface DrawRound {
   roundIndex: number;
