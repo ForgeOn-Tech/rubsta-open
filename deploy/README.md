@@ -154,7 +154,7 @@ print expanded Compose configuration because it contains environment secrets.
   during the test-payment verification below.
 - Entry and settings survived an app-container restart. SQLite quick_check
   returned `ok`. The dedicated data disk has automatic deletion disabled.
-- Preview dates/venue are 24–25 October 2026 at Vazirani National Sports Academy.
+- Preview dates/venue are 24–25 October 2026 at Nerul Gymkhana, Navi Mumbai, from 8:30 AM.
   Schedule remains provisional: the seed's 22 September entry deadline is NOT
   the confirmed tournament deadline. Confirm/update it before real registration.
 - Razorpay test payments were enabled after the initial deployment at the user's

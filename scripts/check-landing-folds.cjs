@@ -23,8 +23,10 @@ const baseURL = access?.PREVIEW_URL || 'http://127.0.0.1:8087';
       await page.evaluate(() => document.fonts.ready);
       await expect(page.getByRole('link', { name: 'Sign in', exact: true })).toBeVisible();
       await expect(page.locator('header [data-account]')).toHaveAttribute('href', /\/home$/);
-      // The landing page carries no event dates, venue or offer while those are unconfirmed.
-      await expect(page.locator('main')).not.toContainText(/2026|October|Vazirani|Early bird/);
+      // The landing page shows the confirmed dates and venue, and no offer.
+      await expect(page.locator('#details .event-facts')).toContainText('24–25 October 2026');
+      await expect(page.locator('#details .event-facts')).toContainText('Nerul Gymkhana');
+      await expect(page.locator('main')).not.toContainText(/Early bird/);
       await expect(page.locator('.hero-copy > .eyebrow')).toHaveText('TENNIS. CONNECTED.');
       const sections = page.locator('main > section');
       await expect(sections).toHaveCount(7);
