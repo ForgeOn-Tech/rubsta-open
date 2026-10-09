@@ -50,8 +50,8 @@ Canvas: https://claude.ai/code/artifact/03717cab-8b12-4a02-be17-7394af9dae09
 ## Landing page
 
 The public page at the repository root introduces Rubsta Open and links to
-registration. It leaves out event dates, the venue and any offer until the organiser
-confirms them. `/sponsor-a-player/` explains how sponsorship supports a player; it
+registration. Its tournament details show the confirmed dates, start time and venue:
+24–25 October 2026 from 8:30 AM at Nerul Gymkhana, Navi Mumbai. It shows no offer. `/sponsor-a-player/` explains how sponsorship supports a player; it
 keeps its own copies of the styles and form scripts in `sponsor-a-player/assets/`.
 
 Every "Become a sponsor" button opens the sponsor form in a pop-up. The form takes a
