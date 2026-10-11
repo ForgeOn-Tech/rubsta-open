@@ -591,3 +591,10 @@ export const challengeAttempts = sqliteTable("challenge_attempts", {
   voidedBy: text("voided_by"),
   voidReason: text("void_reason"),
 }, table => [index("challenge_attempts_tournament_kind").on(table.tournamentId, table.kind)]);
+
+/** A revocable, unlisted link to the sporting information on a player's card. */
+export const playerCardShares = sqliteTable("player_card_shares", {
+  userId: text("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  token: text("token").notNull().unique(),
+  createdAt: integer("created_at").notNull(),
+});

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ShareCardButton } from "./share-card-button";
 import { HAND_LABELS, type Profile } from "@/db/schema";
 import { ageFromDob } from "@/lib/age";
@@ -81,6 +82,7 @@ export function PlayerCard({ profile, playerId, entryCount, record, certificates
         </dl>
 
         <div className="mt-5 flex flex-wrap items-start gap-3">
+          <Link href="/player-card" className="pill pill-primary">Open full player card →</Link>
           {certificates.map((certificate) => (
             <a key={certificate.href} href={certificate.href} className="pill pill-outline" download>
               {certificate.label} <span aria-hidden="true">↓</span>

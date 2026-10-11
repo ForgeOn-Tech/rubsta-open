@@ -282,7 +282,19 @@ another script gets a "cannot be made yet" message instead of a certificate.
 "Share card" makes a PNG of the card. It shows the name, player ID, hand, club,
 ranking and match record, not the date of birth, mobile or email. Where the
 browser can share files, it opens the share sheet; otherwise it saves the image.
-Both downloads serve only the signed-in player's own certificates and card.
+These original download routes serve only the signed-in player's own files.
+
+`/player-card` is the private full-card preview, linked from the home card. It
+shows recorded match history, tournament results and earned PDFs, with
+player-entered history and rankings explicitly labelled. Published draws only
+contribute match results and certificates; accepted doubles partners share their
+team's record. Contact information and date of birth are excluded.
+
+Players can enable an unlisted `/players/<token>` link from Sharing options.
+Anyone with it can see the card and download earned certificates without signing
+in. Turning sharing off disables the page and its certificate routes; re-enabling
+creates a new link. Public pages are marked not to be indexed, and certificate
+responses are not cached. Already downloaded copies cannot be recalled.
 
 `/register` sends players to `/profile` until they save a profile. A player can
 enter each event once, including an event they joined as a doubles partner. A

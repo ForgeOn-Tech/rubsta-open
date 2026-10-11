@@ -515,6 +515,8 @@ test.describe.serial("registration", () => {
     await page.goto("/draws/OS");
     await expect(page.getByRole("article", { name: "Match 7", exact: true })).toContainText("Demo Player");
     await page.screenshot({ path: testInfo.outputPath("completed-draw.png"), fullPage: true });
+    const { checkPlayerCard } = await import("./player-card-flow");
+    await checkPlayerCard(page, testInfo);
   });
 
   test("a player creates an avatar, downloads a card and controls Rubsta Instagram permission", async ({ page }, testInfo) => {
