@@ -523,3 +523,8 @@ test.describe.serial("registration", () => {
     await checkAvatarFlow(page, testInfo);
   });
 });
+
+test("challenge attempts, corrections and public rankings work on mobile", async ({ page }, testInfo) => {
+  const { checkChallengeFlow } = await import("./challenge-flow");
+  await checkChallengeFlow(page, testInfo);
+});
