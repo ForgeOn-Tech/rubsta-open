@@ -2,6 +2,8 @@ export interface AdminNavItem {
   label: string;
   /** null marks a section that is not built yet. */
   href: string | null;
+  /** Public static pages need a full navigation outside the app router. */
+  fullPage?: boolean;
 }
 
 /** Sidebar order follows the organiser artboard (design/screens/Main.dc.html). */
@@ -17,7 +19,7 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
   { label: "Avatar permissions", href: "/admin/avatars" },
   { label: "Fan zone", href: "/admin/fan" },
   { label: "Certificates", href: null },
-  { label: "Sponsors", href: null },
+  { label: "Sponsors", href: "https://www.rubstaopen.com/#sponsors", fullPage: true },
   { label: "Settings", href: "/admin/settings" },
 ];
 

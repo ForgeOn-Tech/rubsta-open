@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { avatarAccessError, avatarPhotoError, avatarQuote, AVATAR_MAX_BYTES } from "../avatar";
+import { avatarAccessError, avatarPhotoError, avatarQuote, AVATAR_MAX_BYTES, AVATAR_PROFILE_REQUIRED } from "../avatar";
 
 describe("avatar safeguards", () => {
   it("only unlocks for paid adult players", () => {
     expect(avatarAccessError(18, true)).toBeNull();
-    expect(avatarAccessError(17, true)).toBeTruthy();
-    expect(avatarAccessError(null, true)).toBeTruthy();
+    expect(avatarAccessError(17, true)).toContain("Junior registration is unaffected");
+    expect(avatarAccessError(null, true)).toBe(AVATAR_PROFILE_REQUIRED);
+    expect(avatarAccessError(null, false)).toBe(AVATAR_PROFILE_REQUIRED);
     expect(avatarAccessError(30, false)).toBeTruthy();
   });
   it("bounds upload size and disallows SVG or unknown types", () => {

@@ -26,9 +26,10 @@ export function AdminNav() {
             );
           }
           const active = isActiveNavItem(pathname, item.href);
+          const NavLink = item.fullPage ? "a" : Link;
           return (
             <li key={item.label}>
-              <Link
+              <NavLink
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={`flex h-[34px] items-center whitespace-nowrap px-[18px] text-[13px] ${
@@ -40,7 +41,7 @@ export function AdminNav() {
                 style={{ color: active ? "var(--color-accent)" : "var(--color-muted)" }}
               >
                 {item.label}
-              </Link>
+              </NavLink>
             </li>
           );
         })}

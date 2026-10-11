@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AVATAR_DEFAULT_QUOTE, AVATAR_MAX_QUOTE, AVATAR_SHARE_CONSENT, avatarPhotoError, avatarQuote } from "@/lib/avatar";
+import Link from "next/link";
+import { AVATAR_DEFAULT_QUOTE, AVATAR_MAX_QUOTE, AVATAR_PROFILE_REQUIRED, AVATAR_SHARE_CONSENT, avatarPhotoError, avatarQuote } from "@/lib/avatar";
 
 import styles from "./avatar-studio.module.css";
 import { suggestAvatarCaption } from "@/lib/avatar-captions";
+
+const compactAction = { padding: "10px 16px", minHeight: 44, fontSize: 11, letterSpacing: "1px" };
 
 type Step = "photo" | "caption" | "save";
 
@@ -134,6 +137,7 @@ export function AvatarStudio({ name, enabled, initialVersion, accessError, initi
       const response = await fetch("/api/avatar/sharing", { method: approve ? "POST" : "DELETE", ...(approve ? { body } : {}) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Could not save your choice. Please try again.");
+      if (approve) { window.location.assign("/home?avatar=approved"); return; }
       setShared(approve);
       if (!approve) setShareConsent(false);
       setNotice(approve ? "Permission saved. Rubsta’s team can now download this card for its Instagram account. Nothing has been posted automatically." : "Permission removed. Your card is no longer available to the team for posting. Posts or copies already made are not removed.");
@@ -165,7 +169,10 @@ export function AvatarStudio({ name, enabled, initialVersion, accessError, initi
           <p className="mt-8 font-serif text-[25px]">A little tennis magic.</p>
           <p className="mt-3 max-w-xs text-[13px] leading-relaxed text-club-muted">This can take a few minutes. Keep this page open—we’ll reveal your avatar here.</p>
         </div> : null}
-        {unavailable ? <p className="mt-4 text-[13px]" role="status">{unavailable}</p> : (
+        {unavailable ? <div className="mt-4">
+          <p className="text-[13px]" role="status">{unavailable}</p>
+          {accessError === AVATAR_PROFILE_REQUIRED ? <Link href="/profile" className="pill pill-primary mt-5" style={{ color: "var(--color-accent-fg)" }}>Complete your profile</Link> : null}
+        </div> : (
           <form onSubmit={generate} className={creating !== "idle" ? "hidden" : "mt-5 flex max-w-xl flex-col gap-4"}>
             <input ref={photoInput} aria-label="Your photo" className="sr-only" tabIndex={-1} name="photo" type="file" accept="image/jpeg,image/png,image/webp" required disabled={busy} onChange={event => {
               const selected = event.target.files?.[0] ?? null;
@@ -194,7 +201,7 @@ export function AvatarStudio({ name, enabled, initialVersion, accessError, initi
       {step === "caption" && version ? <div className={`${styles.reveal} mt-5 grid gap-5 sm:grid-cols-2 sm:gap-8`}>
         {/* Private image: do not send it through the public image optimizer. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={`/api/avatar?v=${version}`} alt="Your illustrated tennis avatar" className="mx-auto h-36 w-36 border border-club-line bg-club-cream object-contain sm:h-auto sm:w-full sm:max-w-sm" />
+        <img src={`/api/avatar?v=${version}`} alt="Your illustrated tennis avatar" className="mx-auto aspect-square w-full max-w-sm border border-club-line bg-club-cream object-contain" />
         <div className="flex min-w-0 flex-col items-start gap-4">
           <label className="w-full text-[13px]">Your caption
             <textarea rows={3} className="field mt-2 w-full" maxLength={AVATAR_MAX_QUOTE} value={quote} onChange={event => { setQuote(event.target.value); setCard(null); }} disabled={busy} />
@@ -204,22 +211,22 @@ export function AvatarStudio({ name, enabled, initialVersion, accessError, initi
             <span className="text-[11px] text-club-muted">{quote.length}/{AVATAR_MAX_QUOTE}</span>
           </div>
           <p className="text-[12px] text-club-muted">Keep the suggestion, shuffle it, or write your own.</p>
-          <button type="button" className="pill pill-primary" onClick={() => void previewCard()} disabled={busy}>Preview my card →</button>
+          <button type="button" className="pill pill-primary" style={compactAction} onClick={() => void previewCard()} disabled={busy}>Preview my card →</button>
         </div>
       </div> : null}
 
       {step === "save" && version && card ? <div className="mt-5 grid gap-5 sm:grid-cols-2 sm:gap-8">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={card} alt="Your Instagram card preview" className="mx-auto w-52 max-w-full border border-club-line bg-club-cream sm:w-full sm:max-w-sm" />
+        <img src={card} alt="Your Instagram card preview" className="mx-auto w-full max-w-sm border border-club-line bg-club-cream" />
         <div className="flex min-w-0 flex-col items-start gap-4">
           {!accessError ? <>
             <label className="flex items-start gap-3 text-[12px] leading-relaxed">
               <input type="checkbox" checked={shareConsent} onChange={event => setShareConsent(event.target.checked)} disabled={busy} className="mt-1 h-4 w-4 shrink-0" />
               {AVATAR_SHARE_CONSENT}
             </label>
-            <button type="button" className="pill pill-primary" disabled={busy || !shareConsent} onClick={() => void updateSharing(true)}>{shared ? "Approve this updated card" : "Allow Rubsta to post this card"}</button>
+            <button type="button" className="pill pill-primary" style={compactAction} disabled={busy || !shareConsent} onClick={() => void updateSharing(true)}>{shared ? "Approve this updated card" : "Allow Rubsta to post this card"}</button>
           </> : null}
-          <a className="pill pill-outline" href={card} download="rubsta-open-avatar.png">Download my card</a>
+          <a className="pill pill-outline" style={compactAction} href={card} download="rubsta-open-avatar.png">Download my card</a>
           <p className="text-[12px] leading-relaxed text-club-muted">Downloading alone does not give us permission. Nothing is posted automatically.</p>
           <button type="button" className="min-h-11 text-[12px] underline" disabled={busy} onClick={() => { setStep("caption"); setNotice(null); }}>Edit caption</button>
           <p className="text-[11px] leading-relaxed text-club-muted">1080 × 1350 PNG. You can withdraw permission in Avatar options; posts or copies already made cannot be recalled.</p>

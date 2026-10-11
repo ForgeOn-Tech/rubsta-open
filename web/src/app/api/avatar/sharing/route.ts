@@ -5,7 +5,7 @@ import { getDb } from "@/db/client";
 import { approveAvatarShare, revokeAvatarShare } from "@/db/avatars";
 import { profiles } from "@/db/schema";
 import { ageFromDob } from "@/lib/age";
-import { AVATAR_MAX_BYTES } from "@/lib/avatar";
+import { AVATAR_MAX_BYTES, AVATAR_PROFILE_REQUIRED } from "@/lib/avatar";
 
 export const runtime = "nodejs";
 const headers = { "Cache-Control": "private, no-store" };
@@ -21,7 +21,8 @@ export async function POST(request: Request) {
   const db = getDb();
   const profile = db.select().from(profiles).where(eq(profiles.userId, userId)).get();
   const age = profile ? ageFromDob(profile.dateOfBirth) : null;
-  if (age === null || age < 18) return fail("Instagram permissions are available to players aged 18 and over.", 403);
+  if (age === null) return fail(AVATAR_PROFILE_REQUIRED, 403);
+  if (age < 18) return fail("Instagram permissions are available to players aged 18 and over.", 403);
   const reader = request.body?.getReader();
   if (!reader) return fail("Preview your card first.", 400);
   const chunks: Uint8Array<ArrayBuffer>[] = [];
