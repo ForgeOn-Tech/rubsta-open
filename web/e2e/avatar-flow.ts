@@ -87,11 +87,12 @@ export async function checkAvatarFlow(page: Page, testInfo: TestInfo) {
   await expect(approve).toBeDisabled();
   await page.getByRole("checkbox", { name: /I allow Rubsta Open/ }).check();
   await approve.click();
+  await expect(page).toHaveURL(/\/home\?avatar=approved$/);
   await expect(page.getByRole("status")).toContainText("Permission saved");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath("avatar-mobile.png"), fullPage: true });
 
-  await page.reload();
+  await page.goto("/avatar");
   await expect(page.getByLabel("Your caption")).not.toHaveValue("My next point starts here.");
   await page.getByText("Avatar options", { exact: true }).click();
   await expect(page.getByRole("button", { name: "Withdraw Instagram permission" })).toBeVisible();

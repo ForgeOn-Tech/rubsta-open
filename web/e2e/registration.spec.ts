@@ -18,9 +18,21 @@ async function signInAsDemo(page: Page) {
 
 // Serial: the organiser test reads the entry the player test creates.
 test.describe.serial("registration", () => {
-  test("a new player goes from home to a profile and a first entry", async ({ page }) => {
+  test("a new player goes from home to a profile and a first entry", async ({ page }, testInfo) => {
     const main = page.getByRole("main");
     await signInAsDemo(page);
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/avatar");
+    await expect(page.getByRole("status")).toContainText("Add or correct your date of birth");
+    await expect(page.getByRole("button", { name: "Upload photo" })).toHaveCount(0);
+    await expect(page.getByText(/Junior registration is unaffected/)).toHaveCount(0);
+    await page.screenshot({ path: testInfo.outputPath("avatar-profile-needed-mobile.png"), fullPage: true });
+    await page.getByRole("link", { name: "Complete your profile" }).click();
+    await expect(page).toHaveURL(/\/profile$/);
+    await expect(page.getByLabel("Date of birth")).toBeVisible();
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.goto("/home");
 
     await expect(page).toHaveURL(/\/home$/);
     await expect(main.getByRole("heading", { name: "Create your player profile" })).toBeVisible();

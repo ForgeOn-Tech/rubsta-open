@@ -4,7 +4,7 @@ import Link from "next/link";
 import { PlayerCard } from "./player-card";
 import { PaymentWelcome } from "./payment-welcome";
 import { registrationState } from "@/db/registration";
-import { playerAvatars } from "@/db/schema";
+import { avatarShares, playerAvatars } from "@/db/schema";
 import { requireUser } from "@/auth/require";
 import { PartnerStatusBadge } from "@/components/partner-status-badge";
 import { StatusBadge } from "@/components/status-badge";
@@ -41,10 +41,11 @@ export const dynamic = "force-dynamic";
 const FALLBACK_TOURNAMENT_NAME = "Rubsta Open";
 
 export default async function HomePage({ searchParams }: {
-  searchParams: Promise<{ paid?: string | string[] }>;
+  searchParams: Promise<{ paid?: string | string[]; avatar?: string | string[] }>;
 }) {
   const user = await requireUser();
-  const { paid } = await searchParams;
+  const { paid, avatar: avatarNotice } = await searchParams;
+  const avatarApproved = avatarNotice === "approved" && !!db.select({ userId: avatarShares.userId }).from(avatarShares).where(eq(avatarShares.userId, user.id)).get();
 
   const profile =
     db.select().from(profiles).where(eq(profiles.userId, user.id)).get() ?? null;
@@ -92,6 +93,7 @@ export default async function HomePage({ searchParams }: {
 
   return (
     <div className="flex flex-col gap-16">
+      {avatarApproved ? <p role="status" className="border border-club-line bg-club-paper p-4 text-[14px]">Permission saved. Rubsta’s team can now download your card for Instagram. Nothing has been posted automatically.</p> : null}
       {paidEntry ? <PaymentWelcome key={paidEntry.id} name={name} eventLabel={CATEGORY_LABELS[paidEntry.category]} /> : null}
       <section
         aria-labelledby="welcome-heading"
