@@ -20,7 +20,7 @@ const SCOPE_PATH = "/score";
 const APP_FILES_PATH = "/_next/";
 const CACHE_URLS_MESSAGE = "cache-urls";
 /** App file paths in a page's HTML: script and style tags, and the inline React payload. */
-const APP_FILE_REFERENCE = /\/_next\/[^"'\\\s<>()]+/g;
+const APP_FILE_REFERENCE = /\/_next\/[^"'\\\s<>]+/g;
 /** A page slower than this comes from the cache, when one is kept. */
 const NAVIGATION_TIMEOUT_MS = 5000;
 const OFFLINE_STATUS = 503;
@@ -101,8 +101,10 @@ async function keep(key, response) {
   try {
     const cache = await caches.open(CACHE_NAME);
     await cache.put(key, response);
+    return true;
   } catch (error) {
     warnNotKept(key, error);
+    return false;
   }
 }
 
@@ -114,13 +116,14 @@ async function kept(key) {
 async function keepFile(url) {
   const key = fileKey(url);
   // A built app file never changes under the same URL, so a kept one is enough.
-  if (await kept(key)) return;
+  if (await kept(key)) return true;
   try {
     const response = await fetch(url.href, { credentials: "same-origin" });
-    if (isKeepableFile(response)) await keep(key, response);
+    if (isKeepableFile(response)) return keep(key, response);
   } catch (error) {
     warnNotKept(url.href, error);
   }
+  return false;
 }
 
 /** Keeps the files a page refers to first, so a kept page always has what it needs. */
@@ -128,7 +131,7 @@ async function keepPage(url, response) {
   const html = await response.clone().text();
   const paths = new Set(html.match(APP_FILE_REFERENCE) || []);
   for (const path of paths) {
-    await keepFile(new URL(path, self.location.origin));
+    if (!(await keepFile(new URL(path, self.location.origin)))) return;
   }
   await keep(pageKey(url), response);
 }
