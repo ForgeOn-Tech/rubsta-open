@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { ScoringLink as Link } from "@/components/scoring-link";
 import { notFound } from "next/navigation";
 
 import { requireScorer } from "@/auth/require";

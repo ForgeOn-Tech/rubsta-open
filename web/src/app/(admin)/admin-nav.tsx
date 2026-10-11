@@ -32,9 +32,9 @@ export function AdminNav() {
               <NavLink
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`flex h-[34px] items-center whitespace-nowrap px-[18px] text-[13px] ${
+                className={`flex h-[34px] items-center whitespace-nowrap border-b-2 border-transparent px-[18px] text-[13px] font-medium md:border-b-0 md:border-l-2 md:pl-4 ${
                   active
-                    ? "border-b-2 border-accent bg-surface-2 font-semibold md:border-b-0 md:border-l-2 md:pl-4"
+                    ? "border-accent bg-surface-2"
                     : ""
                 }`}
                 // Inline colour: the global `a` rule is unlayered and outranks utilities.

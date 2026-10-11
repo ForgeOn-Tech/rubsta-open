@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { CourtStream } from "./court-stream";
 import { CourtChat } from "./court-chat";
 import { PredictionPanel } from "./prediction-panel";
 import { ReactionsRow } from "./reactions-row";
@@ -29,20 +30,19 @@ function viewerId(): string {
  */
 export function CourtLive({
   courtNumber,
-  embedUrl,
   initialFeed,
   predictAction,
   reactAction,
   postMessageAction,
 }: {
   courtNumber: number;
-  embedUrl: string | null;
   initialFeed: FanFeed;
   predictAction: FormAction;
   reactAction: FormAction;
   postMessageAction: FormAction;
 }) {
   const [feed, setFeed] = useState<FanFeed>(initialFeed);
+  const [stale, setStale] = useState(false);
 
   useEffect(() => {
     let stopped = false;
@@ -52,11 +52,11 @@ export function CourtLive({
       if (document.visibilityState !== "visible") return;
       try {
         const response = await fetch(path, { cache: "no-store" });
-        if (!response.ok) return;
+        if (!response.ok) throw new Error("Feed unavailable");
         const next = (await response.json()) as FanFeed;
-        if (!stopped) setFeed(next);
+        if (!stopped) { setFeed(next); setStale(false); }
       } catch {
-        // A dropped signal in a crowd is normal; the next poll tries again.
+        if (!stopped) setStale(true);
       }
     };
 
@@ -70,9 +70,10 @@ export function CourtLive({
 
   return (
     <div className="flex flex-col gap-6">
-      <Stream embedUrl={embedUrl} live={feed.live !== null} watching={feed.watching} />
+      <CourtStream broadcast={feed.broadcast} watching={feed.watching} />
+      {stale && <p role="status" className="text-sm text-club-mist/70">Score and broadcast updates paused. Reconnecting…</p>}
       {feed.live !== null ? (
-        <Scoreboard board={feed.live} />
+        feed.broadcast?.embedUrl ? <details key={feed.broadcast.embedUrl} className="border border-club-mist/25 p-4"><summary className="min-h-7 cursor-pointer text-sm">Show current court score · may be ahead of video</summary><Scoreboard board={feed.live} /></details> : <Scoreboard board={feed.live} />
       ) : feed.next !== null ? (
         <UpNext board={feed.next.board} place={feed.next.place} />
       ) : (
@@ -107,48 +108,6 @@ export function CourtLive({
         signedIn={feed.signedIn}
         action={postMessageAction}
       />
-    </div>
-  );
-}
-
-function Stream({
-  embedUrl,
-  live,
-  watching,
-}: {
-  embedUrl: string | null;
-  live: boolean;
-  watching: number;
-}) {
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-3">
-        {live ? (
-          <span className="bg-club-lime px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[1.5px] text-club-forest">
-            Live
-          </span>
-        ) : (
-          <span className="text-[10px] font-medium uppercase tracking-[1.5px] text-club-mist/60">
-            Not playing
-          </span>
-        )}
-        <span className="text-[10px] font-medium uppercase tracking-[1.5px] text-club-mist/60 lining-nums">
-          {watching} watching
-        </span>
-      </div>
-      {embedUrl === null ? (
-        <div className="flex aspect-video items-center justify-center border border-club-mist/25 text-[11px] uppercase tracking-[1.5px] text-club-mist/50">
-          No stream on this court
-        </div>
-      ) : (
-        <iframe
-          src={embedUrl}
-          title="Court stream"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          className="aspect-video w-full border border-club-mist/25"
-        />
-      )}
     </div>
   );
 }

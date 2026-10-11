@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { ScoringLink as Link } from "@/components/scoring-link";
 import {
   useEffect,
   useEffectEvent,
