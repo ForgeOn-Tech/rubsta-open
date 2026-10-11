@@ -3,10 +3,7 @@ import Link from "next/link";
 
 import { PlayerCard } from "./player-card";
 import { PaymentWelcome } from "./payment-welcome";
-import { AvatarStudio } from "./avatar-studio";
 import { registrationState } from "@/db/registration";
-import { avatarAccessError } from "@/lib/avatar";
-import { ageFromDob } from "@/lib/age";
 import { playerAvatars } from "@/db/schema";
 import { requireUser } from "@/auth/require";
 import { PartnerStatusBadge } from "@/components/partner-status-badge";
@@ -138,9 +135,14 @@ export default async function HomePage({ searchParams }: {
       </section>
 
       {profile && (avatar || myEntries.some(entry => entry.status === "paid")) ? (
-        <AvatarStudio name={profile.fullName} enabled={!!process.env.OPENAI_API_KEY?.trim()}
-          initialVersion={avatar?.updatedAt ?? null}
-          accessError={avatarAccessError(ageFromDob(profile.dateOfBirth), myEntries.some(entry => entry.status === "paid"))} />
+        <section id="avatar" className="flex flex-col items-start gap-4 bg-club-paper p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
+          <div>
+            <p className="text-[10px] uppercase tracking-[2px] text-club-muted">Your tennis avatar</p>
+            <h2 className="mt-2 font-serif text-[30px]">A little more you.</h2>
+            <p className="mt-2 max-w-md text-[13px] text-club-muted">Make a cute avatar from your photo. Download your card or let Rubsta feature it on Instagram.</p>
+          </div>
+          <Link href="/avatar" className="pill pill-primary shrink-0">{avatar ? "Open avatar studio" : "Create my avatar"} <span aria-hidden="true">→</span></Link>
+        </section>
       ) : null}
 
       {invitations.length === 0 ? null : (

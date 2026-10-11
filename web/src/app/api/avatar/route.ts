@@ -28,7 +28,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const userId = (await auth())?.user?.id;
   if (!userId) return fail("Sign in first.", 401);
-  if (!sameOrigin(request)) return fail("Please generate from your player home.", 403);
+  if (!sameOrigin(request)) return fail("Please generate from your avatar page.", 403);
   const key = process.env.OPENAI_API_KEY?.trim();
   if (!key) return fail("Avatar generation is not enabled yet. Your registration is unaffected.", 503);
   const database = getDb();
@@ -68,7 +68,9 @@ export async function POST(request: Request) {
   try {
     const png = await generateAvatar(prepared, key);
     finishAvatar(database, userId, attempt, png);
-    return Response.json({ ok: true }, { headers });
+    const saved = database.select({ version: playerAvatars.updatedAt }).from(playerAvatars).where(eq(playerAvatars.userId, userId)).get();
+    if (!saved) return fail("Generation was cancelled. Refresh before trying again.", 409);
+    return Response.json({ ok: true, version: saved.version }, { headers });
   } catch {
     finishAvatar(database, userId, attempt);
     return fail("We couldn't generate your avatar. Try another photo later; your registration is safe.", 502);
@@ -78,7 +80,7 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   const userId = (await auth())?.user?.id;
   if (!userId) return fail("Sign in first.", 401);
-  if (!sameOrigin(request)) return fail("Please delete from your player home.", 403);
+  if (!sameOrigin(request)) return fail("Please delete from your avatar page.", 403);
   deleteAvatar(getDb(), userId);
   return Response.json({ ok: true }, { headers });
 }

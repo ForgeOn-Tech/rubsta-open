@@ -1,6 +1,7 @@
 import { and, eq, gte } from "drizzle-orm";
 import type { Database } from "./draws";
-import { avatarAttempts, playerAvatars } from "./schema";
+import { avatarAttempts, avatarShares, playerAvatars } from "./schema";
+import { AVATAR_SHARE_CONSENT } from "@/lib/avatar";
 
 /** Persistent quotas include failed attempts; concurrent requests cannot spend twice. */
 export function reserveAvatar(database: Database, userId: string, now = Date.now()): string {
@@ -24,6 +25,7 @@ export function finishAvatar(database: Database, userId: string, attempt: string
     const active = tx.select().from(avatarAttempts).where(and(eq(avatarAttempts.id, attempt), eq(avatarAttempts.userId, userId))).get();
     if (!active || active.finished) return;
     if (png) {
+      tx.delete(avatarShares).where(eq(avatarShares.userId, userId)).run();
       const values = { png, updatedAt: Date.now(), consentAt: active.startedAt };
       tx.insert(playerAvatars).values({ userId, ...values })
         .onConflictDoUpdate({ target: playerAvatars.userId, set: values }).run();
@@ -34,8 +36,23 @@ export function finishAvatar(database: Database, userId: string, attempt: string
 
 export function deleteAvatar(database: Database, userId: string) {
   database.transaction(tx => {
+    revokeAvatarShare(tx, userId);
     tx.delete(playerAvatars).where(eq(playerAvatars.userId, userId)).run();
     // A generation still in flight must not restore deleted art. Retain quota records.
     tx.update(avatarAttempts).set({ finished: true }).where(eq(avatarAttempts.userId, userId)).run();
   });
+}
+
+export function approveAvatarShare(database: Database, userId: string, version: number, png: string) {
+  database.transaction(tx => {
+    const avatar = tx.select().from(playerAvatars).where(eq(playerAvatars.userId, userId)).get();
+    if (!avatar?.png || avatar.updatedAt !== version) throw new Error("Your avatar changed. Refresh and preview it again before giving permission.");
+    const values = { avatarVersion: version, png, consentAt: Date.now(), consentText: AVATAR_SHARE_CONSENT };
+    tx.insert(avatarShares).values({ userId, ...values })
+      .onConflictDoUpdate({ target: avatarShares.userId, set: values }).run();
+  }, { behavior: "immediate" });
+}
+
+export function revokeAvatarShare(database: Database, userId: string) {
+  database.delete(avatarShares).where(eq(avatarShares.userId, userId)).run();
 }
