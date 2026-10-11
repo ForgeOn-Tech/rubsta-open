@@ -233,7 +233,7 @@ test.describe.serial("registration", () => {
     await expect(page.getByRole("region", { name: "Court 2" })).toContainText("Serve Speed Challenge");
   });
 
-  test("an umpire keeps scoring through a dropped connection", async ({ page, context }) => {
+  test("an umpire keeps scoring through a dropped connection", async ({ page, context }, testInfo) => {
     // Scores a match from the draw published above. The demo account is an admin, so it can score.
     await signInAsDemo(page);
     await page.getByRole("link", { name: "Scoring", exact: true }).click();
@@ -250,9 +250,15 @@ test.describe.serial("registration", () => {
 
     const score = page.getByRole("table", { name: "Score" });
     const topPoint = page.getByRole("button", { name: /^Point — / }).first();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByRole("checkbox", { name: "Record point details (optional)" }).check();
     await context.setOffline(true);
     await topPoint.click();
+    await expect(page.getByRole("region", { name: "Point details" })).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath("point-details-mobile.png"), fullPage: true });
+    await page.getByRole("button", { name: "Ace", exact: true }).click();
     await topPoint.click();
+    await page.getByRole("button", { name: "Winning shot", exact: true }).click();
     await expect(score).toContainText("30");
     await expect(sync).toContainText("Offline");
 
@@ -261,6 +267,17 @@ test.describe.serial("registration", () => {
 
     // The server kept both points: they survive a reload and show on the list.
     await page.reload();
+    await expect(score).toContainText("30");
+    await page.getByRole("checkbox", { name: "Record point details (optional)" }).check();
+    await page.getByRole("button", { name: /^Point — / }).nth(1).click();
+    await expect(page.getByRole("button", { name: "Ace", exact: true })).toHaveCount(0);
+    await page.getByRole("button", { name: "Cancel point" }).click();
+    await topPoint.click();
+    await page.getByRole("button", { name: "Opponent error", exact: true }).click();
+    await expect(sync).toHaveText("Saved");
+    await expect(score).toContainText("40");
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await expect(sync).toHaveText("Saved");
     await expect(score).toContainText("30");
     await page.getByRole("link", { name: "All matches" }).click();
     await expect(page.getByRole("region", { name: /In progress/ })).toContainText("Court 2");
@@ -272,6 +289,9 @@ test.describe.serial("registration", () => {
     await expect(page).toHaveURL(/\/admin\/results\/[^/]+$/);
     const stats = page.getByRole("table", { name: "Match statistics" });
     await expect(stats.getByRole("row", { name: /Points won/ })).toHaveText(/^2\s*Points won\s*0$/);
+    await expect(stats.getByRole("row", { name: /Recorded aces/ })).toHaveText(/^1\s*Recorded aces\s*0$/);
+    await expect(stats.getByRole("row", { name: /Recorded winning shots/ })).toHaveText(/^1\s*Recorded winning shots\s*0$/);
+
   });
 
   test("a scoring page opened once still loads with no signal", async ({ page, context }) => {
