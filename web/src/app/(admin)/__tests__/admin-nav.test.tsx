@@ -13,10 +13,9 @@ describe("AdminNav", () => {
     expect(screen.getByRole("link", { name: "Overview" })).not.toHaveAttribute("aria-current");
   });
 
-  it("shows unbuilt sections as text, not links", () => {
+  it("links to the certificate list", () => {
     render(<AdminNav />);
 
-    expect(screen.queryByRole("link", { name: /Certificates/ })).not.toBeInTheDocument();
-    expect(screen.getByText("Certificates")).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("link", { name: "Certificates" })).toHaveAttribute("href", "/admin/certificates");
   });
 });

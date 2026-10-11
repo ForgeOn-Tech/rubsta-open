@@ -512,6 +512,31 @@ test.describe.serial("registration", () => {
       await download.saveAs(testInfo.outputPath(`${kind}.pdf`));
     }
     await page.screenshot({ path: testInfo.outputPath("winner-home.png"), fullPage: true });
+
+    await page.goto("/admin");
+    await page.getByRole("navigation", { name: "Admin" }).getByRole("link", { name: "Certificates", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Certificates", exact: true })).toBeVisible();
+    await page.getByLabel("Search players or events").fill("Demo Player");
+    await page.getByLabel("Certificate type").selectOption("winner");
+    await page.getByRole("button", { name: "Search", exact: true }).click();
+    await expect(page.getByRole("article")).toHaveCount(1);
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath("admin-certificates-mobile.png"), fullPage: true });
+    const adminDownload = page.getByRole("link", { name: "Download PDF" });
+    const adminResponse = await page.request.get((await adminDownload.getAttribute("href"))!);
+    expect(adminResponse.status()).toBe(200);
+    expect((await PDFDocument.load(await adminResponse.body())).getTitle()).toBe("Winner's certificate");
+    const adminDownloadPromise = page.waitForEvent("download");
+    await adminDownload.click();
+    await (await adminDownloadPromise).saveAs(testInfo.outputPath("admin-winner.pdf"));
+    await page.getByLabel("Search players or events").fill("Nobody matches this search");
+    await page.getByRole("button", { name: "Search", exact: true }).click();
+    await expect(page.getByRole("status")).toHaveText("No certificates match these filters.");
+    await page.getByRole("link", { name: "Clear filters" }).click();
+    await expect(page.getByRole("article")).not.toHaveCount(0);
+    await page.setViewportSize({ width: 1280, height: 720 });
+
     await page.goto("/draws/OS");
     await expect(page.getByRole("article", { name: "Match 7", exact: true })).toContainText("Demo Player");
     await page.screenshot({ path: testInfo.outputPath("completed-draw.png"), fullPage: true });
