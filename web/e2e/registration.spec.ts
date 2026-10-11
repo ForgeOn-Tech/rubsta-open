@@ -1,6 +1,13 @@
 import { expect, test, type Page } from "@playwright/test";
+import { PDFDocument } from "pdf-lib";
+import { checkAvatarFlow } from "./avatar-flow";
 
 import { addConfirmedEntrants, addDoublesInvitation, replaceDoublesPartner } from "./fixtures";
+
+test.beforeEach(async ({ context }) => {
+  // External font downloads must not hold local flow checks open indefinitely.
+  await context.route(/^https:\/\/fonts\.(googleapis|gstatic)\.com\//, route => route.abort());
+});
 
 async function signInAsDemo(page: Page) {
   await page.goto("/signin");
@@ -36,10 +43,11 @@ test.describe.serial("registration", () => {
     const entries = page.getByRole("region", { name: "Your entries" });
     await expect(entries).toContainText("Open singles");
     await expect(entries).toContainText("Submitted");
-    await expect(main.getByRole("heading", { name: "Enter another event" })).toBeVisible();
+    await expect(main.getByRole("heading", { name: "Complete your registration" })).toBeVisible();
 
     await page.goto("/register");
-    await expect(page.getByRole("radio", { name: "Open singles", exact: true })).toBeDisabled();
+    await expect(page).toHaveURL(/\/register\/[^/]+$/);
+    await expect(page.getByRole("heading", { name: "Entry received" })).toBeVisible();
   });
 
   test("an admin sees the entry in the overview and the entries table", async ({ page }) => {
@@ -75,6 +83,9 @@ test.describe.serial("registration", () => {
     const entry = page.getByRole("region", { name: "Entry" });
     await expect(entry).toContainText("manual");
 
+    await page.goto("/register");
+    await expect(page.getByRole("radio", { name: "Open singles", exact: true })).toBeDisabled();
+
     const csv = await page.request.get("/admin/entries/export?status=paid");
     expect(csv.headers()["content-type"]).toContain("text/csv");
     expect(csv.headers()["content-disposition"]).toContain('filename="rubsta-open-2026-entries.csv"');
@@ -90,8 +101,9 @@ test.describe.serial("registration", () => {
     await expect(page.getByText("No players match")).toBeVisible();
 
     await page.goto("/admin/settings");
-    await page.getByLabel("Start date").fill("2026-09-25");
-    await page.getByLabel("End date").fill("2026-09-27");
+    await page.getByLabel("Entries close (IST)").fill("2099-10-20T18:00");
+    await page.getByLabel("Start date").fill("2099-10-24");
+    await page.getByLabel("End date").fill("2099-10-26");
     await page.getByLabel("Venue").fill("Deccan Gymkhana, Pune");
     await page.getByLabel("Schedule confirmed").check();
     await page.getByRole("button", { name: "Save settings" }).click();
@@ -100,7 +112,7 @@ test.describe.serial("registration", () => {
     await page.goto("/home");
     const tournament = page.getByRole("region", { name: "Rubsta Open 2026" });
     await expect(tournament).toContainText("Deccan Gymkhana, Pune");
-    await expect(tournament).toContainText(/25–27 Sept? 2026/);
+    await expect(tournament).toContainText(/24–26 Oct 2099/);
     await expect(page.getByText(/provisional until the organisers confirm/)).toHaveCount(0);
   });
 
@@ -143,7 +155,7 @@ test.describe.serial("registration", () => {
   });
 
   test("an admin builds, publishes and prints the order of play", async ({ page }) => {
-    // The tournament runs 25–27 Sept (set above), so the page opens on its first day.
+    // The tournament runs 24–26 October 2099 (set above), so the page opens on its first day.
     await signInAsDemo(page);
     await page.goto("/admin/settings");
     const courts = page.getByRole("region", { name: "Courts" });
@@ -157,7 +169,7 @@ test.describe.serial("registration", () => {
 
     await page.getByRole("navigation", { name: "Admin" }).getByRole("link", { name: "Order of play" }).click();
     await expect(page).toHaveURL(/\/admin\/order-of-play$/);
-    await expect(page.getByText(/Rubsta Open 2026 · Fri 25 Sept?/)).toBeVisible();
+    await expect(page.getByText(/Rubsta Open 2026 · \w+ 24 Oct/)).toBeVisible();
 
     const addMatch = page.getByRole("region", { name: /Add a match/ });
     await addMatch.getByLabel("Match").selectOption({ index: 1 });
@@ -192,8 +204,8 @@ test.describe.serial("registration", () => {
     await expect(page.getByRole("button", { name: "Published" })).toBeDisabled();
 
     await page.getByRole("link", { name: "Print sheet" }).click();
-    await expect(page).toHaveURL(/\/admin\/order-of-play\/print\?day=2026-09-25$/);
-    await expect(page.getByRole("heading", { name: /Order of play · Fri 25 Sept?/ })).toBeVisible();
+    await expect(page).toHaveURL(/\/admin\/order-of-play\/print\?day=2099-10-24$/);
+    await expect(page.getByRole("heading", { name: /Order of play · \w+ 24 Oct/ })).toBeVisible();
     await expect(page.getByRole("navigation", { name: "Admin" })).toHaveCount(0);
     const sheetCourt = page.getByRole("region", { name: /Court 1/ });
     await expect(sheetCourt).toContainText("Not before 15:30");
@@ -202,9 +214,9 @@ test.describe.serial("registration", () => {
     // The umpire sees the match first on the scoring list, and the published day.
     await page.goto("/score");
     const yours = page.getByRole("region", { name: /Your matches/ });
-    await expect(yours).toContainText(/Fri 25 Sept? · Court 1 · Not before 15:30/);
+    await expect(yours).toContainText(/\w+ 24 Oct · Court 1 · Not before 15:30/);
     await page.getByRole("link", { name: "Order of play" }).click();
-    await expect(page).toHaveURL(/\/score\/schedule\/2026-09-25$/);
+    await expect(page).toHaveURL(/\/score\/schedule\/2099-10-24$/);
     await expect(page.getByRole("region", { name: "Court 1" })).toContainText("Umpire: You");
     await expect(page.getByRole("region", { name: "Court 2" })).toContainText("Serve Speed Challenge");
   });
@@ -437,5 +449,65 @@ test.describe.serial("registration", () => {
     // The set is still being played, so nobody has scored a point yet.
     await page.goto("/live/leaderboard");
     await expect(page.getByRole("status")).toContainText("Nobody has called a finished set yet");
+  });
+
+  test("a completed tournament awards downloadable participation and winner certificates", async ({ page }, testInfo) => {
+    test.setTimeout(180_000);
+    await signInAsDemo(page);
+
+    // Finish the four played matches in the five-player draw, including the
+    // match already started above. Always let the demo player win their match.
+    for (let match = 0; match < 4; match += 1) {
+      await page.goto("/score");
+      const underway = page.getByRole("region", { name: /In progress/ }).getByRole("link");
+      const ready = page.getByRole("region", { name: /Ready to start/ }).getByRole("link");
+      const nextMatch = await underway.count() ? underway.first() : ready.first();
+      await page.goto((await nextMatch.getAttribute("href"))!);
+      const start = page.getByRole("button", { name: "Start match", exact: true });
+      const pointButton = page.getByRole("button", { name: /^Point — / }).first();
+      await expect(start.or(pointButton)).toBeVisible();
+      if (await start.isVisible()) {
+        await page.getByRole("radio").first().check();
+        await start.click();
+      }
+      const confirm = page.getByRole("button", { name: "Confirm result", exact: true });
+      for (let point = 0; point < 48 && !(await confirm.isVisible()); point += 1) {
+        const demo = page.getByRole("button", { name: /^Point — Demo Player(?: SERVING)?$/ });
+        await (await demo.count() ? demo : page.getByRole("button", { name: /^Point — / }).first()).click();
+      }
+      await expect(confirm).toBeVisible();
+      await confirm.click();
+      await expect(page.getByText("Result saved.", { exact: true })).toBeVisible();
+      await page.reload();
+      await expect(page.getByText("Result saved.", { exact: true })).toBeVisible();
+    }
+
+    await page.goto("/home");
+    const card = page.getByRole("region", { name: "Your record" });
+    for (const kind of ["participation", "winner"] as const) {
+      const certificate = card.locator(`a[href$="/${kind}"]`);
+      await expect(certificate).toBeVisible();
+      const href = await certificate.getAttribute("href");
+      const response = await page.request.get(href!);
+      expect(response.status()).toBe(200);
+      expect(response.headers()["content-type"]).toBe("application/pdf");
+      const document = await PDFDocument.load(await response.body());
+      expect(document.getPageCount()).toBe(1);
+      const downloadPromise = page.waitForEvent("download");
+      await certificate.click();
+      const download = await downloadPromise;
+      expect(download.suggestedFilename()).toContain(`${kind}.pdf`);
+      await download.saveAs(testInfo.outputPath(`${kind}.pdf`));
+    }
+    await page.screenshot({ path: testInfo.outputPath("winner-home.png"), fullPage: true });
+    await page.goto("/draws/OS");
+    await expect(page.getByRole("article", { name: "Match 7", exact: true })).toContainText("Demo Player");
+    await page.screenshot({ path: testInfo.outputPath("completed-draw.png"), fullPage: true });
+  });
+
+  test("a player creates an avatar, downloads a card and controls Rubsta Instagram permission", async ({ page }, testInfo) => {
+    test.setTimeout(90_000);
+    await signInAsDemo(page);
+    await checkAvatarFlow(page, testInfo);
   });
 });

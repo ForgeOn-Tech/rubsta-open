@@ -3,6 +3,7 @@ import SQLite from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import sharp from "sharp";
 import * as schema from "@/db/schema";
 import { upsertProfile } from "@/db/profiles";
 import { seedTournamentIfEmpty } from "@/db/seed";
@@ -12,6 +13,8 @@ vi.mock("@/auth/auth", () => ({ auth: mocks.auth }));
 vi.mock("@/db/client", () => ({ getDb: mocks.db }));
 vi.mock("@/lib/avatar-openai", () => ({ generateAvatar: mocks.generate, prepareAvatarPhoto: mocks.prepare }));
 import { GET, POST, DELETE } from "../route";
+import { POST as approve, DELETE as revoke } from "../sharing/route";
+import { GET as adminCard } from "../../admin/avatars/[userId]/route";
 
 let sqlite: SQLite.Database;
 let db: ReturnType<typeof drizzle<typeof schema>>;
@@ -79,4 +82,49 @@ it("hides provider failures and leaves an existing avatar intact", async () => {
   expect(response.status).toBe(502);
   expect(await response.text()).not.toContain("secret provider");
   expect(await (await GET()).text()).toBe("generated");
+});
+
+async function shareRequest(consent = true, version?: number, origin = "https://rubsta.test") {
+  const png = await sharp({ create: { width: 1080, height: 1350, channels: 3, background: "#f4f1e8" } }).png().toBuffer();
+  const body = new FormData();
+  body.set("card", new File([new Uint8Array(png)], "card.png", { type: "image/png" }));
+  body.set("version", String(version ?? db.select().from(schema.playerAvatars).get()?.updatedAt));
+  if (consent) body.set("consent", "yes");
+  return new Request("https://rubsta.test/api/avatar/sharing", { method: "POST", headers: { origin }, body });
+}
+
+it("requires separate publication consent, an adult owner and the current avatar", async () => {
+  await POST(request());
+  expect((await approve(await shareRequest(false))).status).toBe(400);
+  expect((await approve(await shareRequest(true, 1))).status).toBe(409);
+  expect((await approve(await shareRequest(true, undefined, "https://evil.test"))).status).toBe(403);
+  mocks.auth.mockResolvedValue(null);
+  expect((await approve(await shareRequest())).status).toBe(401);
+  expect((await revoke(await shareRequest())).status).toBe(401);
+  mocks.auth.mockResolvedValue({ user: { id: "other" } });
+  expect((await approve(await shareRequest())).status).toBe(403);
+  mocks.auth.mockResolvedValue({ user: { id: "player" } });
+  db.update(schema.profiles).set({ dateOfBirth: "2020-01-01" }).run();
+  expect((await approve(await shareRequest())).status).toBe(403);
+  expect(db.select().from(schema.avatarShares).get()).toBeUndefined();
+});
+
+it("exposes only approved cards to admins and removes access when permission is withdrawn", async () => {
+  await POST(request());
+  expect((await approve(await shareRequest())).status).toBe(200);
+  const params = { params: Promise.resolve({ userId: "player" }) };
+  const download = new Request("https://rubsta.test/api/admin/avatars/player?download=1");
+  expect((await adminCard(download, params)).status).toBe(403);
+  vi.stubEnv("ADMIN_EMAILS", "admin@example.com");
+  mocks.auth.mockResolvedValue({ user: { id: "admin", email: "admin@example.com" } });
+  const card = await adminCard(download, params);
+  expect(card.status).toBe(200);
+  expect(card.headers.get("cache-control")).toBe("private, no-store");
+  expect(card.headers.get("content-disposition")).toContain("attachment");
+  expect((await sharp(new Uint8Array(await card.arrayBuffer())).metadata()).width).toBe(1080);
+  mocks.auth.mockResolvedValue({ user: { id: "player" } });
+  expect((await revoke(await shareRequest())).status).toBe(200);
+  expect((await GET()).status).toBe(200);
+  mocks.auth.mockResolvedValue({ user: { id: "admin", email: "admin@example.com" } });
+  expect((await adminCard(download, params)).status).toBe(404);
 });

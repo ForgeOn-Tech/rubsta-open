@@ -1,6 +1,7 @@
 export const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
 export const AVATAR_DEFAULT_QUOTE = "See you on court.";
 export const AVATAR_MAX_QUOTE = 100;
+export const AVATAR_SHARE_CONSENT = "I allow Rubsta Open to post this card, including my name and quote, on its Instagram account.";
 export const AVATAR_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 export function avatarAccessError(age: number | null, paid: boolean): string | null {

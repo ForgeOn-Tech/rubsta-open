@@ -19,6 +19,21 @@ function withTournament(change: (database: Database.Database, tournamentId: stri
   }
 }
 
+/** Stand-in image-provider result for browser tests; all sharing routes stay real. */
+export function saveDemoAvatar(png: Buffer): { version: number; userId: string } {
+  const version = Date.now();
+  let userId = "";
+  withTournament(database => {
+    const player = database.prepare("select id from users where email = ?").get("demo@rubstaopen.local") as { id: string };
+    userId = player.id;
+    database.prepare("delete from avatar_shares where user_id = ?").run(userId);
+    database.prepare(`insert into player_avatars (user_id, png, updated_at, consent_at) values (?, ?, ?, ?)
+      on conflict(user_id) do update set png=excluded.png, updated_at=excluded.updated_at, consent_at=excluded.consent_at`)
+      .run(userId, png.toString("base64"), version, version);
+  });
+  return { version, userId };
+}
+
 /** Adds a user with a profile and returns the user id. */
 function addPlayer(database: Database.Database, name: string): string {
   const userId = randomUUID();
