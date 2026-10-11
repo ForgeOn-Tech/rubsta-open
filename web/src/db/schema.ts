@@ -576,3 +576,18 @@ export type FanReaction = typeof fanReactions.$inferSelect;
 export type FanPrediction = typeof fanPredictions.$inferSelect;
 export type FanMute = typeof fanMutes.$inferSelect;
 export type Payment = typeof payments.$inferSelect;
+
+/** Manually measured Challenge Kit attempts; voiding preserves the audit record. */
+export const challengeAttempts = sqliteTable("challenge_attempts", {
+  id: text("id").primaryKey(),
+  tournamentId: text("tournament_id").notNull().references(() => tournaments.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  kind: text("kind", { enum: ["serve", "accuracy", "reaction"] }).notNull(),
+  // Serve speed is stored in tenths of km/h; accuracy and reaction use whole units.
+  score: integer("score").notNull(),
+  recordedBy: text("recorded_by").notNull(),
+  createdAt: integer("created_at").notNull(),
+  voidedAt: integer("voided_at"),
+  voidedBy: text("voided_by"),
+  voidReason: text("void_reason"),
+}, table => [index("challenge_attempts_tournament_kind").on(table.tournamentId, table.kind)]);

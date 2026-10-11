@@ -330,6 +330,12 @@ export default async function HomePage({ searchParams }: {
         )}
       </section>
 
+      <section aria-label="Challenge Kit" className="border border-club-line bg-club-paper p-6">
+        <h2 className="font-serif text-3xl">Challenge Kit</h2>
+        <p className="mt-3 text-club-muted">Try serve speed, accuracy and reaction challenges at the venue. See how your best attempt ranks.</p>
+        <Link href="/challenges" className="pill pill-outline mt-4">View challenge leaderboard →</Link>
+      </section>
+
       <section aria-labelledby="coming-heading">
         <SectionHeading
           id="coming-heading"
