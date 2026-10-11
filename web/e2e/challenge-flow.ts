@@ -1,5 +1,5 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
-import { addConfirmedEntrants } from "./fixtures";
+import { addConfirmedEntrants, addNewerChallengeAttempts } from "./fixtures";
 export async function checkChallengeFlow(page: Page, info: TestInfo) {
   await page.goto("/challenges");
   await expect(page.getByText("No scores yet. Be the first to try this challenge.")).toBeVisible();
@@ -32,7 +32,13 @@ export async function checkChallengeFlow(page: Page, info: TestInfo) {
   await expect(board.getByLabel("Rank 1", { exact: true })).toHaveCount(2);
   await expect(board.getByRole("listitem").filter({ hasText: "Challenge Ada" })).toContainText("2 attempts");
   await page.screenshot({ path: info.outputPath("challenge-public-mobile.png"), fullPage: true });
+  addNewerChallengeAttempts();
   await page.goto("/admin/challenges");
+  await page.getByRole("link", { name: "Older attempts", exact: true }).click();
+  await expect(page).toHaveURL(/kind=serve&page=2/);
+  await expect(page.getByRole("link", { name: "Older attempts", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Newer attempts", exact: true })).toBeVisible();
+  await page.screenshot({ path: info.outputPath("challenge-older-attempts-mobile.png"), fullPage: true });
   const wrong = page.getByRole("listitem").filter({ hasText: "Challenge Ada" }).filter({ hasText: "120.5 km/h" });
   await wrong.getByText("Correct this attempt", { exact: true }).click();
   await wrong.getByLabel("Reason").fill("Wrong measurement");

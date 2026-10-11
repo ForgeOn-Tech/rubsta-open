@@ -60,3 +60,14 @@ it("excludes an unaccepted doubles partner", () => {
  db.update(schema.entries).set({ partnerStatus: "pending" }).where(eq(schema.entries.id, "entry-a")).run();
  expect(getPlayerCard(db, "partner")!.tournaments).toEqual([]);
 });
+
+it("limits records and certificates to our current tournament and omits outside history", () => {
+ db.insert(schema.tournaments).values({ id: "other", ...SEED_TOURNAMENT, name: "Other Open" }).run();
+ db.update(schema.entries).set({ tournamentId: "other" }).run();
+ db.update(schema.draws).set({ tournamentId: "other" }).run();
+ const card = getPlayerCard(db, "a")!;
+ expect(card.tournaments).toEqual([]);
+ expect(card.totals).toEqual({ played: 0, won: 0, lost: 0 });
+ expect(card).not.toHaveProperty("previous");
+ expect(JSON.stringify(card)).not.toContain("Earlier Open");
+});

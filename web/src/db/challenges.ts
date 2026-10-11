@@ -37,9 +37,11 @@ export function challengeLeaderboard(database: Database, tournamentId: string, k
     .where(and(eq(challengeAttempts.tournamentId, tournamentId), eq(challengeAttempts.kind, kind), isNull(challengeAttempts.voidedAt))).all();
   return rankChallengeAttempts(kind, rows);
 }
-export function listChallengeAttempts(database: Database, tournamentId: string, kind: ChallengeKind) {
-  return database.select({ attempt: challengeAttempts, name: profiles.fullName }).from(challengeAttempts)
+export function listChallengeAttempts(database: Database, tournamentId: string, kind: ChallengeKind, page = 1) {
+  const pageNumber = Number.isSafeInteger(page) && page > 0 && page <= 1_000_000 ? page : 1;
+  const rows = database.select({ attempt: challengeAttempts, name: profiles.fullName }).from(challengeAttempts)
     .innerJoin(profiles, eq(profiles.userId, challengeAttempts.userId))
     .where(and(eq(challengeAttempts.tournamentId, tournamentId), eq(challengeAttempts.kind, kind)))
-    .orderBy(desc(challengeAttempts.createdAt), desc(challengeAttempts.id)).limit(100).all();
+    .orderBy(desc(challengeAttempts.createdAt), desc(challengeAttempts.id)).limit(101).offset((pageNumber - 1) * 100).all();
+  return { attempts: rows.slice(0, 100), hasOlder: rows.length > 100, page: pageNumber };
 }

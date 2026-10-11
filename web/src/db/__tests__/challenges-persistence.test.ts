@@ -6,7 +6,7 @@ import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { afterEach, beforeEach, expect, it } from "vitest";
 import * as schema from "../schema";
 import { SEED_TOURNAMENT } from "../seed";
-import { challengeLeaderboard, listChallengePlayers, saveChallengeAttempt, voidChallengeAttempt } from "../challenges";
+import { challengeLeaderboard, listChallengeAttempts, listChallengePlayers, saveChallengeAttempt, voidChallengeAttempt } from "../challenges";
 import { parseChallengeScore } from "@/lib/challenges";
 let sqlite: SQLite.Database;
 let db: ReturnType<typeof drizzle<typeof schema>>;
@@ -60,4 +60,24 @@ it("rejects invalid measurements without rounding away input errors", () => {
   for (const value of ["11", "1.5", "-1"]) expect(() => parseChallengeScore("accuracy", value)).toThrow();
   expect(() => parseChallengeScore("reaction", "0")).toThrow();
   expect(() => parseChallengeScore("reaction", "10001")).toThrow();
+});
+
+it("lets an admin reach and void an older leaderboard score after 100 newer attempts", () => {
+  db.insert(schema.challengeAttempts).values(Array.from({ length: 101 }, (_, index) => ({
+    id: String(index).padStart(4, "0"), tournamentId: "t", userId: "a", kind: "serve" as const,
+    score: index === 0 ? 2500 : 1500, recordedBy: "admin", createdAt: 1,
+  }))).run();
+  const first = listChallengeAttempts(db, "t", "serve");
+  const older = listChallengeAttempts(db, "t", "serve", 2);
+  expect(first.attempts).toHaveLength(100);
+  expect(first.hasOlder).toBe(true);
+  expect(older.hasOlder).toBe(false);
+  expect(older.attempts.map(row => row.attempt.id)).toEqual(["0000"]);
+  expect(challengeLeaderboard(db, "t", "serve")[0].score).toBe(2500);
+  voidChallengeAttempt(db, "t", older.attempts[0].attempt.id, "Wrong measurement", "admin");
+  expect(challengeLeaderboard(db, "t", "serve")[0].score).toBe(1500);
+  expect(listChallengeAttempts(db, "t", "reaction", 2).attempts).toEqual([]);
+  for (const page of [NaN, -1, 1.5, Infinity, Number.MAX_SAFE_INTEGER]) {
+    expect(listChallengeAttempts(db, "t", "serve", page).page).toBe(1);
+  }
 });

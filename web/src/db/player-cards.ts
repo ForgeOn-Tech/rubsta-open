@@ -26,13 +26,14 @@ export function sharedCardOwner(db: Database, token: string) {
 
 /** Explicit public fields only: no email, birth date, phone, payment or account identifiers. */
 export function getPlayerCard(db: Database, userId: string) {
-  const profile = db.select({ name: profiles.fullName, club: profiles.club, ranking: profiles.bestRanking, plays: profiles.plays, previous: profiles.previousTournaments, number: profiles.playerNumber, createdAt: profiles.createdAt }).from(profiles).where(eq(profiles.userId, userId)).get();
+  const profile = db.select({ name: profiles.fullName, club: profiles.club, ranking: profiles.bestRanking, plays: profiles.plays, number: profiles.playerNumber, createdAt: profiles.createdAt }).from(profiles).where(eq(profiles.userId, userId)).get();
   if (!profile) return null;
   const ids = new Set(listTeamEntryIds(db, userId));
   const publicNames = new Map(db.select({ id: entries.id, name: profiles.fullName, partnerName: entries.partnerName, partnerStatus: entries.partnerStatus }).from(entries).leftJoin(profiles, eq(profiles.userId, entries.userId)).all().map(e => [e.id, e]));
   const published = new Set(db.select({ id: draws.id }).from(draws).where(eq(draws.status, "published")).all().map(d => d.id));
-  const allTournaments = db.select().from(tournaments).all();
-  const recorded = allTournaments.map(tournament => {
+  // Match the single current tournament selected by getCurrentTournament.
+  const tournament = db.select().from(tournaments).get();
+  const recorded = (tournament ? [tournament] : []).map(tournament => {
     const rows = listScoringMatches(db, tournament.id).filter(row => published.has(row.match.drawId));
     const mine = teamMatches(rows, ids);
     const certificates = earnedCertificates(rows, ids);
@@ -55,6 +56,6 @@ export function getPlayerCard(db: Database, userId: string) {
     });
     return { name: tournament.name, results, history, certificates, record: matchRecord(mine.map(row => row.match), ids) };
   }).filter(t => t.results.length || t.history.length || t.certificates.length);
-  return { name: profile.name, club: profile.club, ranking: profile.ranking, plays: profile.plays, previous: profile.previous, playerId: profile.number === null ? null : formatPlayerId(profile.number, profile.createdAt), tournaments: recorded, totals: recorded.reduce((a,t) => ({ played: a.played+t.record.played, won: a.won+t.record.won, lost: a.lost+t.record.lost }), { played: 0, won: 0, lost: 0 }) };
+  return { name: profile.name, club: profile.club, ranking: profile.ranking, plays: profile.plays, playerId: profile.number === null ? null : formatPlayerId(profile.number, profile.createdAt), tournaments: recorded, totals: recorded.reduce((a,t) => ({ played: a.played+t.record.played, won: a.won+t.record.won, lost: a.lost+t.record.lost }), { played: 0, won: 0, lost: 0 }) };
 }
 export type PlayerCardData = NonNullable<ReturnType<typeof getPlayerCard>>;

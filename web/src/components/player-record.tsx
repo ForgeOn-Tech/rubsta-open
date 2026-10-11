@@ -25,8 +25,5 @@ export function PlayerRecord({ card, token }: { card: PlayerCardData; token?: st
       {!card.tournaments.some(t => t.certificates.length) && <p className="mt-4 text-club-muted">Certificates appear after an eligible completed match or an event win.</p>}
       {card.tournaments.map((t,i) => t.certificates.length > 0 && <div key={i} className="mt-5"><h3 className="font-medium">{t.name}</h3><div className="mt-3 flex flex-wrap gap-3">{t.certificates.map(c => <a key={c.entryId+c.kind} href={token ? `/api/player-cards/${token}/certificates/${c.entryId}/${c.kind}` : `/home/certificates/${c.entryId}/${c.kind}`} className="pill pill-outline max-w-full whitespace-normal text-center" download>{certificateLabel(c)} ↓</a>)}</div></div>)}
     </section>
-    <section aria-label="Player-added history"><h2 className="font-serif text-3xl">Previous tournaments</h2><p className="mt-2 text-sm text-club-muted">Added by the player; not verified tournament results.</p>
-      {!card.previous.length ? <p className="mt-4 text-club-muted">No previous tournaments added.</p> : <ul className="mt-4 divide-y divide-club-line">{card.previous.map((t,i) => <li key={i} className="py-3"><strong>{t.name}</strong><p className="text-sm text-club-muted">{t.year} · {t.result}</p></li>)}</ul>}
-    </section>
   </div>;
 }
