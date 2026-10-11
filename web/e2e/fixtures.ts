@@ -85,3 +85,12 @@ export function replaceDoublesPartner(partnerEmail: string, newPartnerName: stri
       .run(newPartnerName, newPartnerEmail, partnerEmail);
   });
 }
+
+/** Push an existing serve score onto an older admin page. */
+export function addNewerChallengeAttempts(): void {
+  withTournament((database, tournamentId) => {
+    const player = database.prepare("select user_id from challenge_attempts where tournament_id = ? and kind = 'serve' limit 1").get(tournamentId) as { user_id: string };
+    const insert = database.prepare("insert into challenge_attempts (id, tournament_id, user_id, kind, score, recorded_by, created_at) values (?, ?, ?, 'serve', 1000, 'test-admin', ?)");
+    for (let index = 0; index < 100; index++) insert.run(randomUUID(), tournamentId, player.user_id, Date.now() + index);
+  });
+}

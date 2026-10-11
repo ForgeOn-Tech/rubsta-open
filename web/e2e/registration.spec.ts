@@ -18,9 +18,21 @@ async function signInAsDemo(page: Page) {
 
 // Serial: the organiser test reads the entry the player test creates.
 test.describe.serial("registration", () => {
-  test("a new player goes from home to a profile and a first entry", async ({ page }) => {
+  test("a new player goes from home to a profile and a first entry", async ({ page }, testInfo) => {
     const main = page.getByRole("main");
     await signInAsDemo(page);
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/avatar");
+    await expect(page.getByRole("status")).toContainText("Add or correct your date of birth");
+    await expect(page.getByRole("button", { name: "Upload photo" })).toHaveCount(0);
+    await expect(page.getByText(/Junior registration is unaffected/)).toHaveCount(0);
+    await page.screenshot({ path: testInfo.outputPath("avatar-profile-needed-mobile.png"), fullPage: true });
+    await page.getByRole("link", { name: "Complete your profile" }).click();
+    await expect(page).toHaveURL(/\/profile$/);
+    await expect(page.getByLabel("Date of birth")).toBeVisible();
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.goto("/home");
 
     await expect(page).toHaveURL(/\/home$/);
     await expect(main.getByRole("heading", { name: "Create your player profile" })).toBeVisible();
@@ -221,7 +233,7 @@ test.describe.serial("registration", () => {
     await expect(page.getByRole("region", { name: "Court 2" })).toContainText("Serve Speed Challenge");
   });
 
-  test("an umpire keeps scoring through a dropped connection", async ({ page, context }) => {
+  test("an umpire keeps scoring through a dropped connection", async ({ page, context }, testInfo) => {
     // Scores a match from the draw published above. The demo account is an admin, so it can score.
     await signInAsDemo(page);
     await page.getByRole("link", { name: "Scoring", exact: true }).click();
@@ -238,9 +250,15 @@ test.describe.serial("registration", () => {
 
     const score = page.getByRole("table", { name: "Score" });
     const topPoint = page.getByRole("button", { name: /^Point — / }).first();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByRole("checkbox", { name: "Record point details (optional)" }).check();
     await context.setOffline(true);
     await topPoint.click();
+    await expect(page.getByRole("region", { name: "Point details" })).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath("point-details-mobile.png"), fullPage: true });
+    await page.getByRole("button", { name: "Ace", exact: true }).click();
     await topPoint.click();
+    await page.getByRole("button", { name: "Winning shot", exact: true }).click();
     await expect(score).toContainText("30");
     await expect(sync).toContainText("Offline");
 
@@ -249,6 +267,17 @@ test.describe.serial("registration", () => {
 
     // The server kept both points: they survive a reload and show on the list.
     await page.reload();
+    await expect(score).toContainText("30");
+    await page.getByRole("checkbox", { name: "Record point details (optional)" }).check();
+    await page.getByRole("button", { name: /^Point — / }).nth(1).click();
+    await expect(page.getByRole("button", { name: "Ace", exact: true })).toHaveCount(0);
+    await page.getByRole("button", { name: "Cancel point" }).click();
+    await topPoint.click();
+    await page.getByRole("button", { name: "Opponent error", exact: true }).click();
+    await expect(sync).toHaveText("Saved");
+    await expect(score).toContainText("40");
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await expect(sync).toHaveText("Saved");
     await expect(score).toContainText("30");
     await page.getByRole("link", { name: "All matches" }).click();
     await expect(page.getByRole("region", { name: /In progress/ })).toContainText("Court 2");
@@ -260,6 +289,9 @@ test.describe.serial("registration", () => {
     await expect(page).toHaveURL(/\/admin\/results\/[^/]+$/);
     const stats = page.getByRole("table", { name: "Match statistics" });
     await expect(stats.getByRole("row", { name: /Points won/ })).toHaveText(/^2\s*Points won\s*0$/);
+    await expect(stats.getByRole("row", { name: /Recorded aces/ })).toHaveText(/^1\s*Recorded aces\s*0$/);
+    await expect(stats.getByRole("row", { name: /Recorded winning shots/ })).toHaveText(/^1\s*Recorded winning shots\s*0$/);
+
   });
 
   test("a scoring page opened once still loads with no signal", async ({ page, context }) => {
@@ -500,9 +532,36 @@ test.describe.serial("registration", () => {
       await download.saveAs(testInfo.outputPath(`${kind}.pdf`));
     }
     await page.screenshot({ path: testInfo.outputPath("winner-home.png"), fullPage: true });
+
+    await page.goto("/admin");
+    await page.getByRole("navigation", { name: "Admin" }).getByRole("link", { name: "Certificates", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Certificates", exact: true })).toBeVisible();
+    await page.getByLabel("Search players or events").fill("Demo Player");
+    await page.getByLabel("Certificate type").selectOption("winner");
+    await page.getByRole("button", { name: "Search", exact: true }).click();
+    await expect(page.getByRole("article")).toHaveCount(1);
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath("admin-certificates-mobile.png"), fullPage: true });
+    const adminDownload = page.getByRole("link", { name: "Download PDF" });
+    const adminResponse = await page.request.get((await adminDownload.getAttribute("href"))!);
+    expect(adminResponse.status()).toBe(200);
+    expect((await PDFDocument.load(await adminResponse.body())).getTitle()).toBe("Winner's certificate");
+    const adminDownloadPromise = page.waitForEvent("download");
+    await adminDownload.click();
+    await (await adminDownloadPromise).saveAs(testInfo.outputPath("admin-winner.pdf"));
+    await page.getByLabel("Search players or events").fill("Nobody matches this search");
+    await page.getByRole("button", { name: "Search", exact: true }).click();
+    await expect(page.getByRole("status")).toHaveText("No certificates match these filters.");
+    await page.getByRole("link", { name: "Clear filters" }).click();
+    await expect(page.getByRole("article")).not.toHaveCount(0);
+    await page.setViewportSize({ width: 1280, height: 720 });
+
     await page.goto("/draws/OS");
     await expect(page.getByRole("article", { name: "Match 7", exact: true })).toContainText("Demo Player");
     await page.screenshot({ path: testInfo.outputPath("completed-draw.png"), fullPage: true });
+    const { checkPlayerCard } = await import("./player-card-flow");
+    await checkPlayerCard(page, testInfo);
   });
 
   test("a player creates an avatar, downloads a card and controls Rubsta Instagram permission", async ({ page }, testInfo) => {
@@ -510,4 +569,9 @@ test.describe.serial("registration", () => {
     await signInAsDemo(page);
     await checkAvatarFlow(page, testInfo);
   });
+});
+
+test("challenge attempts, corrections and public rankings work on mobile", async ({ page }, testInfo) => {
+  const { checkChallengeFlow } = await import("./challenge-flow");
+  await checkChallengeFlow(page, testInfo);
 });

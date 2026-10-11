@@ -1,4 +1,4 @@
-import { SIDES, type DecidingSet, type MatchEvent, type Side } from "@/lib/match";
+import { POINT_FINISHES, SIDES, type DecidingSet, type MatchEvent, type Side } from "@/lib/match";
 
 /**
  * An umpire's score for one match: how it started and every event since.
@@ -62,7 +62,11 @@ function parseSide(value: unknown, what: string): Side {
 function parseEvent(value: unknown, index: number): MatchEvent {
   const fields = fieldsOf(value, `Event ${index}`);
   if (fields.type === "point") {
-    return { type: "point", side: parseSide(fields.side, `Event ${index} side`) };
+    const side = parseSide(fields.side, `Event ${index} side`);
+    if (fields.finish === undefined) return { type: "point", side };
+    const finish = POINT_FINISHES.find(candidate => candidate === fields.finish);
+    if (!finish) throw new Error(`Event ${index} has an unknown point finish.`);
+    return { type: "point", side, finish };
   }
   const type = SIDELESS_EVENT_TYPES.find((candidate) => candidate === fields.type);
   if (type === undefined) {
@@ -119,7 +123,7 @@ export function parseDeviceScore(value: unknown): DeviceScore {
 
 function sameEvent(a: MatchEvent, b: MatchEvent): boolean {
   if (a.type === "point" || b.type === "point") {
-    return a.type === "point" && b.type === "point" && a.side === b.side;
+    return a.type === "point" && b.type === "point" && a.side === b.side && a.finish === b.finish;
   }
   return a.type === b.type;
 }

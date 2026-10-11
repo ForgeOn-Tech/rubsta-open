@@ -249,8 +249,16 @@ Statistics come from the events the umpire records: who won each point,
 faults, double faults and lets. `src/lib/match-stats.ts` replays them and counts
 points won, first serves in, points won on first and second serve, double
 faults, break points won, service games held, tiebreak points won and the
-longest run of points. The umpire does not record how a point ended, so there
-are no aces, winners or unforced errors. Doubles statistics are for each team.
+longest run of points. “Record point details” optionally adds an ace, winning shot,
+or opponent error when awarding a point. Skip keeps ordinary scoring available;
+Cancel does not award the point. Only the server can record an ace. Errors count
+against the losing side; aces are separate from winning shots. Undo removes both
+the point and its detail, including before final-result confirmation.
+
+Recorded-detail totals and coverage appear only after details are entered, so
+older matches do not imply that no aces or errors happened. Error entries do not
+distinguish forced from unforced errors. Details use the existing saved event list
+and survive offline syncing. Doubles statistics are for each team.
 A retired match has statistics up to the retirement.
 
 The statistics show under the result on the scoring screen when a match ends,
@@ -282,7 +290,19 @@ another script gets a "cannot be made yet" message instead of a certificate.
 "Share card" makes a PNG of the card. It shows the name, player ID, hand, club,
 ranking and match record, not the date of birth, mobile or email. Where the
 browser can share files, it opens the share sheet; otherwise it saves the image.
-Both downloads serve only the signed-in player's own certificates and card.
+These original download routes serve only the signed-in player's own files.
+
+`/player-card` is the private full-card preview, linked from the home card. It
+shows recorded match history, tournament results and earned PDFs, with
+player-entered history and rankings explicitly labelled. Published draws only
+contribute match results and certificates; accepted doubles partners share their
+team's record. Contact information and date of birth are excluded.
+
+Players can enable an unlisted `/players/<token>` link from Sharing options.
+Anyone with it can see the card and download earned certificates without signing
+in. Turning sharing off disables the page and its certificate routes; re-enabling
+creates a new link. Public pages are marked not to be indexed, and certificate
+responses are not cached. Already downloaded copies cannot be recalled.
 
 `/register` sends players to `/profile` until they save a profile. A player can
 enter each event once, including an event they joined as a doubles partner. A

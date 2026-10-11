@@ -152,3 +152,18 @@ describe("reconcileScore", () => {
     expect(reconcileScore(5, null, stored)).toEqual({ kind: "conflict", device: stored });
   });
 });
+
+
+it("preserves optional point details through server and offline parsing", () => {
+  const events: MatchEvent[] = [{ type: "point", side: "top", finish: "ace" }, { type: "point", side: "bottom", finish: "opponentError" }];
+  expect(parseScoreRecord(JSON.parse(JSON.stringify(record(events))))).toEqual(record(events));
+  expect(parseDeviceScore(JSON.parse(JSON.stringify(device(1, events, true))))).toEqual(device(1, events, true));
+  expect(() => parseScoreRecord({ ...record([]), events: [{ type: "point", side: "top", finish: "invented" }] })).toThrow("unknown point finish");
+});
+
+it("treats changed point details as different scores when syncing", () => {
+  const original = record([{ type: "point", side: "top", finish: "ace" }]);
+  const changed = record([{ type: "point", side: "top", finish: "winner" }]);
+  expect(sameScore(original, changed)).toBe(false);
+  expect(extendsScore(changed, original)).toBe(false);
+});

@@ -7,6 +7,7 @@ import { PLAYER_DRAWS_PATH, PLAYER_ORDER_OF_PLAY_PATH, PUBLIC_RESULTS_PATH } fro
 export const dynamic = "force-dynamic";
 
 const NAV = [
+  { href: "/challenges", label: "Challenges" },
   { href: PLAYER_DRAWS_PATH, label: "Draws" },
   { href: PUBLIC_RESULTS_PATH, label: "Results" },
   { href: PLAYER_ORDER_OF_PLAY_PATH, label: "Order of play" },
