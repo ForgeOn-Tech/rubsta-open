@@ -468,3 +468,44 @@ describe("applyRazorpayWebhook", () => {
     expect(database.select().from(schema.payments).all()).toEqual([]);
   });
 });
+
+describe("payment confirmation emails", () => {
+  it("queues one email when checkout and webhook confirm the same payment", () => {
+    const database = setup();
+    addEntry(database, "receipt", "OS", "submitted"); addOrder(database, "receipt", "receipt-order");
+    recordPayment(database, { orderId: "receipt-order", paymentId: "receipt-payment" });
+    applyRazorpayWebhook(database, signedWebhook("payment.captured", { id: "receipt-payment", order_id: "receipt-order" }));
+    const messages = database.select().from(schema.paymentEmails).all();
+    expect(messages).toHaveLength(1);
+    expect(messages[0]).toMatchObject({ recipient: "player@example.com", acceptedAt: null });
+    expect(messages[0].subject).toContain("Registration confirmed");
+    expect(messages[0].body).toContain("Open singles");
+  });
+  it("does not queue an email for a forged or mismatched payment", () => {
+    const database = setup();
+    addEntry(database, "receipt", "OS", "submitted"); addOrder(database, "receipt", "receipt-order");
+    const event = signedWebhook("payment.captured", { id: "receipt-payment", order_id: "receipt-order" });
+    expect(applyRazorpayWebhook(database, { ...event, signature: "invalid" })).toBe(400);
+    expect(() => recordPayment(database, { orderId: "receipt-order", paymentId: "receipt-payment", amountCents: 1 })).toThrow();
+    expect(database.select().from(schema.paymentEmails).all()).toHaveLength(0);
+  });
+  it("does not tell a cancelled player their entry was confirmed", () => {
+    const database = setup();
+    addEntry(database, "receipt", "OS", "cancelled"); addOrder(database, "receipt", "receipt-order");
+    recordPayment(database, { orderId: "receipt-order", paymentId: "receipt-payment" });
+    const message = database.select().from(schema.paymentEmails).get()!;
+    expect(message.subject).toContain("needs review");
+    expect(message.body).toContain("Do not pay again");
+  });
+  it("preserves the earlier receipt after a doubles top-up", () => {
+    const database = setup(); addSelection(database, ["single"], ["OS"]); payCheckout(database, "single", "first");
+    const original = database.select().from(schema.paymentEmails).get()!;
+    addSelection(database, ["double"], ["OD"]); payCheckout(database, "double", "second");
+    const messages = database.select().from(schema.paymentEmails).all();
+    expect(messages).toHaveLength(2);
+    expect(messages.find(item => item.paymentId === original.paymentId)).toEqual(original);
+    const latest = messages.find(item => item.paymentId !== original.paymentId)!;
+    expect(latest.body).toContain("Open doubles");
+    expect(latest.body).toContain("partner still needs to accept");
+  });
+});

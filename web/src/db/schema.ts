@@ -302,6 +302,24 @@ export const payments = sqliteTable(
   ],
 );
 
+/** One durable confirmation per captured payment. Accepted is not inbox delivery. */
+export const paymentEmails = sqliteTable("payment_emails", {
+  paymentId: text("payment_id").primaryKey().references(() => payments.id, { onDelete: "cascade" }),
+  recipient: text("recipient").notNull(),
+  subject: text("subject").notNull(),
+  body: text("body").notNull(),
+  html: text("html"),
+  createdAt: integer("created_at").notNull(),
+  acceptedAt: integer("accepted_at"),
+  firstAttemptAt: integer("first_attempt_at"),
+  nextAttemptAt: integer("next_attempt_at").notNull().default(0),
+  attempts: integer("attempts").notNull().default(0),
+  requestBody: text("request_body"),
+  providerId: text("provider_id"),
+  lastError: text("last_error"),
+  needsReview: integer("needs_review", { mode: "boolean" }).notNull().default(false),
+});
+
 export const DRAW_STATUSES = ["draft", "published"] as const;
 export type DrawStatus = (typeof DRAW_STATUSES)[number];
 export const DRAW_STATUS_LABELS: Record<DrawStatus, string> = {
