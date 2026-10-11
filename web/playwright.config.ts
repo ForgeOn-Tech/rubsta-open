@@ -34,7 +34,8 @@ export default defineConfig({
   },
   projects: [{ name: "chromium", use: { browserName: "chromium" } }],
   webServer: {
-    command: PRODUCTION ? "npm run build && npm run start" : "npm run dev",
+    // Webpack avoids Turbopack's extra local socket during CSS compilation.
+    command: PRODUCTION ? "npm run build -- --webpack && npm run start" : "npm run dev",
     port: PORT,
     timeout: PRODUCTION ? PRODUCTION_START_TIMEOUT_MS : DEV_START_TIMEOUT_MS,
     // Never attach to a hand-started server: it has its own env and database.
@@ -45,6 +46,14 @@ export default defineConfig({
       ADMIN_EMAILS: "demo@rubstaopen.local",
       AUTH_SECRET: "e2e-test-secret-not-for-production-0123456789",
       AUTH_TRUST_HOST: "true",
+      // Local tests must never inherit live payment or external account keys.
+      RAZORPAY_KEY_ID: "",
+      RAZORPAY_KEY_SECRET: "",
+      RAZORPAY_WEBHOOK_SECRET: "",
+      // Avatar browser tests intercept generation; this is never a real key.
+      OPENAI_API_KEY: "avatar-browser-test-placeholder",
+      GOOGLE_CLIENT_ID: "",
+      GOOGLE_CLIENT_SECRET: "",
     },
   },
 });

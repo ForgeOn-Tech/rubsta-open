@@ -39,6 +39,15 @@ export const avatarAttempts = sqliteTable("avatar_attempts", {
   finished: integer("finished", { mode: "boolean" }).notNull().default(false),
 }, table => [index("avatar_attempts_user_time").on(table.userId, table.startedAt)]);
 
+// An explicit approval of one exact card, separate from photo-processing consent.
+export const avatarShares = sqliteTable("avatar_shares", {
+  userId: text("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  avatarVersion: integer("avatar_version").notNull(),
+  png: text("png").notNull(),
+  consentAt: integer("consent_at").notNull(),
+  consentText: text("consent_text").notNull(),
+});
+
 export const accounts = sqliteTable(
   "accounts",
   {

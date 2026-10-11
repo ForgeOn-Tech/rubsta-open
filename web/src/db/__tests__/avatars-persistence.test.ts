@@ -3,7 +3,7 @@ import SQLite from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { expect, it } from "vitest";
-import { deleteAvatar, finishAvatar, reserveAvatar } from "../avatars";
+import { approveAvatarShare, deleteAvatar, finishAvatar, reserveAvatar, revokeAvatarShare } from "../avatars";
 import * as schema from "../schema";
 
 function setup() {
@@ -36,5 +36,25 @@ it("does not restore an avatar deleted during generation", () => {
     deleteAvatar(db, "player");
     finishAvatar(db, "player", attempt, "png");
     expect(db.select().from(schema.playerAvatars).get()).toBeUndefined();
+  } finally { sqlite.close(); }
+});
+
+it("ties publication consent to the exact avatar and clears it on replacement or deletion", () => {
+  const { db, sqlite } = setup();
+  try {
+    finishAvatar(db, "player", reserveAvatar(db, "player"), "first-avatar");
+    const version = db.select().from(schema.playerAvatars).get()!.updatedAt;
+    expect(() => approveAvatarShare(db, "player", version - 1, "card")).toThrow("changed");
+    approveAvatarShare(db, "player", version, "approved-card");
+    expect(db.select().from(schema.avatarShares).get()?.png).toBe("approved-card");
+    revokeAvatarShare(db, "player");
+    expect(db.select().from(schema.avatarShares).get()).toBeUndefined();
+    approveAvatarShare(db, "player", version, "approved-card");
+    finishAvatar(db, "player", reserveAvatar(db, "player"), "second-avatar");
+    expect(db.select().from(schema.avatarShares).get()).toBeUndefined();
+    const nextVersion = db.select().from(schema.playerAvatars).get()!.updatedAt;
+    approveAvatarShare(db, "player", nextVersion, "new-card");
+    deleteAvatar(db, "player");
+    expect(db.select().from(schema.avatarShares).get()).toBeUndefined();
   } finally { sqlite.close(); }
 });
