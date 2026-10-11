@@ -249,8 +249,16 @@ Statistics come from the events the umpire records: who won each point,
 faults, double faults and lets. `src/lib/match-stats.ts` replays them and counts
 points won, first serves in, points won on first and second serve, double
 faults, break points won, service games held, tiebreak points won and the
-longest run of points. The umpire does not record how a point ended, so there
-are no aces, winners or unforced errors. Doubles statistics are for each team.
+longest run of points. “Record point details” optionally adds an ace, winning shot,
+or opponent error when awarding a point. Skip keeps ordinary scoring available;
+Cancel does not award the point. Only the server can record an ace. Errors count
+against the losing side; aces are separate from winning shots. Undo removes both
+the point and its detail, including before final-result confirmation.
+
+Recorded-detail totals and coverage appear only after details are entered, so
+older matches do not imply that no aces or errors happened. Error entries do not
+distinguish forced from unforced errors. Details use the existing saved event list
+and survive offline syncing. Doubles statistics are for each team.
 A retired match has statistics up to the retirement.
 
 The statistics show under the result on the scoring screen when a match ends,

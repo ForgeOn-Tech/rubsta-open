@@ -22,6 +22,7 @@ function holdsToSixAll(): MatchEvent[] {
 }
 
 const ZERO: SideStats = {
+  detailsRecorded: 0, aces: 0, winners: 0, errors: 0,
   pointsWon: 0,
   servicePoints: 0,
   firstServesIn: 0,
@@ -157,4 +158,23 @@ describe("statRows", () => {
       bottom: "1",
     });
   });
+});
+
+
+it("counts recorded finishes, assigns errors to the loser and leaves skipped details unknown", () => {
+  const events: MatchEvent[] = [
+    { type: "point", side: "top", finish: "ace" },
+    { type: "point", side: "bottom", finish: "winner" },
+    { type: "point", side: "top", finish: "opponentError" },
+    { type: "point", side: "bottom" },
+  ];
+  const stats = matchStats(events, FORMAT, "top");
+  expect(stats.top).toMatchObject({ aces: 1, winners: 0, errors: 0, detailsRecorded: 2 });
+  expect(stats.bottom).toMatchObject({ aces: 0, winners: 1, errors: 1, detailsRecorded: 1 });
+  expect(statRows(stats)).toContainEqual({ label: "Points with details", top: "2/2", bottom: "1/2" });
+  expect(matchStats(events.slice(0, 2), FORMAT, "top").bottom.errors).toBe(0);
+});
+
+it("rejects an ace assigned to the receiver", () => {
+  expect(() => matchStats([{ type: "point", side: "bottom", finish: "ace" }], FORMAT, "top")).toThrow("Only the server");
 });

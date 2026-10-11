@@ -33,8 +33,11 @@ export function standardFormat(decidingSet: DecidingSet = "set"): MatchFormat {
   return { setsToWin: 2, gamesPerSet: 6, tiebreakPoints: 7, decidingSet };
 }
 
+export const POINT_FINISHES = ["ace", "winner", "opponentError"] as const;
+export type PointFinish = (typeof POINT_FINISHES)[number];
+
 export type MatchEvent =
-  | { type: "point"; side: Side }
+  | { type: "point"; side: Side; finish?: PointFinish }
   | { type: "fault" }
   | { type: "doubleFault" }
   | { type: "let" };
@@ -234,6 +237,7 @@ export function applyEvent(
   };
   switch (event.type) {
     case "point":
+      if (event.finish === "ace" && event.side !== state.server) throw new Error("Only the server can score an ace.");
       awardPoint(next, event.side, format);
       return next;
     case "fault":
