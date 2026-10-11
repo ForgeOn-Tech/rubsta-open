@@ -3,8 +3,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { listScoringMatches } from "@/db/matches";
 import { getPartnerInvitation, listTeamEntryIds } from "@/db/partners";
-import { getCurrentTournament } from "@/db/queries";
-import { profiles } from "@/db/schema";
+import { profiles, tournaments } from "@/db/schema";
 import { UnprintableTextError, certificatePdf } from "@/lib/certificate-pdf";
 import { certificateFileName, certificateText, earnedCertificates } from "@/lib/certificates";
 import { formatTournamentDates } from "@/lib/format";
@@ -21,21 +20,22 @@ function textResponse(message: string, status: number): Response {
 
 /** Shared rendering; callers must authorize access to the supplied player first. */
 export async function downloadPlayerCertificate(userId: string, entryId: string, kind: string): Promise<Response> {
-  const tournament = getCurrentTournament();
+  const database = getDb();
+  const invitation = getPartnerInvitation(database, entryId);
+  const tournament = invitation ? database.select().from(tournaments).where(eq(tournaments.id, invitation.entry.tournamentId)).get() : null;
   if (!tournament) return textResponse("No tournament has been set up.", 404);
 
-  const database = getDb();
   const certificate = earnedCertificates(
     listScoringMatches(database, tournament.id),
     new Set(listTeamEntryIds(database, userId)),
   ).find((item) => item.entryId === entryId && item.kind === kind);
   const profile = database.select().from(profiles).where(eq(profiles.userId, userId)).get();
-  const invitation = getPartnerInvitation(database, entryId);
   if (!certificate || !profile || !invitation) {
     return textResponse("You have no such certificate.", 404);
   }
 
-  const { entry, inviterName } = invitation;
+  const { entry } = invitation;
+  const inviterName = database.select({ name: profiles.fullName }).from(profiles).where(eq(profiles.userId, entry.userId)).get()?.name ?? "Partner";
   const text = certificateText({
     kind: certificate.kind,
     playerName: profile.fullName,
