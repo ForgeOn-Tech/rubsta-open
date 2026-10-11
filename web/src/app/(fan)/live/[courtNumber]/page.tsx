@@ -11,7 +11,6 @@ import { getCurrentTournament } from "@/db/queries";
 import { FAN_LIVE_PATH } from "@/lib/fan-chat";
 import { MAX_COURT } from "@/lib/score-record";
 import { courtDetail, courtTitle } from "@/lib/schedule";
-import { streamEmbedUrl } from "@/lib/stream";
 
 export const dynamic = "force-dynamic";
 
@@ -60,7 +59,6 @@ export default async function FanCourtPage({
 
       <CourtLive
         courtNumber={courtNumber}
-        embedUrl={streamEmbedUrl(court.streamUrl)}
         initialFeed={feed}
         predictAction={predictAction}
         reactAction={reactAction}

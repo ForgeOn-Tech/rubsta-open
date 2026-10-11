@@ -598,3 +598,11 @@ export const playerCardShares = sqliteTable("player_card_shares", {
   token: text("token").notNull().unique(),
   createdAt: integer("created_at").notNull(),
 });
+
+/** Organiser-managed video status, separate from whether a match is in play. */
+export const courtBroadcasts = sqliteTable("court_broadcasts", {
+  courtId: text("court_id").primaryKey().references(() => courts.id, { onDelete: "cascade" }),
+  status: text("status", { enum: ["off", "scheduled", "live", "ended"] }).notNull().default("off"),
+  replayUrl: text("replay_url"),
+  updatedAt: integer("updated_at").notNull(),
+});

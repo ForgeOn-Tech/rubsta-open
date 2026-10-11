@@ -1,3 +1,5 @@
+import { getBroadcast } from "./broadcasts";
+import { publicBroadcast } from "@/lib/broadcast";
 import type { Database } from "./draws";
 import {
   countPredictions,
@@ -41,7 +43,9 @@ export function fanFeed(
   const live = liveRow === null ? null : scoreboard(liveRow);
   const nextPlace = nextRow === null ? undefined : places.get(nextRow.match.id);
 
+  const broadcast = tournamentId ? getBroadcast(database, tournamentId, courtNumber) : null;
   return {
+    broadcast: broadcast ? publicBroadcast(broadcast) : null,
     watching,
     live,
     next:

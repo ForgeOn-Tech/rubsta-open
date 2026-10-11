@@ -1,7 +1,7 @@
 import { and, asc, eq } from "drizzle-orm";
 
 import type { Database } from "./draws";
-import { courts, scheduleDays, scheduleItems, type Court } from "./schema";
+import { courtBroadcasts, courts, scheduleDays, scheduleItems, type Court } from "./schema";
 import { nextCourtNumber, type CourtFields } from "@/lib/schedule";
 
 /** A court on the order of play, working or published, cannot be deleted. */
@@ -47,12 +47,15 @@ export function updateCourt(
   courtNumber: number,
   fields: CourtFields,
 ): void {
-  const result = database
-    .update(courts)
-    .set({ name: fields.name, surface: fields.surface, streamUrl: fields.streamUrl })
-    .where(and(eq(courts.tournamentId, tournamentId), eq(courts.number, courtNumber)))
-    .run();
-  if (result.changes === 0) throw new Error(`Court ${courtNumber} does not exist.`);
+  database.transaction(tx => {
+    const court = tx.select().from(courts).where(and(eq(courts.tournamentId, tournamentId), eq(courts.number, courtNumber))).get();
+    if (!court) throw new Error(`Court ${courtNumber} does not exist.`);
+    tx.update(courts).set({ name: fields.name, surface: fields.surface, streamUrl: fields.streamUrl }).where(eq(courts.id, court.id)).run();
+    // A replacement video has not been checked live. Clear the previous replay too.
+    if (court.streamUrl !== fields.streamUrl) tx.update(courtBroadcasts)
+      .set({ status: fields.streamUrl ? "scheduled" : "off", replayUrl: null, updatedAt: Date.now() })
+      .where(eq(courtBroadcasts.courtId, court.id)).run();
+  });
 }
 
 /** Deletes a court that no working or published order of play uses. */

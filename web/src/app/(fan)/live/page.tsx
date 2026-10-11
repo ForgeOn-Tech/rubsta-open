@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { getBroadcast } from "@/db/broadcasts";
+import { BROADCAST_LABELS } from "@/lib/broadcast";
 
 import { AutoRefresh } from "@/components/auto-refresh";
 import { getDb } from "@/db/client";
@@ -55,6 +57,7 @@ export default async function FanLivePage() {
         <ul className="grid gap-4 sm:grid-cols-2">
           {views.map((view) => (
             <li key={view.court.number}>
+              <p className="mb-2 text-xs text-club-mist/70">Video · {BROADCAST_LABELS[getBroadcast(database, view.court.tournamentId, view.court.number)?.status ?? "off"]}</p>
               <CourtCard view={view} place={view.next === null ? null : (places.get(view.next.match.id) ?? null)} />
             </li>
           ))}
@@ -81,7 +84,7 @@ function CourtCard({ view, place }: { view: CourtView; place: PublishedPlace | n
           </span>
         ) : (
           <span className="bg-club-lime px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[1.5px] text-club-forest">
-            Live
+            Match live
           </span>
         )}
       </div>

@@ -94,3 +94,14 @@ export function addNewerChallengeAttempts(): void {
     for (let index = 0; index < 100; index++) insert.run(randomUUID(), tournamentId, player.user_id, Date.now() + index);
   });
 }
+
+/** A separate court for streaming tests, with no impact on the match fixtures. */
+export function addStreamingCourt(): number {
+  let number = 1;
+  withTournament((database, tournamentId) => {
+    const row = database.prepare("select coalesce(max(number), 0) + 1 as next from courts where tournament_id = ?").get(tournamentId) as { next: number };
+    number = row.next;
+    database.prepare("insert into courts (id, tournament_id, number, name, surface) values (?, ?, ?, 'Streaming test', 'Hard')").run(randomUUID(), tournamentId, number);
+  });
+  return number;
+}

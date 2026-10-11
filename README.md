@@ -366,7 +366,8 @@ npm run test:e2e:production      # the same tests against next build and next st
 
 The offline reload test runs only in the production run. Under `next dev`, a
 page reopened with no signal gets its files from the service worker but does not
-hydrate.
+hydrate. Scoring links use full-page navigation while offline so the service worker
+can serve its saved HTML without attempting a server-data request first.
 
 ### Fan Zone
 
@@ -382,8 +383,26 @@ when the account carries no name either. Chat messages carry
 a display name and nothing else: no email address and no account id reaches the
 public page.
 
-Admins paste a court's YouTube link in `/admin/settings`. Only a link that reads
-as a YouTube video is shown, so no other site can be framed on the page.
+Admins manage each court at `/admin/streaming`: paste a public YouTube video link,
+preview it, and save No broadcast, Starting soon, Live or Ended. These labels are
+set by the organiser; the app does not start the camera or detect YouTube stream
+health. Stream keys stay in the broadcasting equipment, not Tournament OS.
+Existing Settings links remain watchable as Starting soon until an organiser
+chooses a status. Replacing a link from Settings resets its status and replay.
+
+Open court pages receive updated links and status through their existing five-second
+feed. Ended broadcasts show only an explicitly supplied replay link; recordings
+are not fetched automatically. Only validated YouTube embeds are allowed, with
+an external watch link if embedding is unavailable. With video present, the
+separate current score is collapsed by default because it may run ahead of the
+video. The viewer count measures tabs on the court page, not YouTube viewers.
+
+Use a phone app or camera plus broadcasting software to send video to YouTube;
+first-time YouTube Live activation can take up to 24 hours. See the linked
+YouTube setup guide in the admin page. A real venue camera, channel embedding
+permissions and upload connection must be rehearsed before tournament day.
+Browser tests simulate the embedded video; they do not verify real broadcasting.
+Migration `0016` adds court broadcast settings without changing existing records.
 
 Fans pick who takes the set being played and may change their mind until the set
 reaches five games. A point goes to each correct pick, counted only once the set

@@ -439,14 +439,14 @@ test.describe.serial("registration", () => {
     // run, which skips the offline test, so the point reads 30 or 40.
     await page.goto("/live");
     const courtCard = page.getByRole("link", { name: /Court 2/ });
-    await expect(courtCard).toContainText("Live");
+    await expect(courtCard).toContainText("Match live");
     await expect(courtCard).toContainText(/· (30|40)/);
     await courtCard.click();
 
     await expect(page).toHaveURL(/\/live\/2$/);
     const score = page.getByRole("region", { name: "Score" });
     await expect(score).toContainText("Semi-finals");
-    await expect(page.getByText(/\d+ watching/)).toBeVisible();
+    await expect(page.getByText(/\d+ on this page/)).toBeVisible();
     // Watching is free; joining in needs an account.
     await expect(page.getByRole("button", { name: /^Applause/ })).toHaveCount(0);
     await expect(page.getByRole("region", { name: "Court chat" })).toContainText("to join the chat");
