@@ -157,7 +157,7 @@ npm run dev                  # http://localhost:3100
 | `/signin` | Everyone | Google sign-in when configured; demo account when `DEMO_AUTH=true` |
 | `/home` | Players | Next step, partner invitations, entries, next match, player card with record and certificates, tournament details |
 | `/profile` | Players | Name, date of birth, gender, mobile, club, best ranking, past tournaments |
-| `/register` | Players | Choose an event (Open singles, Women's 30+, U-15 juniors, Open doubles, 40+ singles); doubles need a partner name and email |
+| `/register` | Players | Choose an event (Open singles, Women's 30+, U-15 juniors, Open doubles, 40+ singles, 40+ doubles); doubles need a partner name and email |
 | `/register/<entry id>` | Players | Entry confirmation and, while unpaid, the Pay button, visible only to the player who entered; for doubles, the partner link and a way to change partner |
 | `/partner/<entry id>` | Invited partners | Accept or decline a doubles invitation, visible only to the invited email |
 | `/draws` and `/draws/<event>` | Everyone | Published draws with scores; a signed-in player's own lines are marked |

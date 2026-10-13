@@ -33,13 +33,15 @@ describe("category labels", () => {
       U15: "U-15 juniors",
       OD: "Open doubles",
       S40: "40+ singles",
+      D40: "40+ doubles",
     });
   });
 });
 
 describe("isDoubles", () => {
-  it("is true only for Open doubles", () => {
+  it("is true for both doubles categories", () => {
     expect(isDoubles("OD")).toBe(true);
+    expect(isDoubles("D40")).toBe(true);
     expect(isDoubles("OS")).toBe(false);
     expect(isDoubles("W30")).toBe(false);
     expect(isDoubles("U15")).toBe(false);

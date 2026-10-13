@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { comboPartner, registrationOption, registrationPrice, topUpPrice } from "@/lib/registration-pricing";
 
-const fees = { OS: 300000, OD: 400000, S40: 300000, W30: 250000, U15: 200000 };
+const fees = { OS: 300000, OD: 400000, D40: 300000, S40: 300000, W30: 250000, U15: 200000 };
 
 describe("registration pricing", () => {
   it("offers only the agreed combinations", () => {

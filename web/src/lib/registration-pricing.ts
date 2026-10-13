@@ -8,6 +8,7 @@ export const REGISTRATION_OPTIONS = [
   { id: "U15", categories: ["U15"] },
   { id: "OD", categories: ["OD"] },
   { id: "S40", categories: ["S40"] },
+  { id: "D40", categories: ["D40"] },
   { id: "OS_OD", categories: ["OS", "OD"] },
   { id: "S40_OD", categories: ["S40", "OD"] },
   { id: "W30_OD", categories: ["W30", "OD"] },
@@ -55,5 +56,5 @@ export function topUpPrice(
 }
 
 export function registrationOptionLabel(id: RegistrationOptionId): string {
-  return ({ OS: "Open singles", W30: "Women's 30+", U15: "U-15 juniors", OD: "Open doubles", S40: "40+ singles", OS_OD: "Open singles + Open doubles", S40_OD: "40+ singles + Open doubles", W30_OD: "Women's 30+ + Open doubles" })[id];
+  return ({ OS: "Open singles", W30: "Women's 30+", U15: "U-15 juniors", OD: "Open doubles", S40: "40+ singles", D40: "40+ doubles", OS_OD: "Open singles + Open doubles", S40_OD: "40+ singles + Open doubles", W30_OD: "Women's 30+ + Open doubles" })[id];
 }

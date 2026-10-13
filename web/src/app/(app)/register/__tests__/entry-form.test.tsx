@@ -16,12 +16,21 @@ const BASE_PROPS: EntryFormProps = {
   action: rejectingAction,
   tournamentId: "tournament-1",
   enteredCategories: [],
-  optionPrices: { OS: 280000, W30: 230000, U15: 180000, OD: 380000, S40: 280000, OS_OD: 650000, S40_OD: 650000, W30_OD: 600000 },
+  optionPrices: { OS: 280000, W30: 230000, U15: 180000, OD: 380000, D40: 280000, S40: 280000, OS_OD: 650000, S40_OD: 650000, W30_OD: 600000 },
   closesLabel: "22 Sep, 18:00 IST",
   paymentsEnabled: false,
 };
 
 describe("EntryForm", () => {
+  it("requires a partner and charges 3000 for a 40+ doubles team", async () => {
+    const user = userEvent.setup();
+    render(<EntryForm {...BASE_PROPS} optionPrices={{ ...BASE_PROPS.optionPrices, D40: 300000 }} />);
+    await user.click(screen.getByRole("radio", { name: "40+ doubles" }));
+    expect(screen.getByLabelText("Partner name")).toBeRequired();
+    expect(screen.getByLabelText("Partner email")).toBeRequired();
+    expect(screen.getByText("₹3,000")).toBeInTheDocument();
+  });
+
   it("disables events the player has already entered", () => {
     render(<EntryForm {...BASE_PROPS} enteredCategories={["OS"]} />);
 

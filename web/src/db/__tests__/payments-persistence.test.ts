@@ -100,6 +100,15 @@ afterEach(() => {
 });
 
 describe("getPayableEntry", () => {
+  it("charges 3000 rupees for the whole 40+ doubles team", () => {
+    vi.setSystemTime(new Date("2026-10-13T09:00:00+05:30"));
+    const database = setup();
+    addSelection(database, ["d40"], ["D40"]);
+    expect(getPayableEntry(database, "d40", PLAYER).feeCents).toBe(300000);
+    expect(payCheckout(database, "d40", "pay_d40")).toBe(300000);
+    expect(entryOf(database, "d40")?.status).toBe("paid");
+  });
+
   it("lets a paid player pay for another event at its single price", () => {
     const database = setup();
     addEntry(database, "paid", "OS", "paid");

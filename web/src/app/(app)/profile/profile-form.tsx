@@ -15,8 +15,9 @@ import {
   type PreviousTournament,
   type Profile,
 } from "@/db/schema";
+import { isDoubles } from "@/lib/entries";
 import { ageFromDob } from "@/lib/age";
-import { REGISTRATION_OPTIONS, registrationOptionLabel } from "@/lib/registration-pricing";
+import { REGISTRATION_OPTIONS, registrationOption, registrationOptionLabel } from "@/lib/registration-pricing";
 import { registrationPrice } from "@/lib/registration-pricing";
 import { formatFee } from "@/lib/format";
 
@@ -320,7 +321,7 @@ export function ProfileForm({ initial, fallbackName, email, registration }: Prof
               </option>
             ))}
           </select>
-          {category.includes("OD") ? (
+          {registrationOption(category)?.categories.some(isDoubles) ? (
             <>
               <label className="caps" htmlFor="partnerName">Partner name</label>
               <input id="partnerName" name="partnerName" className="field" required />
