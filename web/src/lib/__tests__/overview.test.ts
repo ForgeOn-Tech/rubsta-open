@@ -7,7 +7,7 @@ describe("summariseByEvent", () => {
   it("lists every event even with no entries", () => {
     const summary = summariseByEvent([]);
 
-    expect(summary.map((row) => row.category)).toEqual(["OS", "W30", "U15", "OD", "S40"]);
+    expect(summary.map((row) => row.category)).toEqual(["OS", "W30", "U15", "OD", "S40", "D40"]);
     expect(summary.every((row) => row.active === 0 && row.accepted === 0)).toBe(true);
   });
 

@@ -166,7 +166,7 @@ export const tournaments = sqliteTable("tournaments", {
     .default(false),
 });
 
-export const CATEGORIES = ["OS", "W30", "U15", "OD", "S40"] as const;
+export const CATEGORIES = ["OS", "W30", "U15", "OD", "S40", "D40"] as const;
 export type Category = (typeof CATEGORIES)[number];
 export const CATEGORY_LABELS: Record<Category, string> = {
   OS: "Open singles",
@@ -174,8 +174,9 @@ export const CATEGORY_LABELS: Record<Category, string> = {
   U15: "U-15 juniors",
   OD: "Open doubles",
   S40: "40+ singles",
+  D40: "40+ doubles",
 };
-export const DOUBLES_CATEGORIES: readonly Category[] = ["OD"];
+export const DOUBLES_CATEGORIES: readonly Category[] = ["OD", "D40"];
 
 /** Each event's entry fee in paise. A doubles fee covers the whole team. */
 export const eventFees = sqliteTable(

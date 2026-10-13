@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 
 import { type Category } from "@/db/schema";
-import { type EntryFormState } from "@/lib/entries";
+import { isDoubles, type EntryFormState } from "@/lib/entries";
 import { REGISTRATION_OPTIONS, registrationOptionLabel, type RegistrationOptionId } from "@/lib/registration-pricing";
 import { formatFee } from "@/lib/format";
 
@@ -77,7 +77,7 @@ export function EntryForm({
                   {registrationOptionLabel(option.id)}
                 </label>
                 <span id={hintId} className="mono text-[11px] text-dim">
-                  {!available ? "Entered" : (option.categories as readonly Category[]).includes("OD") ? "Partner required" : ""}
+                  {!available ? "Entered" : (option.categories as readonly Category[]).some(isDoubles) ? "Partner required" : ""}
                 </span>
               </div>
             );
@@ -85,7 +85,7 @@ export function EntryForm({
         </div>
       </fieldset>
 
-      {(selected.categories as readonly Category[]).includes("OD") ? (
+      {(selected.categories as readonly Category[]).some(isDoubles) ? (
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <label className="caps" htmlFor="partnerName">
@@ -115,7 +115,7 @@ export function EntryForm({
         </div>
       ) : null}
 
-      {(selected.categories as readonly Category[]).includes("OD") ? (
+      {(selected.categories as readonly Category[]).some(isDoubles) ? (
         <p className="-mt-2 text-[12px] text-muted">
           Your partner signs in with this email to accept. The entry goes into the draw once they
           accept. You pay the fee for the whole team.

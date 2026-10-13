@@ -49,7 +49,7 @@ the regular ₹500 combo discount. Through 30 September 2026, 23:59 IST:
 
 For example, Open singles + Open doubles is ₹6,500 early bird, then ₹7,000;
 40+ singles + Open doubles is ₹6,500, then ₹7,000; Women's 30+ + Open doubles
-is ₹6,000, then ₹6,500. There is no separate 40+ doubles category.
+is ₹6,000, then ₹6,500. 40+ doubles is a separate category at ₹3,000 per team, with no prize money.
 
 The landing-page draft displays the revised offer until
 `2026-10-01T00:00:00+05:30`, then removes it when JavaScript is enabled.

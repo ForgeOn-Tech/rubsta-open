@@ -17,6 +17,7 @@ export const SEED_FEES: EventFees = {
   U15: 200000,
   OD: 400000,
   S40: 300000,
+  D40: 300000,
 };
 
 /** Idempotent startup seed: insert the event only when no tournament exists. */

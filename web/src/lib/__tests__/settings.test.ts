@@ -14,7 +14,7 @@ const VALID: SettingsForm = {
   endsOn: "2026-09-27",
   venue: "Deccan Gymkhana, Pune",
   entryClosesAt: "2026-09-22T18:00",
-  feeRupees: { OS: "3000", W30: "2500", U15: "2000", OD: "4000", S40: "3000" },
+  feeRupees: { OS: "3000", W30: "2500", U15: "2000", OD: "4000", D40: "3000", S40: "3000" },
   status: "open",
   scheduleConfirmed: true,
 };
@@ -37,7 +37,7 @@ describe("validateSettings", () => {
         status: "open",
         scheduleConfirmed: true,
       },
-      fees: { OS: 300000, W30: 250000, U15: 200000, OD: 400000, S40: 300000 },
+      fees: { OS: 300000, W30: 250000, U15: 200000, OD: 400000, D40: 300000, S40: 300000 },
     });
   });
 
