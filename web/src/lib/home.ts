@@ -135,12 +135,6 @@ export const UPCOMING_FEATURES: readonly UpcomingFeature[] = [
       "Court-side umpire scoring, live scores, draw and fixture updates, and match statistics.",
   },
   {
-    product: "Challenge Kit",
-    title: "Put your skills to the test.",
-    description:
-      "Serve and groundstroke speed, accuracy and reaction challenges, with leaderboards.",
-  },
-  {
     product: "Fan Zone",
     title: "Bring the crowd into the game.",
     description:

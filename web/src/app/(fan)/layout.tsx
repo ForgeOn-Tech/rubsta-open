@@ -1,12 +1,5 @@
-import Link from "next/link";
-
+import { PlayerHeader } from "@/components/player-header";
 import { auth } from "@/auth/auth";
-import { FAN_LEADERBOARD_PATH, FAN_LIVE_PATH } from "@/lib/fan-chat";
-import {
-  PLAYER_DRAWS_PATH,
-  PLAYER_ORDER_OF_PLAY_PATH,
-  PUBLIC_RESULTS_PATH,
-} from "@/lib/player-matches";
 
 export const dynamic = "force-dynamic";
 
@@ -21,33 +14,7 @@ export default async function FanLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="club fan-shell flex min-h-screen flex-col bg-club-forest text-club-mist">
-      <header className="border-b border-club-mist/20">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-5">
-          <Link href={FAN_LIVE_PATH} className="flex flex-col">
-            <span className="font-serif text-[28px] leading-none tracking-[-0.4px]">Rubsta Open</span>
-            <span className="mt-1.5 text-[9px] uppercase tracking-[1.5px]">Fan zone</span>
-          </Link>
-          <nav
-            aria-label="Fan zone"
-            className="flex items-center gap-5 text-[11px] font-medium uppercase tracking-[1.5px]"
-          >
-            <Link href={FAN_LIVE_PATH}>Live</Link>
-            <Link href={FAN_LEADERBOARD_PATH} className="hidden sm:inline">
-              Leaderboard
-            </Link>
-            <Link href={PLAYER_DRAWS_PATH} className="hidden sm:inline">
-              Draws
-            </Link>
-            <Link href={PUBLIC_RESULTS_PATH} className="hidden sm:inline">
-              Results
-            </Link>
-            <Link href={PLAYER_ORDER_OF_PLAY_PATH} className="hidden sm:inline">
-              Order of play
-            </Link>
-            {signedIn ? <Link href="/home">Your account</Link> : <Link href="/signin">Sign in</Link>}
-          </nav>
-        </div>
-      </header>
+      <PlayerHeader signedIn={signedIn} />
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-10">{children}</main>
 

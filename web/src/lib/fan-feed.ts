@@ -1,3 +1,4 @@
+import type { PublicBroadcast } from "./broadcast";
 import type { ChatMessage } from "@/db/fan";
 import type { ReactionKind } from "@/db/schema";
 import type { FanScoreboard } from "@/lib/fan-live";
@@ -19,6 +20,7 @@ export interface FanPredictionFeed {
 
 /** Everything one court page shows, refreshed together. */
 export interface FanFeed {
+  broadcast: PublicBroadcast | null;
   watching: number;
   live: FanScoreboard | null;
   next: { board: FanScoreboard; place: string | null } | null;

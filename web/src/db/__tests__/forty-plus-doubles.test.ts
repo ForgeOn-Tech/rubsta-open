@@ -17,7 +17,7 @@ it("adds the team fee to existing tournaments without changing existing fees", (
     const tournament = db.select().from(schema.tournaments).get()!;
     expect(getEventFees(db, tournament.id).D40).toBe(300000);
     sqlite.exec("DELETE FROM event_fees WHERE category = 'D40'; UPDATE event_fees SET fee_cents = 350000 WHERE category = 'OS';");
-    const migration = readFileSync("./drizzle/0014_forty_plus_doubles.sql", "utf8");
+    const migration = readFileSync("./drizzle/0019_forty_plus_doubles.sql", "utf8");
     sqlite.exec(migration);
     expect(getEventFees(db, tournament.id)).toMatchObject({ D40: 300000, OS: 350000 });
     sqlite.exec("UPDATE event_fees SET fee_cents = 320000 WHERE category = 'D40'");

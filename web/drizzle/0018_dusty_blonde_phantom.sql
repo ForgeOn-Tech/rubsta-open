@@ -1,0 +1,1 @@
+ALTER TABLE `payment_emails` ADD `html` text;

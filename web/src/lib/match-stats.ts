@@ -1,8 +1,4 @@
-/**
- * Match statistics from the recorded events. The umpire records who won each
- * point, faults, double faults and lets, not how a point was won, so there
- * are no aces, winners or unforced errors here.
- */
+/** Match statistics from recorded events. Optional point details are counted only when entered. */
 
 import {
   SIDES,
@@ -13,6 +9,7 @@ import {
   standardFormat,
   type MatchEvent,
   type MatchFormat,
+  type PointFinish,
   type MatchState,
   type Side,
 } from "@/lib/match";
@@ -23,6 +20,10 @@ export const ADMIN_RESULTS_PATH = "/admin/results";
 /** One side's numbers. For doubles, a side is the team. */
 export interface SideStats {
   pointsWon: number;
+  detailsRecorded: number;
+  aces: number;
+  winners: number;
+  errors: number;
   /** Points this side served, double faults included. */
   servicePoints: number;
   firstServesIn: number;
@@ -51,6 +52,7 @@ export interface StatRow {
 /** What happened on one finished point. */
 interface PointFacts {
   server: Side;
+  finish?: PointFinish;
   winner: Side;
   secondServe: boolean;
   doubleFault: boolean;
@@ -69,6 +71,10 @@ interface Tally {
 
 const NO_STATS: SideStats = {
   pointsWon: 0,
+  detailsRecorded: 0,
+  aces: 0,
+  winners: 0,
+  errors: 0,
   servicePoints: 0,
   firstServesIn: 0,
   firstServePointsWon: 0,
@@ -99,6 +105,10 @@ function withPoint(stats: SideStats, side: Side, point: PointFacts): SideStats {
   const receivingBreakPoint = !serving && point.breakPoint;
   return {
     pointsWon: stats.pointsWon + count(won),
+    detailsRecorded: stats.detailsRecorded + count(won && point.finish !== undefined),
+    aces: stats.aces + count(won && point.finish === "ace"),
+    winners: stats.winners + count(won && point.finish === "winner"),
+    errors: stats.errors + count(!won && point.finish === "opponentError"),
     servicePoints: stats.servicePoints + count(serving),
     firstServesIn: stats.firstServesIn + count(serving && !point.secondServe),
     firstServePointsWon: stats.firstServePointsWon + count(serving && !point.secondServe && won),
@@ -126,6 +136,7 @@ function step(tally: Tally, event: MatchEvent, format: MatchFormat): Tally {
   const point: PointFacts = {
     server: before.server,
     winner,
+    finish: event.type === "point" ? event.finish : undefined,
     secondServe: before.faultPending || event.type === "doubleFault",
     doubleFault: event.type === "doubleFault",
     breakPoint: !before.tiebreak && hasGamePoint(before, other(before.server)),
@@ -183,6 +194,12 @@ export function statRows(stats: MatchStats): StatRow[] {
 
   return [
     row("Points won", (side) => String(side.pointsWon)),
+    ...(SIDES.some(side => stats[side].detailsRecorded > 0) ? [
+      row("Points with details", side => ratio(side.detailsRecorded, side.pointsWon)),
+      row("Recorded aces", side => String(side.aces)),
+      row("Recorded winning shots", side => String(side.winners)),
+      row("Recorded errors", side => String(side.errors)),
+    ] : []),
     row("First serve in", (side) => percent(side.firstServesIn, side.servicePoints)),
     row("Won on first serve", (side) => percent(side.firstServePointsWon, side.firstServesIn)),
     row("Won on second serve", (side) => percent(side.secondServePointsWon, side.secondServePoints)),

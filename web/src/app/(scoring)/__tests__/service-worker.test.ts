@@ -317,3 +317,29 @@ describe("the scoring service worker", () => {
     expect(worker.claim).toHaveBeenCalledTimes(1);
   });
 });
+
+
+it("keeps route-group script paths intact before declaring the page cached", async () => {
+  const worker = loadWorker();
+  const script = "/_next/static/chunks/app/(scoring)/score/page-123.js";
+  worker.setFetch(async input => {
+    const url = typeof input === "string" ? input : input.url;
+    return url === ORIGIN + script ? new Response("score-list-script") : html(`<script src="${script}"></script>`);
+  });
+  await (await dispatch(worker, "fetch", { request: navigation("/score") })).settle();
+  worker.setFetch(failingFetch);
+  const scriptResponse = await dispatch(worker, "fetch", { request: appFile(script) });
+  expect(await scriptResponse.response?.text()).toBe("score-list-script");
+  expect((await dispatch(worker, "fetch", { request: navigation("/score") })).response?.status).toBe(200);
+});
+
+it("does not keep a new page when a required script cannot be cached", async () => {
+  const worker = loadWorker();
+  worker.setFetch(async input => {
+    const url = typeof input === "string" ? input : input.url;
+    return url.includes("/_next/") ? new Response("Missing", { status: 404 }) : html('<script src="/_next/static/chunks/app/(scoring)/score/page.js"></script>');
+  });
+  await (await dispatch(worker, "fetch", { request: navigation("/score") })).settle();
+  worker.setFetch(failingFetch);
+  expect((await dispatch(worker, "fetch", { request: navigation("/score") })).response?.status).toBe(503);
+});

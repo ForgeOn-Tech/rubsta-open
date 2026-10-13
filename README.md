@@ -249,8 +249,16 @@ Statistics come from the events the umpire records: who won each point,
 faults, double faults and lets. `src/lib/match-stats.ts` replays them and counts
 points won, first serves in, points won on first and second serve, double
 faults, break points won, service games held, tiebreak points won and the
-longest run of points. The umpire does not record how a point ended, so there
-are no aces, winners or unforced errors. Doubles statistics are for each team.
+longest run of points. “Record point details” optionally adds an ace, winning shot,
+or opponent error when awarding a point. Skip keeps ordinary scoring available;
+Cancel does not award the point. Only the server can record an ace. Errors count
+against the losing side; aces are separate from winning shots. Undo removes both
+the point and its detail, including before final-result confirmation.
+
+Recorded-detail totals and coverage appear only after details are entered, so
+older matches do not imply that no aces or errors happened. Error entries do not
+distinguish forced from unforced errors. Details use the existing saved event list
+and survive offline syncing. Doubles statistics are for each team.
 A retired match has statistics up to the retirement.
 
 The statistics show under the result on the scoring screen when a match ends,
@@ -282,7 +290,19 @@ another script gets a "cannot be made yet" message instead of a certificate.
 "Share card" makes a PNG of the card. It shows the name, player ID, hand, club,
 ranking and match record, not the date of birth, mobile or email. Where the
 browser can share files, it opens the share sheet; otherwise it saves the image.
-Both downloads serve only the signed-in player's own certificates and card.
+These original download routes serve only the signed-in player's own files.
+
+`/player-card` is the private full-card preview, linked from the home card. It
+shows recorded match history, tournament results and earned PDFs, with
+player-entered history and rankings explicitly labelled. Published draws only
+contribute match results and certificates; accepted doubles partners share their
+team's record. Contact information and date of birth are excluded.
+
+Players can enable an unlisted `/players/<token>` link from Sharing options.
+Anyone with it can see the card and download earned certificates without signing
+in. Turning sharing off disables the page and its certificate routes; re-enabling
+creates a new link. Public pages are marked not to be indexed, and certificate
+responses are not cached. Already downloaded copies cannot be recalled.
 
 `/register` sends players to `/profile` until they save a profile. A player can
 enter each event once, including an event they joined as a doubles partner. A
@@ -346,7 +366,8 @@ npm run test:e2e:production      # the same tests against next build and next st
 
 The offline reload test runs only in the production run. Under `next dev`, a
 page reopened with no signal gets its files from the service worker but does not
-hydrate.
+hydrate. Scoring links use full-page navigation while offline so the service worker
+can serve its saved HTML without attempting a server-data request first.
 
 ### Fan Zone
 
@@ -362,8 +383,26 @@ when the account carries no name either. Chat messages carry
 a display name and nothing else: no email address and no account id reaches the
 public page.
 
-Admins paste a court's YouTube link in `/admin/settings`. Only a link that reads
-as a YouTube video is shown, so no other site can be framed on the page.
+Admins manage each court at `/admin/streaming`: paste a public YouTube video link,
+preview it, and save No broadcast, Starting soon, Live or Ended. These labels are
+set by the organiser; the app does not start the camera or detect YouTube stream
+health. Stream keys stay in the broadcasting equipment, not Tournament OS.
+Existing Settings links remain watchable as Starting soon until an organiser
+chooses a status. Replacing a link from Settings resets its status and replay.
+
+Open court pages receive updated links and status through their existing five-second
+feed. Ended broadcasts show only an explicitly supplied replay link; recordings
+are not fetched automatically. Only validated YouTube embeds are allowed, with
+an external watch link if embedding is unavailable. With video present, the
+separate current score is collapsed by default because it may run ahead of the
+video. The viewer count measures tabs on the court page, not YouTube viewers.
+
+Use a phone app or camera plus broadcasting software to send video to YouTube;
+first-time YouTube Live activation can take up to 24 hours. See the linked
+YouTube setup guide in the admin page. A real venue camera, channel embedding
+permissions and upload connection must be rehearsed before tournament day.
+Browser tests simulate the embedded video; they do not verify real broadcasting.
+Migration `0016` adds court broadcast settings without changing existing records.
 
 Fans pick who takes the set being played and may change their mind until the set
 reaches five games. A point goes to each correct pick, counted only once the set
@@ -473,3 +512,32 @@ The themed landing page uses `/register` and `/internal` links. In localhost pre
 `assets/register.js` sends them to the Next.js app on port 3100. `/internal` requires
 sign-in and directs admins to `/admin`, umpires to `/score`, and players to `/home`.
 No payment keys or local databases belong in the deployment artifact.
+
+Payment confirmations use Resend, from **Rubsta Open <info@rubstaopen.com>**,
+with replies to **info@rubstaopen.com**. Migration 0017 creates a durable
+`payment_emails` queue. Every newly captured payment queues one receipt to the
+payer's account email. The queue is saved in the same transaction as payment;
+checkout and webhook duplicates cannot create duplicate receipts. Existing
+payments are not backfilled. Cancelled entries receive a review notice, and
+doubles receipts explain when partner acceptance is still pending.
+
+Enable only after verifying `rubstaopen.com` in Resend:
+- Set `RESEND_API_KEY` privately in the app environment (never commit it).
+- Set `PAYMENT_EMAILS_ENABLED=true` and restart the Google Cloud app.
+- Keep delivery disabled in previews and automated browser tests.
+- Test a receipt before announcing email confirmations to players.
+
+A worker in the existing long-lived server checks pending messages every five
+seconds, including after a restart; no page visit or separate scheduler is needed.
+Failures retry with increasing delays up to an hour, without undoing payment.
+The request payload and per-payment idempotency key stay unchanged across retries.
+Resend duplicate protection lasts 24 hours, so uncertain sends are held after
+23 hours instead of risking another receipt. Permanent provider errors also
+set `needs_review`.
+
+Operations: inspect `payment_emails.last_error`, `needs_review`, `attempts`
+and `provider_id`. `accepted_at` means Resend accepted the email, not inbox
+delivery. Check delivery/bounces in Resend using the provider reference. Check
+Resend logs for the `payment-confirmation/<payment_id>` key before retrying a
+held row; do not clear its frozen request or first-attempt time on an uncertain
+send. No automatic historical backfill or bulk resend is provided.

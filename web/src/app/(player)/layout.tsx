@@ -1,9 +1,7 @@
+import { PlayerHeader } from "@/components/player-header";
 import Link from "next/link";
 
-import { signOutAction } from "@/auth/actions";
 import { canAccessAdmin, canScoreMatches, requireUser } from "@/auth/require";
-import { getDb } from "@/db/client";
-import { registrationState } from "@/db/registration";
 
 export const dynamic = "force-dynamic";
 
@@ -14,50 +12,13 @@ export default async function PlayerLayout({
   children: React.ReactNode;
 }) {
   const user = await requireUser();
-  const registration = registrationState(getDb(), user.id);
   const admin = canAccessAdmin(user.email);
   const scorer = canScoreMatches(user.email);
   const demoMode = process.env.DEMO_AUTH === "true";
 
   return (
     <div className="club flex flex-col">
-      <header className="bg-club-forest text-club-mist">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-5">
-          <Link href="/home" className="flex flex-col">
-            <span className="font-serif text-[28px] leading-none tracking-[-0.4px]">
-              Rubsta Open
-            </span>
-            <span className="mt-1.5 text-[9px] uppercase tracking-[1.5px]">
-              Powered by ForgeLabs
-            </span>
-          </Link>
-          <nav
-            aria-label="Player"
-            className="flex items-center gap-5 text-[11px] font-medium uppercase tracking-[1.5px]"
-          >
-            <Link href="/draws" className="hidden sm:inline">
-              Draws
-            </Link>
-            <Link href="/order-of-play" className="hidden sm:inline">
-              Order of play
-            </Link>
-            <Link href={registration.pendingId ? `/register/${registration.pendingId}` : "/register"} className="hidden sm:inline">
-              {registration.pendingId ? "Complete registration" : registration.paid ? "Add a category" : "Register"}
-            </Link>
-            <Link href="/profile" className="hidden sm:inline">
-              Profile
-            </Link>
-            <form action={signOutAction}>
-              <button
-                type="submit"
-                className="cursor-pointer font-medium uppercase tracking-[1.5px]"
-              >
-                Sign out
-              </button>
-            </form>
-          </nav>
-        </div>
-      </header>
+      <PlayerHeader signedIn={true} />
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-10">{children}</main>
 

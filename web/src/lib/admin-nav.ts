@@ -17,8 +17,10 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
   { label: "Results", href: "/admin/results" },
   { label: "Players", href: "/admin/players" },
   { label: "Avatar permissions", href: "/admin/avatars" },
+  { label: "Challenge Kit", href: "/admin/challenges" },
+  { label: "Live streaming", href: "/admin/streaming" },
   { label: "Fan zone", href: "/admin/fan" },
-  { label: "Certificates", href: null },
+  { label: "Certificates", href: "/admin/certificates" },
   { label: "Sponsors", href: "https://www.rubstaopen.com/#sponsors", fullPage: true },
   { label: "Settings", href: "/admin/settings" },
 ];

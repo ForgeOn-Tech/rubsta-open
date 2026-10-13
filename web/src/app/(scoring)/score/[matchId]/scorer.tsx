@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { ScoringLink as Link } from "@/components/scoring-link";
 import {
   useEffect,
   useEffectEvent,
@@ -28,6 +28,7 @@ import {
   standardFormat,
   type DecidingSet,
   type MatchState,
+  type PointFinish,
   type Side,
 } from "@/lib/match";
 import {
@@ -554,15 +555,36 @@ function Controls({
   sides: Record<Side, SideLabel>;
   dispatch: Dispatch<ScorerAction>;
 }) {
+  const [recordDetails, setRecordDetails] = useState(false);
+  const [pendingSide, setPendingSide] = useState<Side | null>(null);
+  function recordPoint(side: Side, finish?: PointFinish) {
+    setPendingSide(null);
+    dispatch({ type: "score", event: finish ? { type: "point", side, finish } : { type: "point", side } });
+  }
+  if (pendingSide !== null) return (
+    <section aria-label="Point details" className="space-y-3 px-5 py-4">
+      <h2 className="font-semibold">Point to {sides[pendingSide].name}</h2>
+      <p className="text-sm text-muted">How did the point end? It is saved when you choose below.</p>
+      <div className="grid grid-cols-2 gap-3">
+        {pendingSide === match.server && <button type="button" className={SMALL_BUTTON} onClick={() => recordPoint(pendingSide, "ace")}>Ace</button>}
+        <button type="button" className={SMALL_BUTTON} onClick={() => recordPoint(pendingSide, "winner")}>Winning shot</button>
+        <button type="button" className={SMALL_BUTTON} onClick={() => recordPoint(pendingSide, "opponentError")}>Opponent error</button>
+        <button type="button" className={SMALL_BUTTON} onClick={() => recordPoint(pendingSide)}>Skip detail</button>
+      </div>
+      <p className="text-xs text-muted">Opponent error counts against {sides[other(pendingSide)].name}. Aces are counted separately from winning shots.</p>
+      <button type="button" className="btn btn-outline min-h-11" onClick={() => setPendingSide(null)}>Cancel point</button>
+    </section>
+  );
   return (
     <div className="flex flex-col gap-[11px] px-5 pb-5 pt-4">
+      <label className="flex min-h-11 items-center gap-3 text-sm"><input type="checkbox" checked={recordDetails} onChange={event => setRecordDetails(event.target.checked)} className="h-5 w-5" />Record point details (optional)</label>
       {SIDES.map((side) => {
         const serving = match.server === side;
         return (
           <button
             key={side}
             type="button"
-            onClick={() => dispatch({ type: "score", event: { type: "point", side } })}
+            onClick={() => recordDetails ? setPendingSide(side) : recordPoint(side)}
             className={`flex h-[70px] items-center justify-between gap-3 px-5 text-left ${
               serving ? "bg-accent text-accent-fg" : "border border-line bg-surface-1 text-ink"
             }`}

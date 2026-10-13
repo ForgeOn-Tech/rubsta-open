@@ -1,3 +1,4 @@
+import { queuePaymentEmail } from "./payment-emails";
 import { and, eq } from "drizzle-orm";
 
 import type { Database } from "./draws";
@@ -124,6 +125,7 @@ export function recordPayment(database: Database, paid: WebhookPayment): Payment
         `Payment ${paid.paymentId} arrived for entry ${entry.id}, which is ${entry.status}; refund it in Razorpay.`,
       );
     }
+    queuePaymentEmail(tx, payment.id);
     return "recorded";
   });
 }

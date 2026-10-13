@@ -303,6 +303,24 @@ export const payments = sqliteTable(
   ],
 );
 
+/** One durable confirmation per captured payment. Accepted is not inbox delivery. */
+export const paymentEmails = sqliteTable("payment_emails", {
+  paymentId: text("payment_id").primaryKey().references(() => payments.id, { onDelete: "cascade" }),
+  recipient: text("recipient").notNull(),
+  subject: text("subject").notNull(),
+  body: text("body").notNull(),
+  html: text("html"),
+  createdAt: integer("created_at").notNull(),
+  acceptedAt: integer("accepted_at"),
+  firstAttemptAt: integer("first_attempt_at"),
+  nextAttemptAt: integer("next_attempt_at").notNull().default(0),
+  attempts: integer("attempts").notNull().default(0),
+  requestBody: text("request_body"),
+  providerId: text("provider_id"),
+  lastError: text("last_error"),
+  needsReview: integer("needs_review", { mode: "boolean" }).notNull().default(false),
+});
+
 export const DRAW_STATUSES = ["draft", "published"] as const;
 export type DrawStatus = (typeof DRAW_STATUSES)[number];
 export const DRAW_STATUS_LABELS: Record<DrawStatus, string> = {
@@ -577,3 +595,33 @@ export type FanReaction = typeof fanReactions.$inferSelect;
 export type FanPrediction = typeof fanPredictions.$inferSelect;
 export type FanMute = typeof fanMutes.$inferSelect;
 export type Payment = typeof payments.$inferSelect;
+
+/** Manually measured Challenge Kit attempts; voiding preserves the audit record. */
+export const challengeAttempts = sqliteTable("challenge_attempts", {
+  id: text("id").primaryKey(),
+  tournamentId: text("tournament_id").notNull().references(() => tournaments.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  kind: text("kind", { enum: ["serve", "accuracy", "reaction"] }).notNull(),
+  // Serve speed is stored in tenths of km/h; accuracy and reaction use whole units.
+  score: integer("score").notNull(),
+  recordedBy: text("recorded_by").notNull(),
+  createdAt: integer("created_at").notNull(),
+  voidedAt: integer("voided_at"),
+  voidedBy: text("voided_by"),
+  voidReason: text("void_reason"),
+}, table => [index("challenge_attempts_tournament_kind").on(table.tournamentId, table.kind)]);
+
+/** A revocable, unlisted link to the sporting information on a player's card. */
+export const playerCardShares = sqliteTable("player_card_shares", {
+  userId: text("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  token: text("token").notNull().unique(),
+  createdAt: integer("created_at").notNull(),
+});
+
+/** Organiser-managed video status, separate from whether a match is in play. */
+export const courtBroadcasts = sqliteTable("court_broadcasts", {
+  courtId: text("court_id").primaryKey().references(() => courts.id, { onDelete: "cascade" }),
+  status: text("status", { enum: ["off", "scheduled", "live", "ended"] }).notNull().default("off"),
+  replayUrl: text("replay_url"),
+  updatedAt: integer("updated_at").notNull(),
+});

@@ -99,8 +99,8 @@ export default async function AdminMatchResultPage({
           {retired ? <p>The statistics cover the points played before the retirement.</p> : null}
           {doubles ? <p>Doubles statistics are for each team, not each player.</p> : null}
           <p>
-            The umpire records who won each point, not how, so aces, winners and unforced errors are not
-            counted.
+            Aces, winning shots and opponent errors are counted only when the umpire records point details.
+          These counts may cover only some points; opponent errors are not classified as forced or unforced.
           </p>
         </div>
       </div>
