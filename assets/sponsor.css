@@ -85,3 +85,5 @@ body:has(#sponsor-dialog[open]){overflow:hidden}
   .partner-name{font-size:9px;letter-spacing:2px}
   .partner-name em{font-size:12px}
 }
+
+.partner-logo.partner-logo-venue{width:190px;height:auto}
