@@ -1,3 +1,6 @@
 .site-header .player-sponsor-nav{white-space:nowrap}
 @media(min-width:761px) and (max-width:1100px){.site-header nav{gap:12px}.site-header nav>a:not(.nav-cta):not(.nav-signin){display:none}}
 @media(max-width:760px){.site-header nav{display:grid;grid-template-columns:auto auto;gap:4px 12px}.site-header .player-sponsor-nav{grid-column:1 / -1;grid-row:2;justify-self:end;padding:7px 11px;font-size:9px}.site-header{height:110px}}
+/* Register is the only filled pill in the header. */
+.site-header nav .player-sponsor-nav{background:transparent;color:inherit;border-color:transparent;font-weight:500}
+.site-header nav .player-sponsor-nav:hover{background:transparent;color:var(--lime);text-decoration:underline}
