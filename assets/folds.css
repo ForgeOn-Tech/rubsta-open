@@ -305,3 +305,45 @@ body > footer .site-footer-links a { display: inline; }
   #coach .coach-rankings dd { font-size: 27px; }
   #coach .coach-rankings dt { font-size: 10px; }
 }
+
+/* Registration deadline: one line, lighter than the Register button below it. */
+.registration-deadline { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px 12px; width: fit-content; max-width: 100%; margin: 22px auto 0; padding: 10px 16px; background: #f4e7b5; color: #203f2c; border-radius: 4px; }
+.registration-deadline > strong { font-size: 16px; line-height: 1.4; }
+.filling-fast { padding: 4px 8px; background: #8b351c; color: #fff; font: 10px/1.4 var(--mono); text-transform: uppercase; letter-spacing: 1px; border-radius: 2px; }
+.details-deadline { margin: 20px 0; justify-content: flex-start; }
+
+/* Register is the main action in the hero; the sponsor button reads as a button. */
+.hero .actions { margin-top: 20px; }
+.hero .button.primary { padding: 20px 34px; font-size: 14px; }
+.hero .button.secondary { padding: 19px 26px; border: 1px solid rgba(255, 251, 237, .7); }
+.hero .button.secondary:hover { background: rgba(255, 251, 237, .12); text-decoration: none; }
+
+/* The details card links to the prize breakdown; the big figure lives in #prizes. */
+.event-entry-fees .event-prize { margin: 14px 0 22px; padding: 12px 16px; background: #203f2c; border: 0; border-left: 4px solid #c9a755; border-radius: 4px; color: #f4e7b5; font-size: 13px; line-height: 1.5; }
+.event-entry-fees .event-prize strong { font: 22px/1.2 var(--serif); color: #f4e7b5; margin-right: 4px; }
+.event-prize a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* Combined prize pool in the prize section. */
+.prize-section .section-heading > .prize-pool-highlight { max-width: 600px; padding: 20px; margin: 18px auto 0; background: #203f2c; color: #f4e7b5; border-radius: 4px; }
+.prize-pool-highlight strong { display: block; font: 60px/1.1 var(--serif); letter-spacing: -1px; }
+.prize-pool-highlight span { display: block; margin-top: 6px; font: 11px/1.5 var(--mono); text-transform: uppercase; letter-spacing: 2px; }
+.prize-pool-highlight small { display: block; margin-top: 8px; font-size: 12px; line-height: 1.5; color: #fff; }
+
+/* Prize conditions decide payout, so they need to be readable. */
+.prize-condition, #prizes .prize-condition { font-size: 12px; font-weight: 500; color: var(--ink); }
+
+/* Leave the court and tournament name room. */
+.hero.wrap { padding-top: 120px; padding-bottom: 140px; max-height: none; }
+@media(max-width:760px) {
+  .hero.wrap { padding: 120px 24px 130px; }
+  .registration-deadline { margin-top: 18px; padding: 8px 12px; }
+  .registration-deadline > strong { font-size: 14px; }
+  .hero .button.primary { padding: 16px 26px; font-size: 13px; }
+  .hero .button.secondary { padding: 15px 20px; font-size: 12px; }
+  .prize-pool-highlight strong { font-size: 46px; }
+}
+@media(max-width:760px) and (max-height:700px) {
+  .hero.wrap { padding-top: 116px; padding-bottom: 115px; }
+  .registration-deadline { margin-top: 12px; }
+  .hero .intro { margin-block: 12px; }
+}
