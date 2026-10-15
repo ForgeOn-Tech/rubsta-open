@@ -305,3 +305,52 @@ body > footer .site-footer-links a { display: inline; }
   #coach .coach-rankings dd { font-size: 27px; }
   #coach .coach-rankings dt { font-size: 10px; }
 }
+
+/* Make the prize pool and final registration date easy to spot. */
+.registration-deadline { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px 12px; max-width: 570px; margin: 16px auto; padding: 12px 18px; background: #f4e7b5; color: #203f2c; border-radius: 4px; font-size: 13px; line-height: 1.5; }
+.filling-fast { padding: 4px 8px; background: #8b351c; color: #fff; font: 10px/1.4 var(--mono); text-transform: uppercase; letter-spacing: 1px; border-radius: 2px; }
+.registration-deadline > span:last-child { font-size: 11px; }
+.prize-section .section-heading > .prize-pool-highlight { max-width: 600px; padding: 20px; margin: 18px auto 0; background: #203f2c; color: #f4e7b5; border-radius: 4px; }
+.prize-pool-highlight strong { display: block; font: 60px/1.1 var(--serif); letter-spacing: -1px; }
+.prize-pool-highlight span { display: block; margin-top: 6px; font: 11px/1.5 var(--mono); text-transform: uppercase; letter-spacing: 2px; }
+.prize-pool-highlight small { display: block; margin-top: 8px; font-size: 11px; line-height: 1.5; color: #fff; }
+.details-deadline { border-left: 3px solid #8b351c; padding: 10px 14px; margin: 20px 0; background: #f4e7b5; font-size: 13px; line-height: 1.6; }
+.details-deadline span { display: block; font-size: 12px; }
+@media(max-width:760px) {
+  .registration-deadline { max-width: 340px; gap: 6px 10px; padding: 10px 12px; }
+  .registration-deadline > span:last-child { flex-basis: 100%; }
+  .prize-pool-highlight strong { font-size: 46px; }
+  .hero.wrap { max-height: none; }
+}
+
+/* Leave the court and tournament name room; keep the prize beside entry fees. */
+.hero.wrap { padding-top: 120px; padding-bottom: 140px; max-height: none; }
+.registration-deadline { max-width: 480px; padding: 10px 14px; margin-block: 24px 18px; }
+.event-entry-fees .event-prize { display: flex; flex-direction: column; align-items: flex-start; gap: 9px; padding: 24px 28px; margin: 18px 0 26px; background: #203f2c; border: 0; border-left: 5px solid #c9a755; border-radius: 4px; color: #f4e7b5; }
+.event-entry-fees .event-prize > span { font: 11px/1.5 var(--mono); letter-spacing: 2px; text-transform: uppercase; }
+.event-entry-fees .event-prize strong { font: 64px/1.1 var(--serif); color: #f4e7b5; white-space: nowrap; }
+.event-entry-fees .event-prize small { font-size: 12px; line-height: 1.6; color: #fff; }
+.event-prize a { text-decoration: underline; text-underline-offset: 3px; }
+@media(max-width:760px) {
+  .hero.wrap { padding: 120px 24px 130px; }
+  .registration-deadline { margin-block: 20px; }
+  .event-entry-fees .event-prize { padding: 22px; }
+  .event-entry-fees .event-prize strong { font-size: clamp(42px, 12vw, 60px); }
+}
+@media(max-width:760px) and (max-height:700px) {
+  .hero.wrap { padding-top: 116px; padding-bottom: 115px; }
+  .registration-deadline { margin-block: 14px; padding: 8px 10px; }
+  .hero .intro { margin-block: 12px; }
+}
+
+/* Give the deadline priority over the urgency badge. */
+.registration-deadline { max-width: 590px; gap: 8px 14px; padding: 14px 20px; }
+.registration-deadline > strong { font-size: 20px; line-height: 1.35; }
+.registration-deadline > span:last-child { flex-basis: 100%; font-size: 12px; }
+@media(max-width:760px) {
+  .registration-deadline { max-width: 360px; padding: 12px 14px; gap: 7px 10px; }
+  .registration-deadline > strong { font-size: 18px; }
+}
+@media(max-width:360px) {
+  .registration-deadline > strong { flex-basis: 100%; }
+}
