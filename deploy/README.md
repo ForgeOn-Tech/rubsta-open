@@ -30,9 +30,8 @@ so that content is never clipped.
 
 ### Public launch deadline
 
-The organiser confirmed registration closes on **15 October 2026**. Retain the
-existing **18:00 IST** cutoff unless the organiser requests another time:
-`2026-10-15T18:00:00+05:30`. The startup seed now uses this value for new databases.
+The organiser extended registration through **22 October 2026, midnight IST (end of day)**:
+`2026-10-23T00:00:00+05:30`. The startup seed now uses this value for new databases.
 The existing deployed database is **not updated by the seed**: set the deadline
 through admin tournament settings during launch preparation and verify the
 registration page before opening public registration. Preserve existing entries.
