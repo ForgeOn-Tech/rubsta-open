@@ -45,10 +45,11 @@ it("rejects signed-out and ordinary player access to admin downloads", async () 
   mocks.auth.mockResolvedValue({ user: { id: "owner", email: "owner@example.com" } });
   expect((await GET(request, params())).status).toBe(403);
 });
-it("lists both registered doubles players and the opponent's participation", () => {
-  const rows = listAdminCertificates("t");
-  expect(rows).toHaveLength(5);
+it("lists both registered doubles players and the beaten finalist's participation and runner-up", () => {
+  const rows = listAdminCertificates(db, "t");
+  expect(rows).toHaveLength(6);
   expect(rows.filter(row => row.kind === "winner").map(row => row.userId).sort()).toEqual(["owner", "partner"]);
+  expect(rows.filter(row => row.kind === "runner-up").map(row => row.userId)).toEqual(["opponent"]);
   expect(rows.some(row => row.userId === "outsider")).toBe(false);
 });
 it("downloads earned PDFs for the owner and accepted partner without caching", async () => {
@@ -67,7 +68,7 @@ it("rejects unearned, unrelated and invalid certificate requests", async () => {
 });
 it("does not give a certificate to an unaccepted partner", async () => {
   db.update(schema.entries).set({ partnerStatus: "pending" }).where(eq(schema.entries.id, "team")).run();
-  expect(listAdminCertificates("t").some(row => row.userId === "partner")).toBe(false);
+  expect(listAdminCertificates(db, "t").some(row => row.userId === "partner")).toBe(false);
   expect((await GET(request, params("partner"))).status).toBe(404);
 });
 it("preserves the player route's ownership guard", async () => {

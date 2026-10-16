@@ -1,12 +1,11 @@
 import { eq } from "drizzle-orm";
-import { getDb } from "./client";
+import type { Database } from "./draws";
 import { listScoringMatches } from "./matches";
 import { listTeamEntryIds } from "./partners";
 import { profiles, users } from "./schema";
 import { earnedCertificates } from "@/lib/certificates";
 
-export function listAdminCertificates(tournamentId: string) {
-  const database = getDb();
+export function listAdminCertificates(database: Database, tournamentId: string) {
   const matches = listScoringMatches(database, tournamentId);
   const players = database.select({ userId: profiles.userId, name: profiles.fullName, email: users.email })
     .from(profiles).innerJoin(users, eq(users.id, profiles.userId)).all();
