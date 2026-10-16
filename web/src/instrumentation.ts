@@ -2,5 +2,7 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs" && process.env.NEXT_PHASE !== "phase-production-build") {
     const { startPaymentEmailWorker } = await import("./lib/payment-email-worker");
     startPaymentEmailWorker();
+    const { startCertificateEmailWorker } = await import("./lib/certificate-email-worker");
+    startCertificateEmailWorker();
   }
 }

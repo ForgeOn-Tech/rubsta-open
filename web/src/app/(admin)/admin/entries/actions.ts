@@ -2,11 +2,17 @@
 
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { requireAdmin } from "@/auth/require";
-import { db } from "@/db/client";
+import { AdminEntryRejectedError, addAdminEntry } from "@/db/admin-add-entry";
+import { db, getDb } from "@/db/client";
+import { getCurrentTournament } from "@/db/queries";
 import { entries, type EntryStatus } from "@/db/schema";
+import { validateAdminEntry, type RawPerson } from "@/lib/admin-add-entry";
+import { ADMIN_ENTRIES_PATH } from "@/lib/admin-entries";
 import { isUniqueViolation } from "@/lib/entries";
+import type { ActionState } from "@/lib/form-state";
 import { isEntryStatus, statusUpdate } from "@/lib/entry-status";
 
 /** Reinstating fails when the player has entered the same event again since it was cancelled. */
@@ -43,4 +49,43 @@ export async function changeEntryStatus(formData: FormData): Promise<void> {
   }
 
   revalidatePath("/admin", "layout");
+}
+
+function personFields(formData: FormData, prefix: string): RawPerson {
+  const field = (name: string) => String(formData.get(`${prefix}${name}`) ?? "");
+  return {
+    fullName: field("FullName"),
+    email: field("Email"),
+    dateOfBirth: field("DateOfBirth"),
+    gender: field("Gender"),
+    mobile: field("Mobile"),
+    club: field("Club"),
+  };
+}
+
+/** Adds an entry by hand, for a player who did not register online. */
+export async function addEntry(_previous: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const tournament = getCurrentTournament();
+  if (!tournament) return { error: "No tournament has been set up.", savedAt: null };
+
+  const validation = validateAdminEntry({
+    category: String(formData.get("category") ?? ""),
+    status: String(formData.get("status") ?? ""),
+    player: personFields(formData, "player"),
+    partner: personFields(formData, "partner"),
+  }, new Date());
+  if (!validation.ok) return { error: validation.error, savedAt: null };
+
+  let entryId: string;
+  try {
+    entryId = addAdminEntry(getDb(), tournament.id, validation.input, Date.now());
+  } catch (error) {
+    if (error instanceof AdminEntryRejectedError) return { error: error.message, savedAt: null };
+    if (isUniqueViolation(error)) return { error: "This player already has an entry in this event.", savedAt: null };
+    throw error;
+  }
+
+  revalidatePath("/admin", "layout");
+  redirect(`${ADMIN_ENTRIES_PATH}/${entryId}`);
 }

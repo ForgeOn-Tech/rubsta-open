@@ -59,9 +59,12 @@ describe("earnedCertificates", () => {
       row("singles", "OS", { winnerEntryId: "theirs" }),
     ];
 
+    // Each event here has one match, so that match is also its final.
     expect(earnedCertificates(rows, MINE).map((item) => [item.category, item.kind])).toEqual([
       ["OS", "participation"],
+      ["OS", "runner-up"],
       ["OD", "participation"],
+      ["OD", "runner-up"],
     ]);
   });
 
@@ -73,6 +76,28 @@ describe("earnedCertificates", () => {
     ];
 
     expect(earnedCertificates(rows, MINE)).toEqual([]);
+  });
+
+  it("gives the beaten finalist a runner-up certificate, also after a retirement", () => {
+    const rows = [
+      row("semi", "OS", {}),
+      // A retirement completes the match with the points played so far.
+      row("final", "OS", { roundIndex: 1, topSlot: { kind: "entry", entryId: "a" }, bottomSlot: { kind: "entry", entryId: "mine" }, winnerEntryId: "a" }),
+    ];
+
+    expect(earnedCertificates(rows, MINE)).toEqual([
+      { entryId: "mine", category: "OS", kind: "participation" },
+      { entryId: "mine", category: "OS", kind: "runner-up" },
+    ]);
+  });
+
+  it("gives no runner-up certificate to a player knocked out before the final", () => {
+    const rows = [
+      row("semi", "OS", { winnerEntryId: "theirs" }),
+      row("final", "OS", { roundIndex: 1, topSlot: { kind: "entry", entryId: "theirs" }, bottomSlot: { kind: "entry", entryId: "b" }, winnerEntryId: "theirs" }),
+    ];
+
+    expect(earnedCertificates(rows, MINE).map((item) => item.kind)).toEqual(["participation"]);
   });
 
   it("gives no winner's certificate before the final is complete", () => {
@@ -92,6 +117,8 @@ describe("certificate names", () => {
     expect(certificateLabel(certificate)).toBe("Open singles · Winner's certificate");
     expect(certificatePath(certificate)).toBe("/home/certificates/entry-1/winner");
     expect(certificateFileName("Rubsta Open 2026", "OS", "winner")).toBe("rubsta-open-2026-open-singles-winner.pdf");
+    expect(certificateLabel({ ...certificate, kind: "runner-up" })).toBe("Open singles · Runner-up certificate");
+    expect(certificateFileName("Rubsta Open 2026", "OD", "runner-up")).toBe("rubsta-open-2026-open-doubles-runner-up.pdf");
   });
 });
 
@@ -109,12 +136,15 @@ describe("certificateText", () => {
 
   it("writes a participation certificate", () => {
     expect(certificateText(details)).toEqual({
+      kind: "participation",
       title: "Certificate of participation",
       lead: "This certifies that",
       name: "Gaurav Pillai",
       statement: "took part in the Open singles at Rubsta Open 2026",
       detail: "25–27 Sept 2026 · Deccan Gymkhana, Pune",
-      footer: "Player ID FL-2026-0117 · Powered by ForgeLabs",
+      seal: "Participant",
+      number: "FL-2026-0117-OS-P",
+      footer: "Powered by ForgeLabs",
     });
   });
 
@@ -122,13 +152,23 @@ describe("certificateText", () => {
     expect(certificateText({ ...details, kind: "winner", category: "OD", partnerName: "Meera Iyer" })).toMatchObject({
       title: "Winner's certificate",
       statement: "won the Open doubles with Meera Iyer at Rubsta Open 2026",
+      number: "FL-2026-0117-OD-W",
+    });
+  });
+
+  it("writes a runner-up certificate", () => {
+    expect(certificateText({ ...details, kind: "runner-up" })).toMatchObject({
+      title: "Runner-up certificate",
+      statement: "finished runner-up in the Open singles at Rubsta Open 2026",
+      seal: "Runner-up",
+      number: "FL-2026-0117-OS-R",
     });
   });
 
   it("leaves out what the tournament and player do not have", () => {
     expect(certificateText({ ...details, dates: null, venue: null, playerId: null })).toMatchObject({
       detail: null,
-      footer: "Powered by ForgeLabs",
+      number: null,
     });
   });
 });

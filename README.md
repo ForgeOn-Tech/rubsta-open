@@ -169,6 +169,7 @@ npm run dev                  # http://localhost:3100
 | `/admin` | Admins | Overview: entries by status and event, time to close, latest entries |
 | `/admin/entries` | Admins | Every entry, with event and status filters and status actions (`/entries` redirects here) |
 | `/admin/entries/<entry id>` | Admins | Player and entry details, with status actions |
+| `/admin/entries/new` | Admins | Add an entry by hand for a player who did not register online, with a partner for doubles |
 | `/admin/entries/export` | Admins | CSV of entries; takes the same `status` and `category` filters |
 | `/admin/draws` | Admins | Each event's accepted entries, draw size, seeds and draw status |
 | `/admin/draws/<event>` | Admins | Seed entrants, generate a draw, publish it or move it back to draft |
@@ -284,13 +285,29 @@ were made. Players can add the hand they play with. Matches and win–loss count
 completed matches with points played, so byes and walkovers are left out.
 
 A player who played a match can download a participation certificate for that
-event as a PDF, and the winner of a final also gets a winner's certificate. The
+event as a PDF. The winner of a final also gets a winner's certificate, and the
+beaten finalist a runner-up certificate, if they played a scored match. The
 PDFs use the standard PDF fonts, which print Latin letters only; a name in
 another script gets a "cannot be made yet" message instead of a certificate.
 "Share card" makes a PNG of the card. It shows the name, player ID, hand, club,
 ranking and match record, not the date of birth, mobile or email. Where the
 browser can share files, it opens the share sheet; otherwise it saves the image.
 These original download routes serve only the signed-in player's own files.
+
+Each certificate carries the Rubsta Open mark, the Nerul Gymkhana and SP Cards
+logos, a seal for its kind, a signature line for the Tournament Director, and a
+number such as `FL-2026-0117-OS-W`: the player ID, the event and P, R or W. The
+images live in `web/assets/certificate/`, outside `public/` so they are never
+served to browsers. Add the director's signature there as `signature.png`, a
+transparent PNG, and every certificate made after that prints it.
+
+Admins email certificates from `/admin/certificates`. "Email all certificates"
+queues each earned certificate that has never been emailed, with the PDF
+attached, to the email the player signs in with. "Email again" on a card queues
+one more copy. The server sends one email every 5 seconds through Resend, from
+`info@rubstaopen.com`. Sending is off until `CERTIFICATE_EMAILS_ENABLED=true` and
+`RESEND_API_KEY` are set; until then queued emails wait. A failed send retries
+with the same message for up to 23 hours, then waits for review on its card.
 
 `/player-card` is the private full-card preview, linked from the home card. It
 shows recorded match history, tournament results and earned PDFs, with
@@ -330,6 +347,20 @@ DATABASE_PATH=./data/gameday.db npm run dev
 
 The players use `@gameday.test` emails and cannot sign in. Sign in as the demo
 admin to run the day. Delete `data/gameday.db` to start again.
+
+### A test tournament by hand
+
+To build a tournament by hand, start the app on a new database file. The app
+creates an empty tournament on first start. Run from `web/`:
+
+```sh
+DATABASE_PATH=./data/manual.db npm run dev
+```
+
+Set the name, dates, venue and courts in `/admin/settings`. Add each player at
+`/admin/entries/new`, marked paid or with the fee still due. A doubles partner
+is accepted straight away. Admins can add entries after entries close, for
+walk-ins on the day. Delete `data/manual.db` to start again.
 
 ### Payments
 

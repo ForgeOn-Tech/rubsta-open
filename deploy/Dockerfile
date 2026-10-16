@@ -15,6 +15,8 @@ COPY --from=build --chown=node:node /app/.next/standalone ./
 COPY --from=build --chown=node:node /app/.next/static ./.next/static
 COPY --from=build --chown=node:node /app/public ./public
 COPY --from=build --chown=node:node /app/drizzle ./drizzle
+# Certificate logos and signature: read by the server, never served to browsers.
+COPY --from=build --chown=node:node /app/assets ./assets
 USER node
 EXPOSE 3100
 CMD ["node", "server.js"]
