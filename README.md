@@ -169,6 +169,7 @@ npm run dev                  # http://localhost:3100
 | `/admin` | Admins | Overview: entries by status and event, time to close, latest entries |
 | `/admin/entries` | Admins | Every entry, with event and status filters and status actions (`/entries` redirects here) |
 | `/admin/entries/<entry id>` | Admins | Player and entry details, with status actions |
+| `/admin/entries/new` | Admins | Add an entry by hand for a player who did not register online, with a partner for doubles |
 | `/admin/entries/export` | Admins | CSV of entries; takes the same `status` and `category` filters |
 | `/admin/draws` | Admins | Each event's accepted entries, draw size, seeds and draw status |
 | `/admin/draws/<event>` | Admins | Seed entrants, generate a draw, publish it or move it back to draft |
@@ -314,6 +315,20 @@ declines at `/partner/<entry id>`, and `/home` lists their open invitations. The
 app sends no email. A doubles entry goes into a draw only after the partner
 accepts. After a decline, or while waiting, the player can name a new partner,
 unless the entry is already in a published draw.
+
+### A test tournament by hand
+
+To build a tournament by hand, start the app on a new database file. The app
+creates an empty tournament on first start. Run from `web/`:
+
+```sh
+DATABASE_PATH=./data/manual.db npm run dev
+```
+
+Set the name, dates, venue and courts in `/admin/settings`. Add each player at
+`/admin/entries/new`, marked paid or with the fee still due. A doubles partner
+is accepted straight away. Admins can add entries after entries close, for
+walk-ins on the day. Delete `data/manual.db` to start again.
 
 ### Payments
 
