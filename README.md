@@ -315,6 +315,22 @@ app sends no email. A doubles entry goes into a draw only after the partner
 accepts. After a decline, or while waiting, the player can name a new partner,
 unless the entry is already in a published draw.
 
+### Game-day rehearsal
+
+`scripts/seed-game-day.mts` builds `data/gameday.db` for a dry run of the
+tournament days. It adds four paid entrants to every event, with accepted
+partners for doubles, sets the dates and venue, and adds two courts. Draws, the
+order of play and the scoring are left for you to run in the app. Run from
+`web/`:
+
+```sh
+npx tsx scripts/seed-game-day.mts
+DATABASE_PATH=./data/gameday.db npm run dev
+```
+
+The players use `@gameday.test` emails and cannot sign in. Sign in as the demo
+admin to run the day. Delete `data/gameday.db` to start again.
+
 ### Payments
 
 Payments go through Razorpay. They are off until `RAZORPAY_KEY_ID` and
