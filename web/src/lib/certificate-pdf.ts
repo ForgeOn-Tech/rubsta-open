@@ -1,6 +1,6 @@
-import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb, type Color, type PDFFont, type PDFImage, type PDFPage } from "pdf-lib";
 
-import type { CertificateText } from "@/lib/certificates";
+import type { CertificateKind, CertificateText } from "@/lib/certificates";
 
 /** The certificate fonts can print only Latin letters and common punctuation. */
 export class UnprintableTextError extends Error {
@@ -10,46 +10,161 @@ export class UnprintableTextError extends Error {
   }
 }
 
+/** The PNG images a certificate carries. The signature is null until the organisers supply one. */
+export interface CertificateArtwork {
+  venueLogo: Uint8Array;
+  partnerLogo: Uint8Array;
+  signature: Uint8Array | null;
+}
+
 // A4 landscape, in points.
 const PAGE_WIDTH = 841.89;
 const PAGE_HEIGHT = 595.28;
-const OUTER_MARGIN = 24;
-const INNER_MARGIN = 34;
+const CENTRE = PAGE_WIDTH / 2;
+const FRAME = 16;
+const INNER_RULE = 30;
 const TEXT_MARGIN = 90;
 const NAME_SIZE = 46;
-const RULE_HALF_WIDTH = 210;
+const STATEMENT_SIZE = 15;
+const NAME_RULE_HALF_WIDTH = 220;
+const NAME_RULE_OVERHANG = 24;
+const NAME_Y = 316;
+// Below the italic descenders (g, y) at full size.
+const NAME_RULE_Y = 294;
+const MARK_SIZE = 46;
+const SEAL_RADIUS = 46;
+const SEAL_Y = 138;
+const LOGO_HEIGHT = 50;
+const SIGNATURE_LEFT = 96;
+const SIGNATURE_WIDTH = 200;
+const SIGNATURE_RULE_Y = 108;
+const SIGNATURE_MAX_HEIGHT = 46;
+const SIGNATORY_TITLE = "Tournament Director";
+const FOOTER_Y = 42;
 
 // Club theme colours from globals.css.
-const CREAM = rgb(0.973, 0.961, 0.922);
-const FOREST = rgb(0.161, 0.31, 0.208);
-const INK = rgb(0.125, 0.239, 0.165);
-const MUTED = rgb(0.365, 0.412, 0.337);
+const CREAM = rgb(0.957, 0.945, 0.91);
+const FOREST = rgb(0.125, 0.235, 0.173);
+const INK = rgb(0.137, 0.216, 0.165);
+const MUTED = rgb(0.384, 0.412, 0.357);
+const SEAL_COLOURS: Record<CertificateKind, Color> = {
+  participation: FOREST,
+  "runner-up": rgb(0.45, 0.49, 0.51),
+  winner: rgb(0.69, 0.55, 0.18),
+};
 
-function widthOf(font: PDFFont, text: string, size: number): number {
+// The Rubsta Open mark from favicon.svg, drawn on a 64-unit square.
+const MARK_UNITS = 64;
+const MARK_TILE = "M14 0H50A14 14 0 0 1 64 14V50A14 14 0 0 1 50 64H14A14 14 0 0 1 0 50V14A14 14 0 0 1 14 0Z";
+const MARK_SEAMS = "M16 18c15 8 15 20 0 28M48 18c-15 8-15 20 0 28";
+const MARK_BALL_RADIUS = 21;
+const MARK_SEAM_WIDTH = 3.5;
+
+interface TextStyle {
+  font: PDFFont;
+  size: number;
+  color: Color;
+  /** Extra space between letters, in points. */
+  tracking: number;
+}
+
+function widthOf(text: string, style: TextStyle): number {
   try {
-    return font.widthOfTextAtSize(text, size);
+    return style.font.widthOfTextAtSize(text, style.size) + style.tracking * Math.max(0, text.length - 1);
   } catch (error) {
     throw new UnprintableTextError(error);
   }
 }
 
-function drawCentred(
-  page: PDFPage,
-  text: string,
-  style: { font: PDFFont; size: number; y: number; color: ReturnType<typeof rgb> },
-): void {
-  const width = widthOf(style.font, text, style.size);
-  page.drawText(text, {
-    x: (PAGE_WIDTH - width) / 2,
-    y: style.y,
-    size: style.size,
-    font: style.font,
-    color: style.color,
+function drawAt(page: PDFPage, text: string, style: TextStyle, x: number, y: number): void {
+  if (style.tracking === 0) {
+    page.drawText(text, { x, y, size: style.size, font: style.font, color: style.color });
+    return;
+  }
+  let cursor = x;
+  for (const letter of text) {
+    page.drawText(letter, { x: cursor, y, size: style.size, font: style.font, color: style.color });
+    cursor += style.font.widthOfTextAtSize(letter, style.size) + style.tracking;
+  }
+}
+
+function drawCentred(page: PDFPage, text: string, style: TextStyle, centre: number, y: number): void {
+  drawAt(page, text, style, centre - widthOf(text, style) / 2, y);
+}
+
+/** Shrinks the text to fit `maxWidth`, never above its own size. */
+function fitted(text: string, style: TextStyle, maxWidth: number): TextStyle {
+  return { ...style, size: Math.min(style.size, (style.size * maxWidth) / widthOf(text, style)) };
+}
+
+function drawFrame(page: PDFPage, accent: Color): void {
+  page.drawRectangle({ x: 0, y: 0, width: PAGE_WIDTH, height: PAGE_HEIGHT, color: FOREST });
+  page.drawRectangle({
+    x: FRAME,
+    y: FRAME,
+    width: PAGE_WIDTH - 2 * FRAME,
+    height: PAGE_HEIGHT - 2 * FRAME,
+    color: CREAM,
+  });
+  page.drawRectangle({
+    x: INNER_RULE,
+    y: INNER_RULE,
+    width: PAGE_WIDTH - 2 * INNER_RULE,
+    height: PAGE_HEIGHT - 2 * INNER_RULE,
+    borderColor: accent,
+    borderWidth: 1.25,
   });
 }
 
+function drawMark(page: PDFPage, x: number, top: number): void {
+  const scale = MARK_SIZE / MARK_UNITS;
+  page.drawSvgPath(MARK_TILE, { x, y: top, scale, color: FOREST });
+  page.drawCircle({ x: x + MARK_SIZE / 2, y: top - MARK_SIZE / 2, size: MARK_BALL_RADIUS * scale, color: CREAM });
+  page.drawSvgPath(MARK_SEAMS, { x, y: top, scale, borderColor: FOREST, borderWidth: MARK_SEAM_WIDTH * scale });
+}
+
+function drawSeal(page: PDFPage, text: CertificateText, fonts: { sans: PDFFont; sansBold: PDFFont }): void {
+  const colour = SEAL_COLOURS[text.kind];
+  page.drawCircle({ x: CENTRE, y: SEAL_Y, size: SEAL_RADIUS, color: colour });
+  page.drawCircle({ x: CENTRE, y: SEAL_Y, size: SEAL_RADIUS - 5, borderColor: CREAM, borderWidth: 0.75 });
+  drawCentred(page, "RUBSTA OPEN", { font: fonts.sans, size: 6.5, color: CREAM, tracking: 1.6 }, CENTRE, SEAL_Y + 14);
+  const word = text.seal.toUpperCase();
+  drawCentred(page, word, fitted(word, { font: fonts.sansBold, size: 12, color: CREAM, tracking: 1.2 }, 2 * SEAL_RADIUS - 34), CENTRE, SEAL_Y - 4);
+  page.drawLine({
+    start: { x: CENTRE - 14, y: SEAL_Y - 14 },
+    end: { x: CENTRE + 14, y: SEAL_Y - 14 },
+    thickness: 0.75,
+    color: CREAM,
+  });
+}
+
+function drawSignature(page: PDFPage, signature: PDFImage | null, sans: PDFFont): void {
+  if (signature !== null) {
+    const scaled = signature.scaleToFit(SIGNATURE_WIDTH, SIGNATURE_MAX_HEIGHT);
+    page.drawImage(signature, {
+      x: SIGNATURE_LEFT + (SIGNATURE_WIDTH - scaled.width) / 2,
+      y: SIGNATURE_RULE_Y + 4,
+      width: scaled.width,
+      height: scaled.height,
+    });
+  }
+  page.drawLine({
+    start: { x: SIGNATURE_LEFT, y: SIGNATURE_RULE_Y },
+    end: { x: SIGNATURE_LEFT + SIGNATURE_WIDTH, y: SIGNATURE_RULE_Y },
+    thickness: 0.75,
+    color: INK,
+  });
+  drawCentred(page, SIGNATORY_TITLE, { font: sans, size: 10, color: MUTED, tracking: 0 }, SIGNATURE_LEFT + SIGNATURE_WIDTH / 2, SIGNATURE_RULE_Y - 15);
+}
+
+function drawLogo(page: PDFPage, logo: PDFImage, label: string, centre: number, sans: PDFFont): void {
+  const width = (logo.width / logo.height) * LOGO_HEIGHT;
+  page.drawImage(logo, { x: centre - width / 2, y: SIGNATURE_RULE_Y - 14, width, height: LOGO_HEIGHT });
+  drawCentred(page, label, { font: sans, size: 6.5, color: MUTED, tracking: 1.4 }, centre, SIGNATURE_RULE_Y + LOGO_HEIGHT - 4);
+}
+
 /** A one-page A4 certificate. Throws UnprintableTextError for text the fonts cannot print. */
-export async function certificatePdf(text: CertificateText): Promise<Uint8Array> {
+export async function certificatePdf(text: CertificateText, artwork: CertificateArtwork): Promise<Uint8Array> {
   const document = await PDFDocument.create();
   document.setTitle(text.title);
   document.setAuthor("Rubsta Open");
@@ -57,43 +172,44 @@ export async function certificatePdf(text: CertificateText): Promise<Uint8Array>
   const serif = await document.embedFont(StandardFonts.TimesRoman);
   const serifItalic = await document.embedFont(StandardFonts.TimesRomanItalic);
   const sans = await document.embedFont(StandardFonts.Helvetica);
+  const sansBold = await document.embedFont(StandardFonts.HelveticaBold);
+  const venueLogo = await document.embedPng(artwork.venueLogo);
+  const partnerLogo = await document.embedPng(artwork.partnerLogo);
+  const signature = artwork.signature === null ? null : await document.embedPng(artwork.signature);
+  const accent = SEAL_COLOURS[text.kind];
+  const textWidth = PAGE_WIDTH - 2 * TEXT_MARGIN;
 
-  page.drawRectangle({ x: 0, y: 0, width: PAGE_WIDTH, height: PAGE_HEIGHT, color: CREAM });
-  page.drawRectangle({
-    x: OUTER_MARGIN,
-    y: OUTER_MARGIN,
-    width: PAGE_WIDTH - 2 * OUTER_MARGIN,
-    height: PAGE_HEIGHT - 2 * OUTER_MARGIN,
-    borderColor: FOREST,
-    borderWidth: 2,
-  });
-  page.drawRectangle({
-    x: INNER_MARGIN,
-    y: INNER_MARGIN,
-    width: PAGE_WIDTH - 2 * INNER_MARGIN,
-    height: PAGE_HEIGHT - 2 * INNER_MARGIN,
-    borderColor: FOREST,
-    borderWidth: 0.75,
-  });
+  drawFrame(page, accent);
+  drawMark(page, CENTRE - MARK_SIZE / 2, 530);
+  drawCentred(page, "RUBSTA OPEN", { font: sansBold, size: 10, color: MUTED, tracking: 3 }, CENTRE, 466);
+  drawCentred(page, text.title, { font: serif, size: 36, color: INK, tracking: 0.5 }, CENTRE, 410);
+  drawCentred(page, text.lead, { font: sans, size: 12, color: MUTED, tracking: 0 }, CENTRE, 370);
 
-  drawCentred(page, "RUBSTA OPEN", { font: sans, size: 11, y: 500, color: MUTED });
-  drawCentred(page, text.title, { font: serif, size: 40, y: 432, color: INK });
-  drawCentred(page, text.lead, { font: sans, size: 13, y: 378, color: MUTED });
-
-  // A long name shrinks to fit between the margins.
-  const nameWidth = widthOf(serifItalic, text.name, NAME_SIZE);
-  const nameSize = Math.min(NAME_SIZE, (NAME_SIZE * (PAGE_WIDTH - 2 * TEXT_MARGIN)) / nameWidth);
-  drawCentred(page, text.name, { font: serifItalic, size: nameSize, y: 318, color: INK });
+  // A long name or statement shrinks to fit between the margins.
+  const nameStyle = fitted(text.name, { font: serifItalic, size: NAME_SIZE, color: INK, tracking: 0 }, textWidth);
+  drawCentred(page, text.name, nameStyle, CENTRE, NAME_Y);
+  const ruleHalfWidth = Math.min(
+    textWidth / 2 + NAME_RULE_OVERHANG,
+    Math.max(NAME_RULE_HALF_WIDTH, widthOf(text.name, nameStyle) / 2 + NAME_RULE_OVERHANG),
+  );
   page.drawLine({
-    start: { x: PAGE_WIDTH / 2 - RULE_HALF_WIDTH, y: 302 },
-    end: { x: PAGE_WIDTH / 2 + RULE_HALF_WIDTH, y: 302 },
-    thickness: 0.75,
-    color: FOREST,
+    start: { x: CENTRE - ruleHalfWidth, y: NAME_RULE_Y },
+    end: { x: CENTRE + ruleHalfWidth, y: NAME_RULE_Y },
+    thickness: 1,
+    color: accent,
   });
+  const statementStyle = fitted(text.statement, { font: sans, size: STATEMENT_SIZE, color: INK, tracking: 0 }, textWidth);
+  drawCentred(page, text.statement, statementStyle, CENTRE, 264);
+  if (text.detail !== null) drawCentred(page, text.detail, { font: sans, size: 11, color: MUTED, tracking: 0 }, CENTRE, 242);
 
-  drawCentred(page, text.statement, { font: sans, size: 15, y: 262, color: INK });
-  if (text.detail !== null) drawCentred(page, text.detail, { font: sans, size: 12, y: 238, color: MUTED });
-  drawCentred(page, text.footer, { font: sans, size: 10, y: 66, color: MUTED });
+  drawSignature(page, signature, sans);
+  drawSeal(page, text, { sans, sansBold });
+  drawLogo(page, venueLogo, "HOSTED AT", 610, sans);
+  drawLogo(page, partnerLogo, "SUPPORTED BY", 715, sans);
+
+  const footer: TextStyle = { font: sans, size: 8, color: MUTED, tracking: 0.3 };
+  if (text.number !== null) drawAt(page, `Certificate no. ${text.number}`, footer, INNER_RULE + 18, FOOTER_Y);
+  drawAt(page, text.footer, footer, PAGE_WIDTH - INNER_RULE - 18 - widthOf(text.footer, footer), FOOTER_Y);
 
   return document.save();
 }

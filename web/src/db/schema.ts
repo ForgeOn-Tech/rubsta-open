@@ -625,3 +625,29 @@ export const courtBroadcasts = sqliteTable("court_broadcasts", {
   replayUrl: text("replay_url"),
   updatedAt: integer("updated_at").notNull(),
 });
+
+export const CERTIFICATE_KINDS = ["participation", "runner-up", "winner"] as const;
+export type CertificateKind = (typeof CERTIFICATE_KINDS)[number];
+
+/**
+ * One email of one certificate, queued by an admin. The request body, with the PDF
+ * attached, is built when the row is queued and reused on every retry. A resend is a
+ * new row, so Resend's idempotency key never meets a changed body.
+ */
+export const certificateEmails = sqliteTable("certificate_emails", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  entryId: text("entry_id").notNull().references(() => entries.id, { onDelete: "cascade" }),
+  kind: text("kind", { enum: CERTIFICATE_KINDS }).notNull(),
+  recipient: text("recipient").notNull(),
+  requestBody: text("request_body").notNull(),
+  queuedBy: text("queued_by").notNull(), // the admin's email, lower case
+  createdAt: integer("created_at").notNull(),
+  acceptedAt: integer("accepted_at"),
+  firstAttemptAt: integer("first_attempt_at"),
+  nextAttemptAt: integer("next_attempt_at").notNull().default(0),
+  attempts: integer("attempts").notNull().default(0),
+  providerId: text("provider_id"),
+  lastError: text("last_error"),
+  needsReview: integer("needs_review", { mode: "boolean" }).notNull().default(false),
+}, table => [index("certificate_emails_certificate").on(table.userId, table.entryId, table.kind)]);

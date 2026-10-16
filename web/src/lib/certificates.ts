@@ -1,14 +1,32 @@
 import type { ScoringMatchRow } from "@/db/matches";
-import { CATEGORIES, CATEGORY_LABELS, type Category } from "@/db/schema";
+import { CATEGORIES, CATEGORY_LABELS, CERTIFICATE_KINDS, type Category, type CertificateKind } from "@/db/schema";
 import { scoreRecordOf } from "@/lib/score-record";
 
-export const CERTIFICATE_KINDS = ["participation", "winner"] as const;
-export type CertificateKind = (typeof CERTIFICATE_KINDS)[number];
+export { CERTIFICATE_KINDS, type CertificateKind };
 
 export const CERTIFICATE_TITLES: Record<CertificateKind, string> = {
   participation: "Certificate of participation",
+  "runner-up": "Runner-up certificate",
   winner: "Winner's certificate",
 };
+
+/** The word on the certificate's seal. */
+const SEAL_WORDS: Record<CertificateKind, string> = {
+  participation: "Participant",
+  "runner-up": "Runner-up",
+  winner: "Winner",
+};
+
+/** The last part of a certificate number: FL-2026-0117-OS-W. */
+const NUMBER_SUFFIXES: Record<CertificateKind, string> = {
+  participation: "P",
+  "runner-up": "R",
+  winner: "W",
+};
+
+export function isCertificateKind(value: string): value is CertificateKind {
+  return (CERTIFICATE_KINDS as readonly string[]).includes(value);
+}
 
 export interface Certificate {
   entryId: string;
@@ -30,13 +48,17 @@ export interface CertificateDetails {
   playerId: string | null;
 }
 
-/** The lines a certificate prints, top to bottom. */
+/** What a certificate prints. */
 export interface CertificateText {
+  kind: CertificateKind;
   title: string;
   lead: string;
   name: string;
   statement: string;
   detail: string | null;
+  seal: string;
+  /** e.g. "FL-2026-0117-OS-W": unique per player, event and kind. Null without a player ID. */
+  number: string | null;
   footer: string;
 }
 
@@ -52,8 +74,10 @@ function certificateOrder(certificate: Certificate): number {
 }
 
 /**
- * Certificates for `entryIds`: participation for each entry that played a
- * match with points, and winner for each event whose final one of them won.
+ * Certificates for `entryIds`: participation for each entry that played a match with
+ * points, and winner and runner-up for each completed final one of them played in. A
+ * final that ended in a retirement still has both; a runner-up who never played a
+ * scored match, such as one beaten by walkover in a two-player event, gets none.
  */
 export function earnedCertificates(
   rows: readonly ScoringMatchRow[],
@@ -74,16 +98,20 @@ export function earnedCertificates(
     kind: "participation",
   }));
 
-  const winners: Certificate[] = CATEGORIES.flatMap((category) => {
+  const finalists: Certificate[] = CATEGORIES.flatMap((category) => {
     const inEvent = rows.filter((row) => row.category === category);
     if (inEvent.length === 0) return [];
     const lastRound = Math.max(...inEvent.map((row) => row.match.roundIndex));
     const final = inEvent.find((row) => row.match.roundIndex === lastRound);
-    const winner = final?.match.status === "completed" ? final.match.winnerEntryId : null;
-    return winner !== null && entryIds.has(winner) ? [{ entryId: winner, category, kind: "winner" as const }] : [];
+    if (final?.match.status !== "completed" || final.match.winnerEntryId === null) return [];
+    const winner = final.match.winnerEntryId;
+    // A runner-up must have played a scored match, so a walkover alone earns nothing.
+    return entryIdsOf(final)
+      .filter((entryId) => entryIds.has(entryId) && (entryId === winner || participated.has(entryId)))
+      .map((entryId): Certificate => ({ entryId, category, kind: entryId === winner ? "winner" : "runner-up" }));
   });
 
-  return [...participation, ...winners].sort((a, b) => certificateOrder(a) - certificateOrder(b));
+  return [...participation, ...finalists].sort((a, b) => certificateOrder(a) - certificateOrder(b));
 }
 
 /** e.g. "Men's singles · Winner's certificate". */
@@ -107,19 +135,27 @@ export function certificateFileName(tournamentName: string, category: Category, 
   return `${slug(`${tournamentName} ${CATEGORY_LABELS[category].replace("'", "")} ${kind}`)}.pdf`;
 }
 
+const STATEMENT_VERBS: Record<CertificateKind, string> = {
+  participation: "took part in the",
+  "runner-up": "finished runner-up in the",
+  winner: "won the",
+};
+
 export function certificateText(details: CertificateDetails): CertificateText {
   // Event names keep their capitals: "U-15 juniors", "Women's 30+".
   const event = CATEGORY_LABELS[details.category];
   const withPartner = details.partnerName === null ? "" : ` with ${details.partnerName}`;
-  const verb = details.kind === "winner" ? "won the" : "took part in the";
   return {
+    kind: details.kind,
     title: CERTIFICATE_TITLES[details.kind],
     lead: "This certifies that",
     name: details.playerName,
-    statement: `${verb} ${event}${withPartner} at ${details.tournamentName}`,
+    statement: `${STATEMENT_VERBS[details.kind]} ${event}${withPartner} at ${details.tournamentName}`,
     detail: [details.dates, details.venue].filter((part) => part !== null).join(" · ") || null,
-    footer: [details.playerId === null ? null : `Player ID ${details.playerId}`, "Powered by ForgeLabs"]
-      .filter((part) => part !== null)
-      .join(" · "),
+    seal: SEAL_WORDS[details.kind],
+    number: details.playerId === null
+      ? null
+      : `${details.playerId}-${details.category}-${NUMBER_SUFFIXES[details.kind]}`,
+    footer: "Powered by ForgeLabs",
   };
 }

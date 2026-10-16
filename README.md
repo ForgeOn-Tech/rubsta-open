@@ -284,13 +284,29 @@ were made. Players can add the hand they play with. Matches and win–loss count
 completed matches with points played, so byes and walkovers are left out.
 
 A player who played a match can download a participation certificate for that
-event as a PDF, and the winner of a final also gets a winner's certificate. The
+event as a PDF. The winner of a final also gets a winner's certificate, and the
+beaten finalist a runner-up certificate, if they played a scored match. The
 PDFs use the standard PDF fonts, which print Latin letters only; a name in
 another script gets a "cannot be made yet" message instead of a certificate.
 "Share card" makes a PNG of the card. It shows the name, player ID, hand, club,
 ranking and match record, not the date of birth, mobile or email. Where the
 browser can share files, it opens the share sheet; otherwise it saves the image.
 These original download routes serve only the signed-in player's own files.
+
+Each certificate carries the Rubsta Open mark, the Nerul Gymkhana and SP Cards
+logos, a seal for its kind, a signature line for the Tournament Director, and a
+number such as `FL-2026-0117-OS-W`: the player ID, the event and P, R or W. The
+images live in `web/assets/certificate/`, outside `public/` so they are never
+served to browsers. Add the director's signature there as `signature.png`, a
+transparent PNG, and every certificate made after that prints it.
+
+Admins email certificates from `/admin/certificates`. "Email all certificates"
+queues each earned certificate that has never been emailed, with the PDF
+attached, to the email the player signs in with. "Email again" on a card queues
+one more copy. The server sends one email every 5 seconds through Resend, from
+`info@rubstaopen.com`. Sending is off until `CERTIFICATE_EMAILS_ENABLED=true` and
+`RESEND_API_KEY` are set; until then queued emails wait. A failed send retries
+with the same message for up to 23 hours, then waits for review on its card.
 
 `/player-card` is the private full-card preview, linked from the home card. It
 shows recorded match history, tournament results and earned PDFs, with
