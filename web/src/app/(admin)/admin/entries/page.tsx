@@ -21,6 +21,7 @@ import {
   playerName,
   type EntryFilters,
 } from "@/lib/admin-entries";
+import { ADMIN_NEW_ENTRY_PATH } from "@/lib/admin-add-entry";
 import { ageFromDob } from "@/lib/age";
 import { ADMIN_DRAWS_PATH } from "@/lib/draws";
 import {
@@ -91,6 +92,9 @@ export default async function AdminEntriesPage({
         >
           Export CSV
         </a>
+        <Link href={ADMIN_NEW_ENTRY_PATH} className="btn btn-primary h-8 text-[12px]">
+          Add entry
+        </Link>
       </AdminPageHeader>
 
       <div className="flex flex-col gap-3 p-6">
