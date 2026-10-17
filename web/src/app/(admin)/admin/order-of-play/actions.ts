@@ -241,6 +241,7 @@ function fillRequestFrom(formData: FormData, tournament: Tournament): FillValida
       day: text("day"),
       courts: formData.getAll("courts").map(String),
       startTime: text("startTime"),
+      finishBy: text("finishBy"),
       restMinutes: text("restMinutes"),
       oneSet: text("oneSet"),
       eightGames: text("eightGames"),

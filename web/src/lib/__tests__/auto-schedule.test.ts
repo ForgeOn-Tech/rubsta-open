@@ -50,6 +50,7 @@ describe("planDay", () => {
       matches: [match("m1", ["a", "b"], 45, []), match("m2", ["c", "d"], 45, [])],
       restMinutes: REST,
       busyUntil: new Map(),
+      latestStart: null,
     });
 
     // Assert
@@ -65,6 +66,7 @@ describe("planDay", () => {
       matches: [match("singles", ["a", "b"], 45, []), match("doubles", ["a", "c", "d", "e"], 45, [])],
       restMinutes: REST,
       busyUntil: new Map(),
+      latestStart: null,
     });
 
     expect(plan.placed.map((item) => clockOf(item.start))).toEqual(["08:00", "09:15"]);
@@ -76,6 +78,7 @@ describe("planDay", () => {
       matches: [match("semi", ["a", "b"], 90, []), match("final", ["a", "b", "c", "d"], 90, ["semi"])],
       restMinutes: REST,
       busyUntil: new Map(),
+      latestStart: null,
     });
 
     expect(clockOf(plan.placed[1].start)).toBe("10:00");
@@ -87,9 +90,10 @@ describe("planDay", () => {
       matches: [match("final", ["a", "b"], 90, ["missing"])],
       restMinutes: REST,
       busyUntil: new Map(),
+      latestStart: null,
     });
 
-    expect(plan).toEqual({ placed: [], unplaced: ["final"] });
+    expect(plan).toEqual({ placed: [], unplaced: [{ matchId: "final", reason: "waits" }] });
   });
 
   it("rests players after matches already on the day and rounds starts to five minutes", () => {
@@ -98,13 +102,30 @@ describe("planDay", () => {
       matches: [match("m1", ["a", "b"], 45, [])],
       restMinutes: REST,
       busyUntil: new Map([["a", minutesOf("09:10")]]),
+      latestStart: null,
     });
 
     expect(clockOf(plan.placed[0].start)).toBe("09:40");
   });
 
+  it("leaves off a match that would start after the last start, and anything waiting on it", () => {
+    const plan = planDay({
+      courts: courts(1),
+      matches: [match("m1", ["a", "b"], 60, []), match("m2", ["c", "d"], 60, []), match("final", ["a", "b", "c", "d"], 90, ["m2"])],
+      restMinutes: REST,
+      busyUntil: new Map(),
+      latestStart: minutesOf("08:30"),
+    });
+
+    expect(plan.placed.map((item) => item.matchId)).toEqual(["m1"]);
+    expect(plan.unplaced).toEqual([
+      { matchId: "m2", reason: "late" },
+      { matchId: "final", reason: "waits" },
+    ]);
+  });
+
   it("needs a court", () => {
-    expect(() => planDay({ courts: [], matches: [], restMinutes: REST, busyUntil: new Map() })).toThrow(/at least one court/);
+    expect(() => planDay({ courts: [], matches: [], restMinutes: REST, busyUntil: new Map(), latestStart: null })).toThrow(/at least one court/);
   });
 });
 
@@ -156,6 +177,7 @@ describe("validateFillRequest", () => {
     day: "2026-10-24",
     courts: ["2", "1"],
     startTime: "08:30",
+    finishBy: "",
     restMinutes: "30",
     oneSet: "45",
     eightGames: "60",
@@ -164,6 +186,10 @@ describe("validateFillRequest", () => {
   };
   const DAYS = ["2026-10-24", "2026-10-25"];
 
+  it("reads a last start", () => {
+    expect(validateFillRequest({ ...RAW, finishBy: "18:00" }, DAYS, [1, 2, 3])).toMatchObject({ ok: true, request: { finishBy: "18:00" } });
+  });
+
   it("reads the form, courts in order", () => {
     expect(validateFillRequest(RAW, DAYS, [1, 2, 3])).toEqual({
       ok: true,
@@ -171,6 +197,7 @@ describe("validateFillRequest", () => {
         day: "2026-10-24",
         courts: [1, 2],
         startTime: "08:30",
+        finishBy: null,
         restMinutes: 30,
         lengths: { oneSet: 45, eightGames: 60, bestOfThree: 90 },
         rounds: ["OS|Group A"],
@@ -186,6 +213,8 @@ describe("validateFillRequest", () => {
     ["a negative rest", { restMinutes: "-5" }, "Rest must be a whole number of minutes from 0 to 240."],
     ["a match that is too short", { oneSet: "5" }, "Match lengths must be whole minutes from 10 to 300."],
     ["no rounds", { rounds: [] }, "Choose at least one round to place."],
+    ["a last start before the first match", { finishBy: "08:00" }, "The last start must be a time after the first match, or blank."],
+    ["a bad last start", { finishBy: "9pm" }, "The last start must be a time after the first match, or blank."],
   ])("refuses %s", (_case, change, error) => {
     expect(validateFillRequest({ ...RAW, ...change }, DAYS, [1, 2, 3])).toEqual({ ok: false, error });
   });

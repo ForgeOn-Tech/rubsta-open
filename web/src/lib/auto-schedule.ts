@@ -63,10 +63,12 @@ export interface PlannedMatch {
   end: number;
 }
 
+/** Why a match was left off: it waits on a match left off, or it would start after the last start. */
+export type UnplacedReason = "waits" | "late";
+
 export interface DayPlan {
   placed: PlannedMatch[];
-  /** Matches that could not go on: one they wait on is not placed. */
-  unplaced: string[];
+  unplaced: { matchId: string; reason: UnplacedReason }[];
 }
 
 /**
@@ -80,17 +82,19 @@ export function planDay(input: {
   matches: readonly PlanMatch[];
   restMinutes: number;
   busyUntil: ReadonlyMap<string, number>;
+  /** No match starts after this, in minutes after midnight; null for no limit. */
+  latestStart: number | null;
 }): DayPlan {
   if (input.courts.length === 0) throw new Error("Choose at least one court to fill.");
   const courtFree = new Map(input.courts.map((court) => [court.courtNumber, court.freeFrom]));
   const playerFree = new Map([...input.busyUntil].map(([player, end]) => [player, end + input.restMinutes]));
   const endOf = new Map<string, number>();
   const placed: PlannedMatch[] = [];
-  const unplaced: string[] = [];
+  const unplaced: DayPlan["unplaced"] = [];
 
   for (const match of input.matches) {
     if (match.after.some((id) => !endOf.has(id))) {
-      unplaced.push(match.id);
+      unplaced.push({ matchId: match.id, reason: "waits" });
       continue;
     }
     const ready = Math.max(
@@ -101,6 +105,10 @@ export function planDay(input: {
     const [courtNumber, start] = [...courtFree.entries()]
       .map(([court, free]): [number, number] => [court, roundUp(Math.max(free, ready))])
       .sort((a, b) => a[1] - b[1] || a[0] - b[0])[0];
+    if (input.latestStart !== null && start > input.latestStart) {
+      unplaced.push({ matchId: match.id, reason: "late" });
+      continue;
+    }
     const end = start + match.minutes;
     courtFree.set(courtNumber, end);
     for (const player of match.players) playerFree.set(player, end + input.restMinutes);
@@ -154,6 +162,8 @@ export interface FillRequest {
   day: string;
   courts: readonly number[];
   startTime: string;
+  /** No match starts after this time ("18:00"); null for no limit. */
+  finishBy: string | null;
   restMinutes: number;
   lengths: MatchLengths;
   /** Rounds to place, as `${category}|${roundName}`. */
@@ -168,6 +178,8 @@ export interface RawFillRequest {
   day: string;
   courts: readonly string[];
   startTime: string;
+  /** Blank for no limit. */
+  finishBy: string;
   restMinutes: string;
   oneSet: string;
   eightGames: string;
@@ -192,6 +204,10 @@ export function validateFillRequest(
   const courts = raw.courts.map(Number).filter((court) => courtNumbers.includes(court));
   if (courts.length === 0 || courts.length !== raw.courts.length) return { ok: false, error: "Choose at least one of the courts." };
   if (!isScheduleTime(raw.startTime)) return { ok: false, error: "Enter a start time such as 08:00." };
+  const finishBy = raw.finishBy.trim() === "" ? null : raw.finishBy.trim();
+  if (finishBy !== null && (!isScheduleTime(finishBy) || minutesOf(finishBy) <= minutesOf(raw.startTime))) {
+    return { ok: false, error: "The last start must be a time after the first match, or blank." };
+  }
   const restMinutes = wholeIn(raw.restMinutes, 0, MAX_REST_MINUTES);
   if (restMinutes === null) return { ok: false, error: `Rest must be a whole number of minutes from 0 to ${MAX_REST_MINUTES}.` };
   const lengths = {
@@ -209,6 +225,7 @@ export function validateFillRequest(
       day: raw.day,
       courts: [...new Set(courts)].sort((a, b) => a - b),
       startTime: raw.startTime,
+      finishBy,
       restMinutes,
       lengths: { oneSet: lengths.oneSet, eightGames: lengths.eightGames, bestOfThree: lengths.bestOfThree },
       rounds: raw.rounds,
