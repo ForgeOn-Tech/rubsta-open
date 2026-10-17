@@ -19,7 +19,7 @@ import {
   type Side,
 } from "@/lib/match";
 
-const FORMAT = standardFormat();
+const FORMAT = standardFormat("set");
 
 function point(side: Side): MatchEvent {
   return { type: "point", side };
@@ -79,7 +79,7 @@ describe("games", () => {
 
     state = applyEvent(state, point("top"), FORMAT);
     expect(pointLabel(state, "top")).toBe("40");
-    expect(hasGamePoint(state, "top")).toBe(true);
+    expect(hasGamePoint(state, "top", FORMAT)).toBe(true);
 
     state = applyEvent(state, point("top"), FORMAT);
     expect(state.games).toEqual({ top: 1, bottom: 0 });

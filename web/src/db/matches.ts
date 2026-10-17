@@ -16,8 +16,16 @@ import {
   type MatchSlot,
 } from "./schema";
 import { buildBracket, type BracketSlot } from "@/lib/draws";
-import { deriveState, standardFormat, type MatchState, type Side } from "@/lib/match";
-import { extendsScore, sameScore, scoreRecordOf, type ScoreRecord } from "@/lib/score-record";
+import { deriveState, type MatchState, type Side } from "@/lib/match";
+import { formatFor } from "@/lib/match-formats";
+import {
+  extendsScore,
+  formatOfRecord,
+  sameRecordFormat,
+  sameScore,
+  scoreRecordOf,
+  type ScoreRecord,
+} from "@/lib/score-record";
 
 export interface MatchSideInfo {
   entryId: string;
@@ -70,9 +78,15 @@ function loadMatch(database: Database, matchId: string): Match {
   return row;
 }
 
+function categoryOf(database: Database, match: Match): Category {
+  const draw = database.select({ category: draws.category }).from(draws).where(eq(draws.id, match.drawId)).get();
+  if (!draw) throw new Error(`Match ${match.id} belongs to draw ${match.drawId}, which does not exist.`);
+  return draw.category;
+}
+
 function deriveRecordState(record: ScoreRecord, matchNumber: number): MatchState {
   try {
-    return deriveState(record.events, standardFormat(record.decidingSet), record.firstServer);
+    return deriveState(record.events, formatOfRecord(record), record.firstServer);
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     throw new ScoreRejectedError(`The score for match ${matchNumber} is not valid: ${reason}`);
@@ -202,6 +216,13 @@ export function saveMatchScore(
     if (row.topSlot.kind !== "entry" || row.bottomSlot.kind !== "entry") {
       throw new ScoreRejectedError(`Match ${row.matchNumber} is waiting on an earlier result.`);
     }
+    // The server decides the rules: the event and round's format to start, then the one it started with.
+    const format = row.status === "scheduled" ? formatFor(categoryOf(tx, row), row.roundName) : row.format;
+    if (!sameRecordFormat(record.format, format)) {
+      throw new ScoreRejectedError(
+        `Match ${row.matchNumber} is played to different rules from this page. Reload the page to get them.`,
+      );
+    }
 
     const state = deriveRecordState(record, row.matchNumber);
     const completed = state.status === "completed";
@@ -211,6 +232,7 @@ export function saveMatchScore(
       .set({
         firstServer: record.firstServer,
         decidingSet: record.decidingSet,
+        format,
         // The court is set when the match starts; later saves keep any change made since.
         court: row.status === "scheduled" ? record.court : row.court,
         startedAt: row.startedAt ?? record.startedAt,
@@ -257,6 +279,8 @@ export function resetMatch(database: Database, matchId: string): Match {
         status: "scheduled",
         startedAt: null,
         firstServer: null,
+        // Started again, it takes the event and round's format as it is then.
+        format: null,
         version: row.version + 1,
         updatedAt: Date.now(),
       })

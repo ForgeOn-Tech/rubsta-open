@@ -9,7 +9,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 
-import type { MatchEvent, Side } from "@/lib/match";
+import type { MatchEvent, MatchFormat, Side } from "@/lib/match";
 import type { ScheduleEntry } from "@/lib/schedule";
 
 // ── Auth.js adapter tables (shape per @auth/drizzle-adapter docs) ─────────
@@ -393,6 +393,9 @@ export const matches = sqliteTable(
       .notNull()
       .default("set"),
     firstServer: text("first_server", { enum: ["top", "bottom"] }).$type<Side>(),
+    // The rules the match started with, so later changes to the formats never re-score it.
+    // Null for a match not started, or started before formats were set by event and round.
+    format: text("format", { mode: "json" }).$type<MatchFormat>(),
     status: text("status", { enum: MATCH_STATUSES }).notNull().default("scheduled"),
     winnerEntryId: text("winner_entry_id").references(() => entries.id),
     court: integer("court"),

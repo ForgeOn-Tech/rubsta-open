@@ -8,7 +8,8 @@ import { getDb } from "@/db/client";
 import { getScoringMatch } from "@/db/matches";
 import { getCurrentTournament } from "@/db/queries";
 import { CATEGORY_LABELS } from "@/db/schema";
-import { SIDES, deriveState, standardFormat } from "@/lib/match";
+import { SIDES, deriveState } from "@/lib/match";
+import { formatOfRecord } from "@/lib/score-record";
 import { ADMIN_RESULTS_PATH, statRows, statsOfRecord } from "@/lib/match-stats";
 import { snapshotOf } from "@/lib/score-sync";
 import { formatElapsed, matchSummary, setGamesBySide, sideLabel } from "@/lib/scoring-display";
@@ -36,7 +37,7 @@ export default async function AdminMatchResultPage({
   const retired =
     record !== null &&
     match.status === "completed" &&
-    deriveState(record.events, standardFormat(record.decidingSet), record.firstServer).status !== "completed";
+    deriveState(record.events, formatOfRecord(record), record.firstServer).status !== "completed";
   const doubles = [row.top, row.bottom].some((info) => info !== null && info.partnerName !== null);
 
   const stats = [

@@ -4,13 +4,15 @@ import {
   MATCH_TIEBREAK_POINTS,
   advantageSide,
   deriveState,
+  isDecidingPoint,
   isDeuce,
   scoreLine,
   setScores,
-  standardFormat,
+  type MatchFormat,
   type MatchState,
   type Side,
 } from "@/lib/match";
+import { formatOfRecord } from "@/lib/score-record";
 import { snapshotOf } from "@/lib/score-sync";
 
 /** How a side appears on the scoring screens. */
@@ -105,7 +107,7 @@ export function matchSummary(row: ScoringMatchRow): string | null {
   if (row.match.status === "scheduled") return null;
   if (record === null) return snapshot.winner === null ? null : "Walkover";
 
-  const state = deriveState(record.events, standardFormat(record.decidingSet), record.firstServer);
+  const state = deriveState(record.events, formatOfRecord(record), record.firstServer);
   if (row.match.status === "in_progress") {
     return [scoreLine(state.sets, "top"), `${state.games.top}–${state.games.bottom}`]
       .filter((part) => part !== "")
@@ -119,11 +121,17 @@ export function matchSummary(row: ScoringMatchRow): string | null {
 }
 
 /** What is happening in the current game, such as "Deuce · Second serve", or null. */
-export function situationLabel(state: MatchState, sides: Record<Side, SideLabel>): string | null {
+export function situationLabel(
+  state: MatchState,
+  sides: Record<Side, SideLabel>,
+  format: MatchFormat,
+): string | null {
   if (state.status === "completed") return null;
   const parts: string[] = [];
   if (state.tiebreak) {
     parts.push(state.tiebreakTarget === MATCH_TIEBREAK_POINTS ? "Match tiebreak" : "Tiebreak");
+  } else if (isDecidingPoint(state, format)) {
+    parts.push("Deciding point · Receiver chooses side");
   } else if (isDeuce(state)) {
     parts.push("Deuce");
   } else {
@@ -141,7 +149,7 @@ export function situationLabel(state: MatchState, sides: Record<Side, SideLabel>
 export function setGamesBySide(row: ScoringMatchRow): Record<Side, string> | null {
   const record = snapshotOf(row.match).record;
   if (row.match.status === "scheduled" || record === null) return null;
-  const state = deriveState(record.events, standardFormat(record.decidingSet), record.firstServer);
+  const state = deriveState(record.events, formatOfRecord(record), record.firstServer);
   const cells = setScores(state);
   const shown = row.match.status === "completed" ? state.sets.length : cells.top.length;
   return {

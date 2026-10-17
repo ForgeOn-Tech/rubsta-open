@@ -25,19 +25,19 @@ import {
   pointLabel,
   scoreLine,
   setScores,
-  standardFormat,
-  type DecidingSet,
+  type MatchFormat,
   type MatchState,
   type PointFinish,
   type Side,
 } from "@/lib/match";
 import {
-  DECIDING_SETS,
   MAX_COURT,
+  formatOfRecord,
   parseDeviceScore,
   type DeviceScore,
   type ScoreRecord,
 } from "@/lib/score-record";
+import { formatSummary } from "@/lib/match-formats";
 import { statRows, statsOfRecord } from "@/lib/match-stats";
 import type { CourtOption } from "@/lib/schedule";
 import { formatElapsed, situationLabel, type SideLabel } from "@/lib/scoring-display";
@@ -45,6 +45,7 @@ import {
   deviceScoreOf,
   hasUnsavedChanges,
   initialScorerState,
+  startedOnOtherRules,
   pendingSave,
   retryDelayMs,
   scorerReducer,
@@ -65,6 +66,8 @@ export interface ScorerProps {
   sides: Record<Side, SideLabel>;
   /** Both sides are drawn entries, so the match can start. */
   ready: boolean;
+  /** The rules the match starts with, from its event and round. */
+  format: MatchFormat;
   initial: MatchSnapshot;
   /** When the server recorded the match as finished, else null. */
   completedAt: number | null;
@@ -76,10 +79,6 @@ type MenuChoice = "retire-top" | "retire-bottom" | "reset";
 
 const STORAGE_PREFIX = "tournament-os:score:";
 const CLOCK_INTERVAL_MS = 15_000;
-const DECIDING_SET_LABELS: Record<DecidingSet, string> = {
-  set: "Full third set",
-  matchTiebreak: "10-point match tiebreak",
-};
 
 function subscribeToNothing(): () => void {
   return () => {};
@@ -121,7 +120,7 @@ function actionForOutcome(revision: number, outcome: SaveOutcome): ScorerAction 
 function deriveMatch(record: ScoreRecord, extra: ScoreRecord["events"]): MatchState {
   return deriveState(
     [...record.events, ...extra],
-    standardFormat(record.decidingSet),
+    formatOfRecord(record),
     record.firstServer,
   );
 }
@@ -173,6 +172,7 @@ function LiveScorer({
   courts,
   sides,
   ready,
+  format,
   initial,
   completedAt,
   retireAction,
@@ -242,12 +242,29 @@ function LiveScorer({
       </header>
 
       {state.conflict ? <ConflictBanner conflict={state.conflict} dispatch={dispatch} /> : null}
-      {state.error ? (
+      {startedOnOtherRules(state, format) ? (
+        <div role="alert" className="flex flex-col gap-3 border-b border-line bg-surface-1 px-5 py-4 text-[13px]">
+          <p>
+            The rules for this match changed after it was started on this phone, and the score never reached
+            the server. Start it again to play: {formatSummary(format)}.
+          </p>
+          <button type="button" className="btn btn-primary h-10 self-start text-[13px]" onClick={() => dispatch({ type: "startAgain" })}>
+            Start again
+          </button>
+        </div>
+      ) : state.error ? (
         <div role="alert" className="flex items-center justify-between gap-3 border-b border-line bg-surface-1 px-5 py-3 text-[13px]">
           <span className="text-bad">Not saved: {state.error}</span>
-          <button type="button" className="btn btn-outline h-9 flex-none text-[12px]" onClick={() => dispatch({ type: "retryNow" })}>
-            Try again
-          </button>
+          <div className="flex flex-none gap-2">
+            <button type="button" className="btn btn-outline h-9 text-[12px]" onClick={() => dispatch({ type: "retryNow" })}>
+              Try again
+            </button>
+            {state.serverStarted ? null : (
+              <button type="button" className="btn btn-outline h-9 text-[12px]" onClick={() => dispatch({ type: "startAgain" })}>
+                Start again
+              </button>
+            )}
+          </div>
         </div>
       ) : null}
 
@@ -257,8 +274,12 @@ function LiveScorer({
             sides={sides}
             court={court}
             courts={courts}
+            format={format}
             onStart={(start) =>
-              dispatch({ type: "start", record: { ...start, startedAt: Date.now(), events: [] } })
+              dispatch({
+                type: "start",
+                record: { ...start, decidingSet: format.decidingSet, format, startedAt: Date.now(), events: [] },
+              })
             }
           />
         ) : (
@@ -270,7 +291,7 @@ function LiveScorer({
         <>
           {shown && record ? (
             <div className="px-5 pt-4">
-              <Scoreboard match={shown} sides={sides} startedAt={record.startedAt} endedAt={endedAt} />
+              <Scoreboard match={shown} sides={sides} format={formatOfRecord(record)} startedAt={record.startedAt} endedAt={endedAt} />
             </div>
           ) : null}
           {finished ? (
@@ -360,12 +381,14 @@ function StartForm({
   sides,
   court,
   courts,
+  format,
   onStart,
 }: {
   sides: Record<Side, SideLabel>;
   court: number | null;
   courts: readonly CourtOption[];
-  onStart: (start: Pick<ScoreRecord, "firstServer" | "decidingSet" | "court">) => void;
+  format: MatchFormat;
+  onStart: (start: Pick<ScoreRecord, "firstServer" | "court">) => void;
 }) {
   const courtListed = court === null || courts.some((option) => option.number === court);
   const [error, setError] = useState<string | null>(null);
@@ -374,16 +397,14 @@ function StartForm({
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const firstServer = SIDES.find((side) => side === form.get("firstServer"));
-    const decidingSet = DECIDING_SETS.find((value) => value === form.get("decidingSet"));
     const courtText = String(form.get("court") ?? "").trim();
     const courtNumber = courtText === "" ? null : Number(courtText);
     if (firstServer === undefined) return setError("Choose who serves first.");
-    if (decidingSet === undefined) return setError("Choose how the deciding set is played.");
     if (courtNumber !== null && !(Number.isInteger(courtNumber) && courtNumber >= 1 && courtNumber <= MAX_COURT)) {
       return setError(`Court must be a whole number from 1 to ${MAX_COURT}, or empty.`);
     }
     setError(null);
-    onStart({ firstServer, decidingSet, court: courtNumber });
+    onStart({ firstServer, court: courtNumber });
   }
 
   return (
@@ -397,15 +418,10 @@ function StartForm({
           </label>
         ))}
       </fieldset>
-      <fieldset className="card flex flex-col gap-2 p-4">
-        <legend className="caps px-1">Deciding set</legend>
-        {DECIDING_SETS.map((value) => (
-          <label key={value} className="flex items-center gap-3 text-[14px]">
-            <input type="radio" name="decidingSet" value={value} defaultChecked={value === "set"} className="h-4 w-4 accent-[var(--color-accent)]" />
-            {DECIDING_SET_LABELS[value]}
-          </label>
-        ))}
-      </fieldset>
+      <div className="card p-4">
+        <div className="caps">Format</div>
+        <p className="mt-1 text-[14px]">{formatSummary(format)}</p>
+      </div>
       {courts.length === 0 ? (
         <label className="caps block">
           Court
@@ -462,11 +478,13 @@ function Elapsed({
 function Scoreboard({
   match,
   sides,
+  format,
   startedAt,
   endedAt,
 }: {
   match: MatchState;
   sides: Record<Side, SideLabel>;
+  format: MatchFormat;
   startedAt: number;
   endedAt: number | null;
 }) {
@@ -474,7 +492,7 @@ function Scoreboard({
   const inMatchTiebreak = match.tiebreak && match.tiebreakTarget === MATCH_TIEBREAK_POINTS;
   const setCount = finished || inMatchTiebreak ? match.sets.length : match.sets.length + 1;
   const scores = setScores(match);
-  const situation = situationLabel(match, sides);
+  const situation = situationLabel(match, sides, format);
 
   return (
     <div className="card px-4 pt-1">

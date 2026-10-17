@@ -1,8 +1,10 @@
 import type { Match, MatchStatus } from "@/db/schema";
-import { SIDES, deriveState, standardFormat, type MatchEvent, type Side } from "@/lib/match";
+import { SIDES, deriveState, type MatchEvent, type MatchFormat, type Side } from "@/lib/match";
 import {
+  formatOfRecord,
   parseScoreRecord,
   reconcileScore,
+  sameRecordFormat,
   scoreRecordOf,
   type DeviceScore,
   type ScoreRecord,
@@ -44,6 +46,8 @@ export interface ScorerState {
   /** The server's status and winner, as of the last save or load. */
   status: MatchStatus;
   winner: Side | null;
+  /** The server holds a started score for this match, so it can no longer start again. */
+  serverStarted: boolean;
 }
 
 export type ScorerAction =
@@ -59,7 +63,8 @@ export type ScorerAction =
   | { type: "retryNow" }
   | { type: "online" }
   | { type: "keepDevice" }
-  | { type: "replaceWithServer"; match: MatchSnapshot };
+  | { type: "replaceWithServer"; match: MatchSnapshot }
+  | { type: "startAgain" };
 
 export interface PendingSave {
   revision: number;
@@ -113,6 +118,7 @@ export function initialScorerState(server: MatchSnapshot, device: DeviceScore | 
     error: null,
     finalEvent: null,
     winner: server.winner,
+    serverStarted: server.record !== null,
   };
   const loaded = reconcileScore(server.version, server.record, device);
   switch (loaded.kind) {
@@ -167,7 +173,7 @@ export function scorerReducer(state: ScorerState, action: ScorerAction): ScorerS
       const record = requireRecord(state);
       if (state.finalEvent !== null) throw new Error("Confirm or undo the final point first.");
       const events = [...record.events, action.event];
-      const next = deriveState(events, standardFormat(record.decidingSet), record.firstServer);
+      const next = deriveState(events, formatOfRecord(record), record.firstServer);
       if (next.status === "completed") return { ...state, finalEvent: action.event };
       return withRecord(state, { ...record, events });
     }
@@ -194,6 +200,7 @@ export function scorerReducer(state: ScorerState, action: ScorerAction): ScorerS
         failures: 0,
         status: action.match.status,
         winner: action.match.winner,
+        serverStarted: action.match.record !== null,
       };
     case "sendFailed":
       if (action.revision !== state.sendingRevision) return state;
@@ -236,9 +243,34 @@ export function scorerReducer(state: ScorerState, action: ScorerAction): ScorerS
         finalEvent: null,
         status: action.match.status,
         winner: action.match.winner,
+        serverStarted: action.match.record !== null,
       };
     }
+    case "startAgain":
+      if (state.serverStarted) throw new Error("The match has started on the server, so it cannot start again.");
+      // Nothing reached the server, so dropping this device's score loses nothing saved.
+      return {
+        ...state,
+        record: null,
+        revision: 0,
+        savedRevision: 0,
+        sendingRevision: null,
+        failures: 0,
+        error: null,
+        conflict: null,
+        finalEvent: null,
+        status: "scheduled",
+        winner: null,
+      };
   }
+}
+
+/**
+ * True when this device started the match on rules other than the page's, and the server
+ * has not started it. Formats changed since, so the umpire should start it again.
+ */
+export function startedOnOtherRules(state: ScorerState, format: MatchFormat): boolean {
+  return !state.serverStarted && state.record !== null && !sameRecordFormat(state.record.format, format);
 }
 
 export function hasUnsavedChanges(state: ScorerState): boolean {

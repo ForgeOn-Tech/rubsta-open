@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { ScoringMatchRow } from "@/db/matches";
 import type { Match } from "@/db/schema";
 import { deriveState, standardFormat, type MatchEvent, type Side } from "@/lib/match";
+import { ONE_SET } from "@/lib/match-formats";
 import {
   formatElapsed,
   groupScoringMatches,
@@ -31,6 +32,7 @@ const BASE: Match = {
   bottomSlot: { kind: "entry", entryId: "b" },
   events: [],
   decidingSet: "set",
+  format: null,
   firstServer: null,
   status: "scheduled",
   winnerEntryId: null,
@@ -150,24 +152,33 @@ describe("situationLabel", () => {
 
   it("names deuce, advantage and a second serve", () => {
     const deuce = deriveState([...points("top", 3), ...points("bottom", 3)], FORMAT, "top");
-    expect(situationLabel(deuce, SIDES)).toBe("Deuce");
+    expect(situationLabel(deuce, SIDES, FORMAT)).toBe("Deuce");
 
     const advantage = deriveState([...points("top", 3), ...points("bottom", 4)], FORMAT, "top");
-    expect(situationLabel(advantage, SIDES)).toBe("Advantage Bela Rao");
+    expect(situationLabel(advantage, SIDES, FORMAT)).toBe("Advantage Bela Rao");
 
     const fault = deriveState([{ type: "fault" }], FORMAT, "top");
-    expect(situationLabel(fault, SIDES)).toBe("Second serve");
-    expect(situationLabel(deriveState([], FORMAT, "top"), SIDES)).toBeNull();
+    expect(situationLabel(fault, SIDES, FORMAT)).toBe("Second serve");
+    expect(situationLabel(deriveState([], FORMAT, "top"), SIDES, FORMAT)).toBeNull();
+  });
+
+  it("names the deciding point at the second deuce, for the receiver to choose the side", () => {
+    const secondDeuce = [...points("top", 3), ...points("bottom", 3), ...points("top", 1), ...points("bottom", 1)];
+
+    expect(situationLabel(deriveState(secondDeuce, ONE_SET, "top"), SIDES, ONE_SET)).toBe(
+      "Deciding point · Receiver chooses side",
+    );
+    expect(situationLabel(deriveState(secondDeuce, FORMAT, "top"), SIDES, FORMAT)).toBe("Deuce");
   });
 
   it("names a tiebreak and a match tiebreak", () => {
     const games = (side: Side, count: number) => points(side, count * 4);
     const twelve = [0, 1, 2, 3, 4, 5].flatMap(() => [...games("top", 1), ...games("bottom", 1)]);
-    expect(situationLabel(deriveState(twelve, FORMAT, "top"), SIDES)).toBe("Tiebreak");
+    expect(situationLabel(deriveState(twelve, FORMAT, "top"), SIDES, FORMAT)).toBe("Tiebreak");
 
     const matchTiebreak = standardFormat("matchTiebreak");
     const setsSplit = [...games("top", 6), ...games("bottom", 6)];
-    expect(situationLabel(deriveState(setsSplit, matchTiebreak, "top"), SIDES)).toBe("Match tiebreak");
+    expect(situationLabel(deriveState(setsSplit, matchTiebreak, "top"), SIDES, matchTiebreak)).toBe("Match tiebreak");
   });
 });
 

@@ -9,6 +9,7 @@ import { getScoringMatch } from "@/db/matches";
 import { getCurrentTournament } from "@/db/queries";
 import { listPublishedDays } from "@/db/schedule";
 import { CATEGORY_LABELS } from "@/lib/entries";
+import { formatFor } from "@/lib/match-formats";
 import { courtOptionLabel, publishedPlaces } from "@/lib/schedule";
 import { sideLabel } from "@/lib/scoring-display";
 import { snapshotOf } from "@/lib/score-sync";
@@ -46,6 +47,7 @@ export default async function ScoreMatchPage({
         bottom: sideLabel(row.bottom, match.bottomSlot),
       }}
       ready={match.topSlot.kind === "entry" && match.bottomSlot.kind === "entry"}
+      format={formatFor(row.category, match.roundName)}
       initial={snapshotOf(match)}
       completedAt={match.completedAt}
       retireAction={retireMatchAction}

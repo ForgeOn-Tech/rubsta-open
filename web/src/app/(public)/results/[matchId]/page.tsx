@@ -7,7 +7,8 @@ import { getDb } from "@/db/client";
 import { getScoringMatch } from "@/db/matches";
 import { getCurrentTournament } from "@/db/queries";
 import { CATEGORY_LABELS } from "@/db/schema";
-import { SIDES, deriveState, standardFormat } from "@/lib/match";
+import { SIDES, deriveState } from "@/lib/match";
+import { formatOfRecord } from "@/lib/score-record";
 import { statRows, statsOfRecord } from "@/lib/match-stats";
 import { PUBLIC_RESULTS_PATH } from "@/lib/player-matches";
 import { snapshotOf } from "@/lib/score-sync";
@@ -33,7 +34,7 @@ export default async function ResultPage({ params }: { params: Promise<{ matchId
   const retired =
     record !== null &&
     match.status === "completed" &&
-    deriveState(record.events, standardFormat(record.decidingSet), record.firstServer).status !== "completed";
+    deriveState(record.events, formatOfRecord(record), record.firstServer).status !== "completed";
   const doubles = [row.top, row.bottom].some((info) => info !== null && info.partnerName !== null);
   const facts = [
     match.status === "in_progress" ? "Live" : match.status === "completed" ? "Final" : "Not started",

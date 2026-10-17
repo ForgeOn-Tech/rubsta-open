@@ -23,6 +23,7 @@ function row(id: string, overrides: Partial<Match>): ScoringMatchRow {
     bottomSlot: entry("theirs"),
     events: [],
     decidingSet: "set",
+    format: null,
     firstServer: null,
     status: "scheduled",
     winnerEntryId: null,
