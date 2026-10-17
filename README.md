@@ -271,7 +271,9 @@ scoring screen.
 to place (each event's earliest stage starts ticked, every group of a group event
 together), the courts, the first match time, the rest every player gets between
 matches, and the minutes a match usually takes: one set, 8 games or best of 3
-(45, 60 and 90 to begin with). "Preview" shows the plan; "Add" puts it on the
+(45, 60 and 90 to begin with). An optional "Last start" stops the day running late:
+a match that would start after it, and anything waiting on it, is listed as not
+placed, ready for another day. "Preview" shows the plan; "Add" puts it on the
 working order of play after anything already on those courts. Matches go round by
 round, each on the court where it can start soonest, so nobody is on two courts at
 once and everyone gets their rest. A match that waits on a result ("Winner of M3",
