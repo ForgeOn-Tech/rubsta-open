@@ -129,7 +129,10 @@ export default async function AdminOrderOfPlayPage({
       column.items.flatMap((entry, index) => {
         const row = rowOf(entry.matchId);
         if (row === null) return [];
-        return [{ row, place: `${courtTitle(column.number)} · ${timingLabel(entry, previousNameOf(column.items, index))}` }];
+        // "After M10" would be unclear from another court, where M10 is out of sight and
+        // match numbers restart in each event, so a match that follows on gives its place.
+        const when = entry.timing === "followOn" ? `match ${index + 1} on court` : timingLabel(entry, previousNameOf(column.items, index));
+        return [{ row, place: `${courtTitle(column.number)} · ${when}` }];
       }),
     ),
     listEntryPlayers(database, tournament.id),
