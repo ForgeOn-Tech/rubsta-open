@@ -256,7 +256,7 @@ test.describe.serial("registration", () => {
     await topPoint.click();
     await expect(page.getByRole("region", { name: "Point details" })).toBeVisible();
     await page.screenshot({ path: testInfo.outputPath("point-details-mobile.png"), fullPage: true });
-    await page.getByRole("button", { name: "Ace", exact: true }).click();
+    await page.getByRole("button", { name: /^Ace by / }).click();
     await topPoint.click();
     await page.getByRole("button", { name: /^Winner by / }).click();
     await expect(score).toContainText("30");
@@ -270,7 +270,7 @@ test.describe.serial("registration", () => {
     await expect(score).toContainText("30");
     await page.getByRole("checkbox", { name: "Also record how each point was won (optional)" }).check();
     await page.getByRole("button", { name: /^Point — / }).nth(1).click();
-    await expect(page.getByRole("button", { name: "Ace", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^Ace by / })).toHaveCount(0);
     await page.getByRole("button", { name: "Cancel point" }).click();
     await topPoint.click();
     await page.getByRole("button", { name: /^Mistake by / }).click();
