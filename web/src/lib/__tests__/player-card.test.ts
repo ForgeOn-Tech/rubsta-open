@@ -11,6 +11,7 @@ const BASE: Match = {
   matchNumber: 1,
   roundIndex: 0,
   roundName: "Semi-finals",
+  groupNumber: null,
   topSlot: { kind: "entry", entryId: "mine" },
   bottomSlot: { kind: "entry", entryId: "theirs" },
   events: [{ type: "point", side: "top" }],

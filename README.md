@@ -366,6 +366,32 @@ app sends no email. A doubles entry goes into a draw only after the partner
 accepts. After a decline, or while waiting, the player can name a new partner,
 unless the entry is already in a published draw.
 
+### Round-robin groups
+
+Open singles and 40+ singles play groups before a knockout (`web/src/lib/groups.ts`).
+Open singles sends 8 players into the quarter-finals and 40+ singles sends 4 straight
+into the semi-finals. With more than twice that many entrants (17–32 in Open
+singles), there is one group per place and only each winner goes through, so groups
+can have 2, 3 or 4 players. With up to twice as many (16), half as many groups send
+their winner and runner-up. With no more entrants than places, the event is a plain
+knockout.
+
+Seeds go one per group: seed k heads group k, and the rest are drawn by lot. An
+event in groups allows only as many seeds as groups. Every group match is one set.
+Group k's winner takes seed k's line in the knockout; with two through, each
+runner-up faces the neighbouring group's winner (A against B, C against D), so they
+can meet their own group's winner only in the final. The placement is fixed, not
+drawn by lot.
+
+Publishing creates every group pairing and the whole knockout, whose first round
+waits on places such as "Group A winner"; knockout matches are numbered after the
+group matches and can go on the order of play before the groups finish. When a
+group's last match ends, the table decides who goes through: matches won, then head
+to head, then games won, with head to head applied again to any players still level.
+A walkover counts as a win with no games. A place the rules leave level waits for an
+admin, who chooses on the event's draw page. `/draws/<event>` shows each group's
+table and matches above the knockout.
+
 ### Game-day rehearsal
 
 `scripts/seed-game-day.mts` builds `data/gameday.db` for a dry run of the

@@ -3,12 +3,15 @@ import { notFound } from "next/navigation";
 
 import { auth } from "@/auth/auth";
 import { getDb } from "@/db/client";
+import { getDrawWithSlots } from "@/db/draws";
+import { listGroups, type GroupView } from "@/db/groups";
 import { listScoringMatches, type ScoringMatchRow } from "@/db/matches";
 import { listTeamEntryIds } from "@/db/partners";
 import { getCurrentTournament } from "@/db/queries";
 import { listPublishedDays } from "@/db/schedule";
 import { CATEGORY_LABELS } from "@/db/schema";
 import { parseCategoryFilter } from "@/lib/admin-entries";
+import { groupRoundName, hasStarted } from "@/lib/groups";
 import { SIDES } from "@/lib/match";
 import { PLAYER_DRAWS_PATH, drawRounds, teamSide } from "@/lib/player-matches";
 import { placeLabel, publishedPlaces, type PublishedPlace } from "@/lib/schedule";
@@ -40,8 +43,20 @@ export default async function DrawPage({ params }: { params: Promise<{ category:
     : new Map<string, PublishedPlace>();
   // Signed-out visitors have no entries, so no line is marked as theirs.
   const team = new Set(userId === null ? [] : listTeamEntryIds(database, userId));
-  const rounds = drawRounds(rows);
+  const draw = tournament ? (getDrawWithSlots(database, tournament.id, category)?.draw ?? null) : null;
+  const groups = draw?.status === "published" ? listGroups(database, draw) : [];
+  const groupRows = rows.filter((row) => row.match.groupNumber !== null);
+  const rounds = drawRounds(rows.filter((row) => row.match.groupNumber === null));
   const firstRoundMatches = rounds[0]?.rows.length ?? 0;
+  // Every group member plays a group match, so the matches name them all.
+  const names = new Map(
+    groupRows.flatMap((row) =>
+      SIDES.flatMap((side) => {
+        const slot = side === "top" ? row.match.topSlot : row.match.bottomSlot;
+        return slot.kind === "entry" ? [[slot.entryId, sideLabel(side === "top" ? row.top : row.bottom, slot).name] as const] : [];
+      }),
+    ),
+  );
 
   return (
     <div className="flex flex-col gap-8">
@@ -54,6 +69,24 @@ export default async function DrawPage({ params }: { params: Promise<{ category:
         </h1>
         <p className="mt-2 text-[13px] text-club-muted">Main draw · {tournament?.name ?? "Rubsta Open"}</p>
       </div>
+
+      {groups.length === 0 ? null : (
+        <section aria-labelledby="groups-heading" className="flex flex-col gap-5 border-t border-club-line pt-6">
+          <h2 id="groups-heading" className="text-[10px] font-medium uppercase tracking-[2px] text-club-muted">Groups</h2>
+          <div className="grid gap-6 [grid-template-columns:repeat(auto-fill,minmax(280px,1fr))]">
+            {groups.map((group) => (
+              <GroupBlock
+                key={group.groupNumber}
+                group={group}
+                names={names}
+                team={team}
+                rows={groupRows.filter((row) => row.match.groupNumber === group.groupNumber)}
+                places={places}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       {rounds.length === 0 ? (
         <p className="border-t border-club-line pt-5 text-[13px] text-club-muted" role="status">
@@ -81,6 +114,70 @@ export default async function DrawPage({ params }: { params: Promise<{ category:
         </div>
       )}
     </div>
+  );
+}
+
+function GroupBlock({
+  group,
+  names,
+  team,
+  rows,
+  places,
+}: {
+  group: GroupView;
+  names: ReadonlyMap<string, string>;
+  team: ReadonlySet<string>;
+  rows: readonly ScoringMatchRow[];
+  places: ReadonlyMap<string, PublishedPlace>;
+}) {
+  const name = (entryId: string): string => {
+    const label = names.get(entryId);
+    if (label === undefined) throw new Error(`Group ${group.groupNumber} has no match for entry ${entryId}.`);
+    return label;
+  };
+  return (
+    <article aria-label={groupRoundName(group.groupNumber)} className="flex flex-col gap-3">
+      <h3 className="font-serif text-[24px] leading-none">{groupRoundName(group.groupNumber)}</h3>
+      <table className="w-full border-collapse text-left text-[13px]">
+        <thead>
+          <tr className="border-b border-club-line text-[10px] uppercase tracking-[1px] text-club-muted">
+            <th scope="col" className="py-1.5 pr-2 font-medium">#</th>
+            <th scope="col" className="py-1.5 pr-2 font-medium">Player</th>
+            <th scope="col" className="py-1.5 pr-2 text-right font-medium">W</th>
+            <th scope="col" className="py-1.5 pr-2 text-right font-medium">L</th>
+            <th scope="col" className="py-1.5 text-right font-medium">Games</th>
+          </tr>
+        </thead>
+        <tbody>
+          {group.standings.rows.map((row) => {
+            const through = group.through.includes(row.entryId);
+            return (
+              <tr key={row.entryId} className={`border-b border-club-line ${team.has(row.entryId) ? "bg-club-mist" : ""}`}>
+                <td className="py-1.5 pr-2 text-club-muted lining-nums">{hasStarted(group.standings) ? row.place : ""}</td>
+                <th scope="row" className={`py-1.5 pr-2 text-left ${through ? "font-semibold" : "font-normal"}`}>
+                  {name(row.entryId)}
+                  {through ? <span className="ml-1.5 text-[9px] uppercase tracking-[1px] text-club-deep">Through</span> : null}
+                </th>
+                <td className="py-1.5 pr-2 text-right lining-nums">{row.won}</td>
+                <td className="py-1.5 pr-2 text-right lining-nums">{row.lost}</td>
+                <td className="py-1.5 text-right lining-nums">
+                  {row.gamesWon}–{row.gamesLost}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      <ol className="flex flex-col gap-2">
+        {[...rows]
+          .sort((a, b) => a.match.matchNumber - b.match.matchNumber)
+          .map((row) => (
+            <li key={row.match.id}>
+              <MatchBox row={row} team={team} place={places.get(row.match.id) ?? null} />
+            </li>
+          ))}
+      </ol>
+    </article>
   );
 }
 

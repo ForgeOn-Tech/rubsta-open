@@ -53,6 +53,7 @@ const MATCH: Match = {
   matchNumber: 2,
   roundIndex: 0,
   roundName: "Semi-finals",
+  groupNumber: null,
   topSlot: { kind: "entry", entryId: "b" },
   bottomSlot: { kind: "entry", entryId: "c" },
   events: [],
