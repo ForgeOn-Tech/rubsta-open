@@ -11,7 +11,7 @@ export const ONE_SET: MatchFormat = {
   setsToWin: 1,
   gamesPerSet: 6,
   tiebreakAt: 6,
-  // Assumed: the usual tiebreak to 7 at 6–all.
+  // The usual tiebreak: first to 7, won by two.
   tiebreakPoints: 7,
   decidingSet: "set",
   decidingPointAtDeuce: 2,
@@ -24,7 +24,7 @@ export const EIGHT_GAMES: MatchFormat = {
   tiebreakAt: 7,
   tiebreakPoints: 7,
   decidingSet: "set",
-  // Given for the 40+ semi-finals; assumed for every 8-game match.
+  // Every singles match: the first deuce is played out, the second is one point.
   decidingPointAtDeuce: 2,
 };
 
@@ -35,14 +35,13 @@ export const BEST_OF_THREE: MatchFormat = {
   tiebreakAt: 6,
   tiebreakPoints: 7,
   decidingSet: "matchTiebreak",
-  // Assumed: the same deuce rule as the rounds before.
   decidingPointAtDeuce: 2,
 };
 
 /** Doubles: one full set, every deuce one deciding point. */
 export const ONE_SET_DECIDING_POINT: MatchFormat = { ...ONE_SET, decidingPointAtDeuce: 1 };
 
-/** The Open doubles final: best of 3 with a super tiebreak. Assumed: every deuce still one point. */
+/** The Open doubles final: best of 3 with a super tiebreak, every deuce still one point. */
 export const BEST_OF_THREE_DECIDING_POINT: MatchFormat = { ...BEST_OF_THREE, decidingPointAtDeuce: 1 };
 
 /** Where a match sits in its event: group and early rounds, then the last three rounds. */
