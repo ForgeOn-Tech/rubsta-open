@@ -361,6 +361,8 @@ export const drawSlots = sqliteTable(
     // Null is a bye. The app never deletes entries, so set null only follows a user deletion.
     entryId: text("entry_id").references(() => entries.id, { onDelete: "set null" }),
     seed: integer("seed"),
+    // A group event's groups, from 1 (Group A). Null for a knockout line.
+    groupNumber: integer("group_number"),
   },
   (table) => [uniqueIndex("draw_slots_draw_position").on(table.drawId, table.position)],
 );
@@ -372,6 +374,8 @@ export type MatchStatus = (typeof MATCH_STATUSES)[number];
 export type MatchSlot =
   | { kind: "entry"; entryId: string }
   | { kind: "winner"; matchNumber: number }
+  // A knockout place waiting on a group: place 1 is the group's winner, 2 its runner-up.
+  | { kind: "group"; group: number; place: number }
   | { kind: "bye" };
 
 export const matches = sqliteTable(
@@ -385,7 +389,9 @@ export const matches = sqliteTable(
       .references(() => draws.id, { onDelete: "cascade" }),
     matchNumber: integer("match_number").notNull(), // bracket number, shown as "M21"
     roundIndex: integer("round_index").notNull(), // 0 = first round; final has the highest
-    roundName: text("round_name").notNull(), // from lib/draws roundName()
+    roundName: text("round_name").notNull(), // from lib/draws roundName(), or "Group A"
+    // The group a group match belongs to, from 1. Null for a knockout match.
+    groupNumber: integer("group_number"),
     topSlot: text("top_slot", { mode: "json" }).$type<MatchSlot>().notNull(),
     bottomSlot: text("bottom_slot", { mode: "json" }).$type<MatchSlot>().notNull(),
     events: text("events", { mode: "json" }).$type<MatchEvent[]>().notNull().default([]),
@@ -647,6 +653,27 @@ export const umpireLinks = sqliteTable("umpire_links", {
 });
 
 export type UmpireLink = typeof umpireLinks.$inferSelect;
+
+/**
+ * Who went through from a round-robin group, by place: decided by the standings, or by an
+ * admin when the rules leave players level. The knockout slot waiting on the place is filled
+ * in the same transaction.
+ */
+export const groupPlaces = sqliteTable(
+  "group_places",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    drawId: text("draw_id").notNull().references(() => draws.id, { onDelete: "cascade" }),
+    groupNumber: integer("group_number").notNull(),
+    place: integer("place").notNull(), // 1 for the winner, 2 for the runner-up
+    entryId: text("entry_id").notNull().references(() => entries.id),
+    decidedBy: text("decided_by").notNull(), // "standings", or the admin's email
+    decidedAt: integer("decided_at").notNull(),
+  },
+  (table) => [uniqueIndex("group_places_draw_group_place").on(table.drawId, table.groupNumber, table.place)],
+);
+
+export type GroupPlace = typeof groupPlaces.$inferSelect;
 
 export const CERTIFICATE_KINDS = ["participation", "runner-up", "winner"] as const;
 export type CertificateKind = (typeof CERTIFICATE_KINDS)[number];

@@ -28,6 +28,7 @@ const BASE: Match = {
   matchNumber: 2,
   roundIndex: 0,
   roundName: "Semi-finals",
+  groupNumber: null,
   topSlot: { kind: "entry", entryId: "a" },
   bottomSlot: { kind: "entry", entryId: "b" },
   events: [],

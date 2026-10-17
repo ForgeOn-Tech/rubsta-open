@@ -1,4 +1,5 @@
 import type { BracketRound, BracketSlot } from "@/lib/draws";
+import { groupPlaceLabel } from "@/lib/groups";
 
 // Height of one match card, so later rounds space out against the first round.
 const MATCH_HEIGHT_PX = 92;
@@ -54,6 +55,9 @@ function SlotRow({ slot, labels }: { slot: BracketSlot; labels: ReadonlyMap<stri
   }
   if (slot.kind === "winner") {
     return <div className="px-2.5 py-1.5 text-[12px] text-muted">Winner M{slot.matchNumber}</div>;
+  }
+  if (slot.kind === "group") {
+    return <div className="px-2.5 py-1.5 text-[12px] text-muted">{groupPlaceLabel(slot.group, slot.place)}</div>;
   }
   const label = labels.get(slot.entryId);
   if (label === undefined) throw new Error(`The draw refers to unknown entry ${slot.entryId}.`);
