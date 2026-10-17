@@ -104,13 +104,13 @@ export function groupScoringMatches(
 /**
  * One score line for the scoring list: sets and current games while in
  * progress, the result from the winner's side once completed. A retirement
- * ends in "ret."; a match retired before it started is a walkover.
+ * ends in "ret."; a match retired before it started is a walkover, written "W/O".
  */
 export function matchSummary(row: ScoringMatchRow): string | null {
   const snapshot = snapshotOf(row.match);
   const record = snapshot.record;
   if (row.match.status === "scheduled") return null;
-  if (record === null) return snapshot.winner === null ? null : "Walkover";
+  if (record === null) return snapshot.winner === null ? null : "W/O";
 
   const state = deriveState(record.events, formatOfRecord(record), record.firstServer);
   if (row.match.status === "in_progress") {
