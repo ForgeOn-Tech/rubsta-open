@@ -275,9 +275,9 @@ describe("Scorer", () => {
     mockedSave.mockImplementation(savedAsSent);
     // Top leads 6–0 5–0 40–0.
     renderScorer(snapshot(1, Array.from({ length: 47 }, () => point("top"))));
-    fireEvent.click(screen.getByRole("checkbox", { name: "Record point details (optional)" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Also record how each point was won (optional)" }));
     fireEvent.click(screen.getByRole("button", { name: /^Point — Asha Anand/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Winning shot" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Winner by / }));
 
     expect(screen.getByRole("heading", { name: "Game, set and match — Asha Anand" })).toBeInTheDocument();
     expect(mockedSave).not.toHaveBeenCalled();
@@ -314,17 +314,18 @@ describe("Scorer", () => {
 it("keeps point details optional and supports skip, cancel and undo", async () => {
   mockedSave.mockImplementation(savedAsSent);
   renderScorer(snapshot(1, []));
-  fireEvent.click(screen.getByRole("checkbox", { name: "Record point details (optional)" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Also record how each point was won (optional)" }));
   fireEvent.click(screen.getByRole("button", { name: /^Point — Bela Rao/ }));
-  expect(screen.queryByRole("button", { name: "Ace" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /^Ace by / })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Mistake by Asha Anand" })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Cancel point" }));
   expect(mockedSave).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: /^Point — Asha Anand/ }));
-  fireEvent.click(screen.getByRole("button", { name: "Skip detail" }));
+  fireEvent.click(screen.getByRole("button", { name: "Don't record how" }));
   await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Saved"));
   expect(mockedSave.mock.calls.at(-1)?.[1].record.events).toEqual([point("top")]);
   fireEvent.click(screen.getByRole("button", { name: /^Point — Asha Anand/ }));
-  fireEvent.click(screen.getByRole("button", { name: "Ace" }));
+  fireEvent.click(screen.getByRole("button", { name: "Ace by Asha Anand" }));
   await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Saved"));
   expect(mockedSave.mock.calls.at(-1)?.[1].record.events.at(-1)).toEqual({ type: "point", side: "top", finish: "ace" });
   fireEvent.click(screen.getByRole("button", { name: "Undo" }));
