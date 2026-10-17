@@ -12,6 +12,12 @@ export function umpireEmailFor(linkId: string): string {
   return `umpire-${linkId}@${UMPIRE_EMAIL_DOMAIN}`.toLowerCase();
 }
 
+/** True for the account of a scoring link, which has no player pages to go home to. */
+export function isUmpireLinkEmail(email: string): boolean {
+  const normalised = email.trim().toLowerCase();
+  return normalised.startsWith("umpire-") && normalised.endsWith(`@${UMPIRE_EMAIL_DOMAIN}`);
+}
+
 /** A new link secret: 24 random bytes, URL-safe. */
 export function newUmpireToken(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(TOKEN_BYTES));
