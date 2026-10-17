@@ -143,7 +143,7 @@ describe("matchSummary", () => {
   it("marks a retirement and a walkover", () => {
     expect(matchSummary(started(points("top", 24), "completed", "b"))).toBe("0–6 ret.");
     expect(matchSummary(row({ status: "completed", winnerEntryId: "a", startedAt: STARTED_AT }))).toBe(
-      "Walkover",
+      "W/O",
     );
   });
 });

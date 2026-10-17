@@ -85,7 +85,7 @@ export default async function AdminMatchResultPage({
           {record === null ? (
             <p className="text-[13px] text-muted" role="status">
               {match.status === "completed"
-                ? "Walkover. No points were played."
+                ? "W/O: a walkover. No points were played."
                 : "This match has not started."}
             </p>
           ) : (

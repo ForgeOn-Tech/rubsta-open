@@ -21,7 +21,7 @@ import {
   parseSeedInput,
   toDrawEntrant,
 } from "@/lib/draws";
-import { generateGroups, groupPlan, validateEventSeeds } from "@/lib/groups";
+import { generateGroups, groupPlan, validateEventSeeds, validateGroupPlan } from "@/lib/groups";
 import type { ActionState } from "@/lib/form-state";
 
 const NOT_ENOUGH_ENTRANTS = `A draw needs ${MIN_DRAW_ENTRANTS} to 128 confirmed or paid entries.`;
@@ -97,12 +97,24 @@ export async function generateDrawAction(
   if (!check.ok) return failed(`Fix the seeds first. ${check.error}`);
 
   // Lots need no cryptographic randomness.
-  const plan = groupPlan(category, entrants.length);
-  if (plan === null) {
+  if (groupPlan(category, entrants.length) === null) {
     saveGeneratedDraw(database, { tournamentId, category, lines: generateDraw(entrants, Math.random) });
-  } else {
-    saveGeneratedGroups(database, { tournamentId, category, lines: generateGroups(entrants, plan, Math.random) });
+    return saved();
   }
+  // A group event: the admin chooses the groups, starting from the suggested plan.
+  const chosen = validateGroupPlan({
+    groupCount: String(formData.get("groupCount") ?? ""),
+    qualifiersPerGroup: String(formData.get("qualifiersPerGroup") ?? ""),
+    entrantCount: entrants.length,
+    seedCount: entrants.filter((entrant) => entrant.seed !== null).length,
+  });
+  if (!chosen.ok) return failed(chosen.error);
+  saveGeneratedGroups(database, {
+    tournamentId,
+    category,
+    qualifiersPerGroup: chosen.plan.qualifiersPerGroup,
+    lines: generateGroups(entrants, chosen.plan, Math.random),
+  });
   return saved();
 }
 

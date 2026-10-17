@@ -45,7 +45,7 @@ function setup(category: Category, count: number) {
     entryId: `e${index + 1}`,
     seed: index < plan.groupCount ? index + 1 : null,
   }));
-  saveGeneratedGroups(database, { tournamentId: TOURNAMENT_ID, category, lines: generateGroups(entrants, plan, Math.random) });
+  saveGeneratedGroups(database, { tournamentId: TOURNAMENT_ID, category, qualifiersPerGroup: plan.qualifiersPerGroup, lines: generateGroups(entrants, plan, Math.random) });
   const current = getDrawWithSlots(database, TOURNAMENT_ID, category)!;
   publishDraw(database, current.draw, current.slots);
   return { database, draw: current.draw };
@@ -231,6 +231,31 @@ describe("a group draw", () => {
     );
     expect(semi).toBeDefined();
     expect(formatFor("OS", "Semi-finals")).toEqual(BEST_OF_THREE);
+  });
+
+  it("plays the groups the admin chose: 16 players in 2 groups, the top 2 to the semi-finals", () => {
+    // Arrange
+    const database = drizzle(new Database(":memory:"), { schema });
+    migrate(database, { migrationsFolder: "./drizzle" });
+    database.insert(schema.tournaments).values({ id: TOURNAMENT_ID, ...SEED_TOURNAMENT }).run();
+    for (let index = 1; index <= 16; index++) {
+      database.insert(schema.users).values({ id: `user-${index}`, email: `p${index}@example.com`, name: `P${index}` }).run();
+      database.insert(schema.entries).values({ id: `e${index}`, userId: `user-${index}`, tournamentId: TOURNAMENT_ID, category: "OS", status: "paid" }).run();
+    }
+    const plan = { groupCount: 2, qualifiersPerGroup: 2 };
+    const entrants = Array.from({ length: 16 }, (_unused, index) => ({ entryId: `e${index + 1}`, seed: null }));
+
+    // Act
+    saveGeneratedGroups(database, { tournamentId: TOURNAMENT_ID, category: "OS", qualifiersPerGroup: 2, lines: generateGroups(entrants, plan, Math.random) });
+    const current = getDrawWithSlots(database, TOURNAMENT_ID, "OS")!;
+    publishDraw(database, current.draw, current.slots);
+
+    // Assert
+    expect(current.draw.qualifiersPerGroup).toBe(2);
+    const rows = matchesOf(database, current.draw.id);
+    expect(rows.filter((match) => match.groupNumber !== null)).toHaveLength(56);
+    expect(rows.filter((match) => match.groupNumber === null).map((match) => match.roundName)).toEqual(["Semi-finals", "Semi-finals", "Final"]);
+    expect(listGroups(database, current.draw).map((group) => group.through)).toEqual([[null, null], [null, null]]);
   });
 
   it("forgets who went through when the draw goes back to draft before play", () => {

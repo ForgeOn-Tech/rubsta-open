@@ -234,12 +234,19 @@ function buildPlan(database: Database, tournamentId: string, request: FillReques
     matches: planMatches,
     restMinutes: request.restMinutes,
     busyUntil,
+    latestStart: request.finishBy === null ? null : minutesOf(request.finishBy),
   });
   return {
     placed: plan.placed.map((placed) => ({ ...placed, row: graph.rowOf(placed.matchId) })),
     unplaced: [
       ...unplaced,
-      ...plan.unplaced.map((id) => ({ row: graph.rowOf(id), reason: "It waits on a match that could not be placed." })),
+      ...plan.unplaced.map((item) => ({
+        row: graph.rowOf(item.matchId),
+        reason:
+          item.reason === "late"
+            ? `It would start after ${request.finishBy ?? ""}, the last start.`
+            : "It waits on a match that could not be placed.",
+      })),
     ],
     courtEnds,
   };
