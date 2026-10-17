@@ -324,6 +324,26 @@ export function retireMatch(database: Database, matchId: string, retiringSide: S
   });
 }
 
+/**
+ * Records a walkover: the absent side never played, so the other side wins and advances.
+ * Only for a match not yet started between two known entries; a match already under way
+ * ends by retirement on the scoring screen instead.
+ */
+export function walkoverMatch(database: Database, matchId: string, absentSide: Side): Match {
+  return database.transaction((tx) => {
+    const row = loadMatch(tx, matchId);
+    if (row.status !== "scheduled") {
+      throw new ScoreRejectedError(
+        `Match ${row.matchNumber} has already started. The umpire records a retirement on the scoring screen.`,
+      );
+    }
+    if (row.topSlot.kind !== "entry" || row.bottomSlot.kind !== "entry") {
+      throw new ScoreRejectedError(`Match ${row.matchNumber} is waiting on an earlier result.`);
+    }
+    return retireMatch(tx, matchId, absentSide);
+  });
+}
+
 /** Removes every match of a draw (when it moves back to draft). */
 export function deleteMatchesForDraw(database: Database, drawId: string): void {
   database.delete(matches).where(eq(matches.drawId, drawId)).run();

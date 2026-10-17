@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { listScorerEmails, requireAdmin } from "@/auth/require";
 import { getDb } from "@/db/client";
+import { ScoreRejectedError, walkoverMatch } from "@/db/matches";
 import { getCurrentTournament } from "@/db/queries";
 import {
   ScheduleRejectedError,
@@ -20,6 +21,7 @@ import {
 } from "@/db/schedule";
 import type { Tournament } from "@/db/schema";
 import type { ActionState } from "@/lib/form-state";
+import { SIDES } from "@/lib/match";
 import {
   ADMIN_ORDER_OF_PLAY_PATH,
   scheduleDayChoices,
@@ -192,3 +194,20 @@ export async function publishDayAction(_prev: ActionState, formData: FormData): 
   revalidatePath("/score", "layout");
   return saved();
 }
+
+/** Records a walkover from the order of play: the chosen side did not turn up. */
+export async function walkoverAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const absentSide = SIDES.find((side) => side === field(formData, "absentSide"));
+  if (absentSide === undefined) return failed("Choose who did not play.");
+  try {
+    walkoverMatch(getDb(), field(formData, "matchId"), absentSide);
+  } catch (error) {
+    if (error instanceof ScoreRejectedError) return failed(error.message);
+    throw error;
+  }
+  // Draws, results, scoring and the Fan Zone all show the result.
+  revalidatePath("/", "layout");
+  return { error: null, savedAt: Date.now() };
+}
+

@@ -40,6 +40,17 @@ export function addCourt(database: Database, tournamentId: string, fields: Court
   });
 }
 
+/** Adds unnamed courts until the tournament has `count`. Returns how many it added. */
+export function addCourtsUpTo(database: Database, tournamentId: string, count: number): number {
+  return database.transaction((tx) => {
+    const missing = Math.max(0, count - listCourts(tx, tournamentId).length);
+    for (let index = 0; index < missing; index++) {
+      addCourt(tx, tournamentId, { name: null, surface: null, streamUrl: null });
+    }
+    return missing;
+  });
+}
+
 /** Renames a court, changes its surface or its stream link. Its number stays. */
 export function updateCourt(
   database: Database,
