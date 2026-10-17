@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   MAX_UMPIRE_NAME_LENGTH,
   isLinkActive,
+  isUmpireLinkEmail,
   newUmpireToken,
   umpireEmailFor,
   umpireLinkPath,
@@ -43,6 +44,12 @@ describe("isLinkActive", () => {
 describe("link identity", () => {
   it("gives each link its own made-up email on a domain that never delivers", () => {
     expect(umpireEmailFor("ABC-123")).toBe("umpire-abc-123@rubstaopen.invalid");
+  });
+
+  it("recognises a link account's email and nobody else's", () => {
+    expect(isUmpireLinkEmail(umpireEmailFor("abc"))).toBe(true);
+    expect(isUmpireLinkEmail("umpire-abc@example.com")).toBe(false);
+    expect(isUmpireLinkEmail("admin-password@rubstaopen.invalid")).toBe(false);
   });
 
   it("makes long, URL-safe and different secrets", () => {

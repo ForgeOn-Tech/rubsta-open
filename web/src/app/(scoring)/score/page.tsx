@@ -24,6 +24,7 @@ import {
   scoringGroupOf,
   sideLabel,
 } from "@/lib/scoring-display";
+import { isUmpireLinkEmail } from "@/lib/umpire-links";
 
 export const dynamic = "force-dynamic";
 
@@ -63,7 +64,7 @@ export default async function ScoringListPage() {
               <Link href="/admin" className="caps">
                 Admin
               </Link>
-            ) : (
+            ) : isUmpireLinkEmail(user.email) ? null : (
               <Link href="/home" className="caps">
                 Home
               </Link>
