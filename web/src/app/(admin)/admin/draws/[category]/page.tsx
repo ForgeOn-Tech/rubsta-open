@@ -11,7 +11,7 @@ import { AdminNotice } from "@/components/admin-notice";
 import { AdminPageHeader } from "@/components/admin-page-header";
 import { getDb } from "@/db/client";
 import { getDrawWithSlots, type DrawWithSlots } from "@/db/draws";
-import { listGroups, planOfGroups } from "@/db/groups";
+import { chosenPlan, listGroups, planOfDraw } from "@/db/groups";
 import { listScoringMatches, type ScoringMatchRow } from "@/db/matches";
 import { getCurrentTournament, listTournamentEntries } from "@/db/queries";
 import { DRAW_STATUS_LABELS, type Category, type MatchSlot } from "@/db/schema";
@@ -118,7 +118,7 @@ function DrawSection({
   const groupMatchCount = groups.reduce((total, group) => total + (group.members.length * (group.members.length - 1)) / 2, 0);
   const knockout = published
     ? knockoutFromMatches(listScoringMatches(getDb(), tournamentId).filter((row) => row.category === category))
-    : buildBracketFromSlots(knockoutSlots(planOfGroups(category, groups.length)), groupMatchCount + 1);
+    : buildBracketFromSlots(knockoutSlots(planOfDraw(existing.draw, groups.length)), groupMatchCount + 1);
   return (
     <>
       <GroupsSection drawId={existing.draw.id} groups={groups} decideAction={decideGroupPlaceAction} />
@@ -151,7 +151,8 @@ export default async function AdminDrawPage({
   const entrants = accepted.map(toDrawEntrant);
   const existing = getDrawWithSlots(getDb(), tournament.id, category);
   const size = canDraw(entrants.length) ? drawSize(entrants.length) : null;
-  const plan = groupPlan(category, entrants.length);
+  // A draft keeps the admin's choice of groups; otherwise the plan starts from the suggestion.
+  const plan = (existing === null ? null : chosenPlan(existing)) ?? groupPlan(category, entrants.length);
   const changes = existing ? drawChanges(existing.slots, entrants) : null;
   const published = existing?.draw.status === "published";
   const labels = new Map(rows.map((row) => [row.entry.id, entrantLabel(row)]));
@@ -184,6 +185,7 @@ export default async function AdminDrawPage({
           drawId={existing?.draw.id ?? null}
           status={existing?.draw.status ?? null}
           canGenerate={size !== null}
+          groupPlan={groupPlan(category, entrants.length) === null ? null : plan}
           generateAction={generateDrawAction}
           statusAction={changeDrawStatus}
         />

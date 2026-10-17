@@ -1,0 +1,1 @@
+ALTER TABLE `draws` ADD `qualifiers_per_group` integer;

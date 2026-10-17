@@ -14,6 +14,7 @@ import {
   knockoutSlots,
   roundRobinPairs,
   seedLimit,
+  validateGroupPlan,
   type GroupResult,
 } from "@/lib/groups";
 
@@ -53,12 +54,34 @@ describe("groupPlan", () => {
 });
 
 describe("seedLimit", () => {
-  it("allows one seed per group, and the usual limit for a knockout", () => {
-    expect(seedLimit("OS", 24)).toBe(8);
-    expect(seedLimit("OS", 16)).toBe(4);
-    expect(seedLimit("S40", 16)).toBe(4);
-    expect(seedLimit("S40", 8)).toBe(2);
+  it("allows a seed for each group the entrants could fill, and the usual limit for a knockout", () => {
+    expect(seedLimit("OS", 40)).toBe(16);
+    expect(seedLimit("OS", 24)).toBe(12);
+    expect(seedLimit("OS", 16)).toBe(8);
+    expect(seedLimit("S40", 9)).toBe(4);
     expect(seedLimit("W30", 16)).toBe(4);
+  });
+});
+
+describe("validateGroupPlan", () => {
+  const base = { groupCount: "4", qualifiersPerGroup: "2", entrantCount: 16, seedCount: 4 };
+
+  it("accepts groups that fill a knockout of 2, 4, 8 or 16", () => {
+    expect(validateGroupPlan(base)).toEqual({ ok: true, plan: { groupCount: 4, qualifiersPerGroup: 2 } });
+    expect(validateGroupPlan({ ...base, groupCount: "2", seedCount: 2 })).toEqual({ ok: true, plan: { groupCount: 2, qualifiersPerGroup: 2 } });
+    expect(validateGroupPlan({ ...base, groupCount: "8", qualifiersPerGroup: "1" })).toMatchObject({ ok: true });
+  });
+
+  it.each([
+    ["no groups", { groupCount: "0" }, "Groups must be a whole number from 1 to 16."],
+    ["a fraction", { groupCount: "2.5" }, "Groups must be a whole number from 1 to 16."],
+    ["three through", { qualifiersPerGroup: "3" }, "Choose 1 or 2 to go through from each group."],
+    ["a knockout of 6", { groupCount: "3" }, "3 groups with 2 through make 6 knockout places; it must be 2, 4, 8 or 16."],
+    ["a single place", { groupCount: "1", qualifiersPerGroup: "1" }, "1 groups with 1 through make 1 knockout places; it must be 2, 4, 8 or 16."],
+    ["groups of one", { groupCount: "16", qualifiersPerGroup: "1" }, "16 players cannot fill 16 groups of at least 2."],
+    ["more seeds than groups", { groupCount: "2", seedCount: 4 }, "2 groups take at most 2 seeds, one each. Remove the extra seeds first."],
+  ] as const)("refuses %s", (_case, change, error) => {
+    expect(validateGroupPlan({ ...base, ...change })).toEqual({ ok: false, error });
   });
 });
 

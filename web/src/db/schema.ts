@@ -340,6 +340,8 @@ export const draws = sqliteTable(
     category: text("category", { enum: CATEGORIES }).notNull(),
     status: text("status", { enum: DRAW_STATUSES }).notNull().default("draft"),
     size: integer("size").notNull(),
+    // A group draw: how many go through from each group, as the admin set it. Null for a knockout.
+    qualifiersPerGroup: integer("qualifiers_per_group"),
     generatedAt: integer("generated_at")
       .notNull()
       .default(sql`(unixepoch() * 1000)`),
