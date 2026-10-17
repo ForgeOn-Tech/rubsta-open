@@ -5,10 +5,12 @@ import {
   addMatchToScheduleAction,
   changeScheduleItemAction,
   publishDayAction,
+  walkoverAction,
 } from "./actions";
 import { AddToSchedule, type MatchChoice } from "./add-to-schedule";
 import { PublishDayButton } from "./publish-day-button";
 import { ScheduleItemEditor } from "./schedule-item-editor";
+import { WalkoverButton } from "./walkover-button";
 import { listScorerEmails, requireAdmin } from "@/auth/require";
 import { AdminNotice } from "@/components/admin-notice";
 import { AdminPageHeader } from "@/components/admin-page-header";
@@ -222,6 +224,19 @@ export default async function AdminOrderOfPlayPage({
                                 entry.umpireEmail === null ? null : (names.get(entry.umpireEmail) ?? entry.umpireEmail)
                               }
                             >
+                              {row !== null &&
+                              row.match.status === "scheduled" &&
+                              row.match.topSlot.kind === "entry" &&
+                              row.match.bottomSlot.kind === "entry" ? (
+                                <WalkoverButton
+                                  matchId={row.match.id}
+                                  names={{
+                                    top: sideLabel(row.top, row.match.topSlot).name,
+                                    bottom: sideLabel(row.bottom, row.match.bottomSlot).name,
+                                  }}
+                                  action={walkoverAction}
+                                />
+                              ) : null}
                               <ScheduleItemEditor
                                 entry={entry}
                                 name={itemName(entry, row?.match.matchNumber ?? null)}

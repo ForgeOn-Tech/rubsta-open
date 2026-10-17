@@ -1,4 +1,4 @@
-import { addCourtAction, deleteCourtAction, saveTournamentSettings, updateCourtAction } from "./actions";
+import { addCourtAction, deleteCourtAction, saveTournamentSettings, setCourtCountAction, updateCourtAction } from "./actions";
 import { CourtsCard } from "./courts-card";
 import { SettingsForm } from "./settings-form";
 import { requireAdmin } from "@/auth/require";
@@ -56,6 +56,7 @@ export default async function AdminSettingsPage() {
         <CourtsCard
           courts={listCourts(getDb(), tournament.id)}
           addAction={addCourtAction}
+          countAction={setCourtCountAction}
           updateAction={updateCourtAction}
           deleteAction={deleteCourtAction}
         />

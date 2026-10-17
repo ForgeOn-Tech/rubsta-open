@@ -4,11 +4,12 @@ import { useActionState, useState } from "react";
 
 import type { Court } from "@/db/schema";
 import { INITIAL_ACTION_STATE, type FormAction } from "@/lib/form-state";
-import { MAX_COURT_NAME_LENGTH, MAX_COURT_SURFACE_LENGTH, courtTitle } from "@/lib/schedule";
+import { MAX_COURTS, MAX_COURT_NAME_LENGTH, MAX_COURT_SURFACE_LENGTH, courtTitle } from "@/lib/schedule";
 
 export interface CourtsCardProps {
   courts: readonly Court[];
   addAction: FormAction;
+  countAction: FormAction;
   updateAction: FormAction;
   deleteAction: FormAction;
 }
@@ -22,7 +23,7 @@ interface CourtValues {
 const SMALL_BUTTON = "btn h-9 text-[12px]";
 
 /** Courts for the order of play. A court keeps its number for the whole tournament. */
-export function CourtsCard({ courts, addAction, updateAction, deleteAction }: CourtsCardProps) {
+export function CourtsCard({ courts, addAction, countAction, updateAction, deleteAction }: CourtsCardProps) {
   return (
     <section aria-labelledby="courts-heading" className="card flex max-w-2xl flex-col gap-4 p-5">
       <div>
@@ -34,6 +35,8 @@ export function CourtsCard({ courts, addAction, updateAction, deleteAction }: Co
           umpires&apos; phones record scores against it. A YouTube link plays in the Fan Zone.
         </p>
       </div>
+
+      <CourtCountForm action={countAction} current={courts.length} />
 
       {courts.length === 0 ? (
         <p className="text-[13px] text-muted">No courts yet. Add one to build the order of play.</p>
@@ -153,6 +156,39 @@ function CourtRow({
         </p>
       ) : null}
     </div>
+  );
+}
+
+/** Quick setup: "4" makes Courts 1 to 4. Names, surfaces and streams can follow. */
+function CourtCountForm({ action, current }: { action: FormAction; current: number }) {
+  const [state, formAction, pending] = useActionState(action, INITIAL_ACTION_STATE);
+  return (
+    <form action={formAction} className="flex flex-wrap items-end gap-3">
+      <div>
+        <label className="caps" htmlFor="court-count">
+          Number of courts
+        </label>
+        <input
+          id="court-count"
+          name="count"
+          type="number"
+          inputMode="numeric"
+          min={Math.max(1, current)}
+          max={MAX_COURTS}
+          defaultValue={current === 0 ? "" : current}
+          className="field mono w-28"
+          required
+        />
+      </div>
+      <button type="submit" className={`${SMALL_BUTTON} btn-primary`} disabled={pending}>
+        {pending ? "Setting…" : "Set courts"}
+      </button>
+      {state.error ? (
+        <p className="w-full text-[12px] text-bad" role="alert">
+          {state.error}
+        </p>
+      ) : null}
+    </form>
   );
 }
 
