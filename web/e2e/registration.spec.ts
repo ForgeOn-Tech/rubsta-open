@@ -251,11 +251,11 @@ test.describe.serial("registration", () => {
     const score = page.getByRole("table", { name: "Score" });
     const topPoint = page.getByRole("button", { name: /^Point — / }).first();
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.getByRole("checkbox", { name: "Also record how each point was won (optional)" }).check();
     await context.setOffline(true);
     await topPoint.click();
-    await expect(page.getByRole("region", { name: "Point details" })).toBeVisible();
-    await page.screenshot({ path: testInfo.outputPath("point-details-mobile.png"), fullPage: true });
+    // The point counts at once; how it was won is asked after it, optionally.
+    await expect(page.getByRole("region", { name: "How the point was won" })).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath("point-reasons-mobile.png"), fullPage: true });
     await page.getByRole("button", { name: /^Ace by / }).click();
     await topPoint.click();
     await page.getByRole("button", { name: /^Winner by / }).click();
@@ -268,10 +268,11 @@ test.describe.serial("registration", () => {
     // The server kept both points: they survive a reload and show on the list.
     await page.reload();
     await expect(score).toContainText("30");
-    await page.getByRole("checkbox", { name: "Also record how each point was won (optional)" }).check();
     await page.getByRole("button", { name: /^Point — / }).nth(1).click();
+    // The receiver's point cannot be an ace. Undo takes the point back.
     await expect(page.getByRole("button", { name: /^Ace by / })).toHaveCount(0);
-    await page.getByRole("button", { name: "Cancel point" }).click();
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await expect(score).toContainText("30");
     await topPoint.click();
     await page.getByRole("button", { name: /^Mistake by / }).click();
     await expect(sync).toHaveText("Saved");

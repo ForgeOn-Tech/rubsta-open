@@ -206,10 +206,18 @@ which signs that phone in as the umpire's own account; opening the link alone
 changes nothing, so a chat preview cannot sign anyone in. A link scores only the
 matches the published order of play assigns to its umpire, and its scoring list
 shows only those. Anyone with the link can score them until an admin removes it,
-which stops it at once, including on phones already signed in. Links stop working the day after the tournament ends. Link
-umpires appear in the order of play's umpire list, by name. The scoring screen follows the LiveScore umpire
-artboard. It records points, faults, double faults and lets. The umpire confirms
-the point that ends the match before it saves.
+which stops it at once, including on phones already signed in. Links stop working
+the day after the tournament ends. Link umpires appear in the order of play's
+umpire list, by name.
+
+The scoring screen leads with the score as an umpire calls it, server first:
+"30–15", "Deuce", "Advantage …", "Deciding point" or a tiebreak score, with who is
+serving, a "2nd serve" tag after a fault, and Undo in the same corner. Below it,
+two large buttons, one per player, take the point: tap whoever won it. One Fault
+button takes the first fault, and pressed again is a double fault. Let is a small
+link, as are retire and reset in the match menu. After each event a line says what
+happened ("Game Arjun Mehta · 3–2 · Change ends"). The umpire confirms the point
+that ends the match before it saves.
 
 Each match's format comes from its event and round, in `web/src/lib/match-formats.ts`.
 The start screen shows it, and the umpire no longer chooses it.
@@ -321,12 +329,12 @@ Statistics come from the events the umpire records: who won each point,
 faults, double faults and lets. `src/lib/match-stats.ts` replays them and counts
 points won, first serves in, points won on first and second serve, double
 faults, break points won, service games held, tiebreak points won and the
-longest run of points. “Also record how each point was won” optionally asks, after
-each point, for "Ace by …", "Winner by …" or "Mistake by …", naming the player.
-"Don't record how" awards the point alone; Cancel does not award it. Only the
-server can record an ace. A mistake counts against the side that made it; aces
-are separate from winners. Undo removes both
-the point and its detail, including before final-result confirmation.
+longest run of points. After each point, which counts at once, the screen asks how
+it was won: "Ace by …" (only for the server), "Winner by …" or "Mistake by …",
+naming the player. Answering is optional; once answered, or once the next point is
+scored, the question goes. The point that ends the match can be answered on its
+confirmation. A mistake counts against the side that made it; aces are separate
+from winners. Undo removes the point and its reason together.
 
 Recorded-detail totals and coverage appear only after details are entered, so
 older matches do not imply that no aces or errors happened. Error entries do not

@@ -1,5 +1,5 @@
 import type { Match, MatchStatus } from "@/db/schema";
-import { SIDES, deriveState, type MatchEvent, type MatchFormat, type Side } from "@/lib/match";
+import { SIDES, deriveState, type MatchEvent, type MatchFormat, type PointFinish, type Side } from "@/lib/match";
 import {
   formatOfRecord,
   parseScoreRecord,
@@ -64,7 +64,8 @@ export type ScorerAction =
   | { type: "online" }
   | { type: "keepDevice" }
   | { type: "replaceWithServer"; match: MatchSnapshot }
-  | { type: "startAgain" };
+  | { type: "startAgain" }
+  | { type: "reason"; finish: PointFinish };
 
 export interface PendingSave {
   revision: number;
@@ -245,6 +246,21 @@ export function scorerReducer(state: ScorerState, action: ScorerAction): ScorerS
         winner: action.match.winner,
         serverStarted: action.match.record !== null,
       };
+    }
+    case "reason": {
+      // The umpire records how the last point was won after scoring it, or how the point
+      // that ends the match was won while it waits to be confirmed.
+      if (state.finalEvent !== null) {
+        if (state.finalEvent.type !== "point") throw new Error("The final point was not won in play.");
+        return { ...state, finalEvent: { ...state.finalEvent, finish: action.finish } };
+      }
+      const record = requireRecord(state);
+      const last = record.events.at(-1);
+      if (last === undefined || last.type !== "point") throw new Error("There is no point to give a reason for.");
+      const events = [...record.events.slice(0, -1), { ...last, finish: action.finish }];
+      // Replaying refuses a reason the point cannot have, such as an ace by the receiver.
+      deriveState(events, formatOfRecord(record), record.firstServer);
+      return withRecord(state, { ...record, events });
     }
     case "startAgain":
       if (state.serverStarted) throw new Error("The match has started on the server, so it cannot start again.");
