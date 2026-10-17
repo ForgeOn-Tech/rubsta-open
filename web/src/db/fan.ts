@@ -24,8 +24,8 @@ import {
   type FanScore,
   type PredictionOutcome,
 } from "@/lib/fan-predictions";
-import { deriveState, standardFormat, type MatchState, type Side } from "@/lib/match";
-import { scoreRecordOf } from "@/lib/score-record";
+import { deriveState, type MatchState, type Side } from "@/lib/match";
+import { formatOfRecord, scoreRecordOf } from "@/lib/score-record";
 
 /** A fan broke a chat or prediction rule. Its message is for the fan. */
 export class FanRejectedError extends Error {
@@ -232,7 +232,7 @@ export function listOwnReactions(database: Database, matchId: string, userId: st
 function matchState(match: Match): MatchState | null {
   const record = scoreRecordOf(match);
   if (record === null) return null;
-  return deriveState(record.events, standardFormat(record.decidingSet), record.firstServer);
+  return deriveState(record.events, formatOfRecord(record), record.firstServer);
 }
 
 /**

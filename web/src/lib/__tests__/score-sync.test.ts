@@ -24,7 +24,7 @@ function point(side: Side): MatchEvent {
 }
 
 function record(events: MatchEvent[]): ScoreRecord {
-  return { firstServer: "top", decidingSet: "set", court: 3, startedAt: STARTED_AT, events };
+  return { firstServer: "top", decidingSet: "set", format: null, court: 3, startedAt: STARTED_AT, events };
 }
 
 function snapshot(version: number, events: MatchEvent[] | null): MatchSnapshot {
@@ -55,6 +55,7 @@ const MATCH: Match = {
   bottomSlot: { kind: "entry", entryId: "c" },
   events: [],
   decidingSet: "set",
+  format: null,
   firstServer: null,
   status: "scheduled",
   winnerEntryId: null,

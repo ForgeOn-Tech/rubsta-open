@@ -1,7 +1,8 @@
 import type { ScoringMatchRow } from "@/db/matches";
 import type { Category, Court, MatchStatus } from "@/db/schema";
 import { currentSetNumber, predictionsOpen } from "@/lib/fan-predictions";
-import { deriveState, pointLabel, setScores, standardFormat, type Side } from "@/lib/match";
+import { deriveState, pointLabel, setScores, type Side } from "@/lib/match";
+import { formatOfRecord } from "@/lib/score-record";
 import type { PublishedPlace } from "@/lib/schedule";
 import { snapshotOf } from "@/lib/score-sync";
 import { matchSummary, sideLabel, situationLabel } from "@/lib/scoring-display";
@@ -67,7 +68,8 @@ export function scoreboard(row: ScoringMatchRow): FanScoreboard {
     return { ...base, sides: labels, situation: null, setNumber: null, predictionsOpen: false };
   }
 
-  const state = deriveState(record.events, standardFormat(record.decidingSet), record.firstServer);
+  const format = formatOfRecord(record);
+  const state = deriveState(record.events, format, record.firstServer);
   const cells = setScores(state);
   const shown = state.status === "completed" ? state.sets.length : cells.top.length;
   const sides: Record<Side, FanSide> = {
@@ -90,7 +92,7 @@ export function scoreboard(row: ScoringMatchRow): FanScoreboard {
   return {
     ...base,
     sides,
-    situation: situationLabel(state, { top: labels.top, bottom: labels.bottom }),
+    situation: situationLabel(state, { top: labels.top, bottom: labels.bottom }, format),
     setNumber: state.status === "completed" ? null : currentSetNumber(state),
     predictionsOpen: match.status === "in_progress" && predictionsOpen(state),
   };

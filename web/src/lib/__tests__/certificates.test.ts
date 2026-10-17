@@ -24,6 +24,7 @@ function row(id: string, category: Category, overrides: Partial<Match>): Scoring
     bottomSlot: { kind: "entry", entryId: "theirs" },
     events: [{ type: "point", side: "top" }],
     decidingSet: "set",
+    format: null,
     firstServer: "top",
     status: "completed",
     winnerEntryId: "mine",

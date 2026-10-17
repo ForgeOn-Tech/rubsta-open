@@ -1,4 +1,13 @@
-import { POINT_FINISHES, SIDES, type DecidingSet, type MatchEvent, type Side } from "@/lib/match";
+import {
+  POINT_FINISHES,
+  SIDES,
+  standardFormat,
+  type DecidingSet,
+  type MatchEvent,
+  type MatchFormat,
+  type Side,
+} from "@/lib/match";
+import { parseMatchFormat, sameFormat } from "@/lib/match-formats";
 
 /**
  * An umpire's score for one match: how it started and every event since.
@@ -8,6 +17,8 @@ import { POINT_FINISHES, SIDES, type DecidingSet, type MatchEvent, type Side } f
 export interface ScoreRecord {
   firstServer: Side;
   decidingSet: DecidingSet;
+  /** The rules the match started with. Null for a match started before formats were set by event and round. */
+  format: MatchFormat | null;
   court: number | null;
   /** Epoch milliseconds when the umpire started the match. */
   startedAt: number;
@@ -27,6 +38,7 @@ export interface DeviceScore {
 export interface StoredScoreColumns {
   firstServer: Side | null;
   decidingSet: DecidingSet;
+  format: MatchFormat | null;
   court: number | null;
   startedAt: number | null;
   events: MatchEvent[];
@@ -102,6 +114,8 @@ export function parseScoreRecord(value: unknown): ScoreRecord {
   return {
     firstServer: parseSide(fields.firstServer, "The first server"),
     decidingSet,
+    // A record kept on a phone before formats existed has none.
+    format: fields.format === undefined || fields.format === null ? null : parseMatchFormat(fields.format),
     court: parseCourt(fields.court),
     startedAt: parseTimestamp(fields.startedAt, "The start time"),
     events: fields.events.map(parseEvent),
@@ -128,10 +142,16 @@ function sameEvent(a: MatchEvent, b: MatchEvent): boolean {
   return a.type === b.type;
 }
 
+/** True when both are the same rules, or both started before formats were set by event and round. */
+export function sameRecordFormat(a: MatchFormat | null, b: MatchFormat | null): boolean {
+  return a === null || b === null ? a === b : sameFormat(a, b);
+}
+
 function sameStart(a: ScoreRecord, b: ScoreRecord): boolean {
   return (
     a.firstServer === b.firstServer &&
     a.decidingSet === b.decidingSet &&
+    sameRecordFormat(a.format, b.format) &&
     a.startedAt === b.startedAt
   );
 }
@@ -160,6 +180,7 @@ export function scoreRecordOf(match: StoredScoreColumns): ScoreRecord | null {
   return {
     firstServer: match.firstServer,
     decidingSet: match.decidingSet,
+    format: match.format,
     court: match.court,
     startedAt: match.startedAt,
     events: match.events,
@@ -184,4 +205,9 @@ export function reconcileScore(
   if (device.baseVersion === serverVersion) return { kind: "device", device };
   if (serverRecord !== null && sameScore(serverRecord, device.record)) return { kind: "server" };
   return { kind: "conflict", device };
+}
+
+/** The rules a match is scored by: the format it started with, or the earlier best of 3. */
+export function formatOfRecord(record: Pick<ScoreRecord, "format" | "decidingSet">): MatchFormat {
+  return record.format ?? standardFormat(record.decidingSet);
 }

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { saveScore, type SaveOutcome } from "../save-score";
 import { Scorer, type ScorerProps } from "../scorer";
+import { ONE_SET } from "@/lib/match-formats";
 import type { MatchEvent, Side } from "@/lib/match";
 import type { ScoreRecord } from "@/lib/score-record";
 import type { MatchSnapshot, PendingSave } from "@/lib/score-sync";
@@ -19,7 +20,7 @@ function point(side: Side): MatchEvent {
 }
 
 function record(events: MatchEvent[]): ScoreRecord {
-  return { firstServer: "top", decidingSet: "set", court: 1, startedAt: STARTED_AT, events };
+  return { firstServer: "top", decidingSet: "set", format: null, court: 1, startedAt: STARTED_AT, events };
 }
 
 function snapshot(version: number, events: MatchEvent[] | null): MatchSnapshot {
@@ -48,6 +49,7 @@ function scorerProps(initial: MatchSnapshot, courts: ScorerProps["courts"]): Sco
     courts,
     sides: { top: { name: "Asha Anand", seed: 1 }, bottom: { name: "Bela Rao", seed: null } },
     ready: true,
+    format: ONE_SET,
     initial,
     completedAt: null,
     retireAction: vi.fn(),
@@ -104,6 +106,8 @@ describe("Scorer", () => {
     mockedSave.mockImplementation(savedAsSent);
     renderScorer(snapshot(0, null));
 
+    expect(screen.getByText("One set to 6 · Tiebreak at 6–all · 2nd deuce: one deciding point")).toBeInTheDocument();
+    expect(screen.queryByText("Deciding set")).toBeNull();
     fireEvent.click(screen.getByRole("radio", { name: "Bela Rao" }));
     fireEvent.click(screen.getByRole("button", { name: "Start match" }));
 
@@ -113,7 +117,7 @@ describe("Scorer", () => {
       MATCH_ID,
       expect.objectContaining({
         baseVersion: 0,
-        record: expect.objectContaining({ firstServer: "bottom", court: 1, events: [] }),
+        record: expect.objectContaining({ firstServer: "bottom", decidingSet: "set", format: ONE_SET, court: 1, events: [] }),
       }),
     );
   });

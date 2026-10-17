@@ -1,6 +1,7 @@
 import type { Match, MatchStatus } from "@/db/schema";
-import { SIDES, deriveState, standardFormat, type MatchEvent, type Side } from "@/lib/match";
+import { SIDES, deriveState, type MatchEvent, type Side } from "@/lib/match";
 import {
+  formatOfRecord,
   parseScoreRecord,
   reconcileScore,
   scoreRecordOf,
@@ -167,7 +168,7 @@ export function scorerReducer(state: ScorerState, action: ScorerAction): ScorerS
       const record = requireRecord(state);
       if (state.finalEvent !== null) throw new Error("Confirm or undo the final point first.");
       const events = [...record.events, action.event];
-      const next = deriveState(events, standardFormat(record.decidingSet), record.firstServer);
+      const next = deriveState(events, formatOfRecord(record), record.firstServer);
       if (next.status === "completed") return { ...state, finalEvent: action.event };
       return withRecord(state, { ...record, events });
     }

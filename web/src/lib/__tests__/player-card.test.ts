@@ -15,6 +15,7 @@ const BASE: Match = {
   bottomSlot: { kind: "entry", entryId: "theirs" },
   events: [{ type: "point", side: "top" }],
   decidingSet: "set",
+  format: null,
   firstServer: "top",
   status: "completed",
   winnerEntryId: "mine",
