@@ -68,6 +68,8 @@ export interface ScorerProps {
   ready: boolean;
   /** The rules the match starts with, from its event and round. */
   format: MatchFormat;
+  /** Players of this match who were in another match in progress when the page loaded. */
+  busyPlayers: readonly string[];
   initial: MatchSnapshot;
   /** When the server recorded the match as finished, else null. */
   completedAt: number | null;
@@ -173,6 +175,7 @@ function LiveScorer({
   sides,
   ready,
   format,
+  busyPlayers,
   initial,
   completedAt,
   retireAction,
@@ -266,6 +269,14 @@ function LiveScorer({
             )}
           </div>
         </div>
+      ) : null}
+
+      {record === null && !finished && busyPlayers.length > 0 ? (
+        <ul role="status" aria-label="Players still on another court" className="flex flex-col gap-1 border-b border-line bg-surface-1 px-5 py-3 text-[13px] text-warn">
+          {busyPlayers.map((message) => (
+            <li key={message}>{message}</li>
+          ))}
+        </ul>
       ) : null}
 
       {record === null && !finished ? (

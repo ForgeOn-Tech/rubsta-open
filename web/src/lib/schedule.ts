@@ -370,7 +370,43 @@ export interface PublishedPlace {
   position: number;
   /** e.g. "Not before 15:30" or "After M21". */
   timing: string;
+  /**
+   * The earliest it can start, "HH:MM": its own time, or for an item following on, the
+   * latest time known above it on the court. Null when nothing above it has a time.
+   */
+  startsAround: string | null;
   umpireEmail: string | null;
+}
+
+/**
+ * The time each item on a court can start from. An item following on takes the time of the
+ * item above it, or the end of a session above it.
+ */
+function startTimes(sorted: readonly ScheduleEntry[]): Map<string, string | null> {
+  const times = new Map<string, string | null>();
+  sorted.forEach((entry, index) => {
+    const above = index > 0 && sorted[index - 1].courtNumber === entry.courtNumber ? sorted[index - 1] : null;
+    if (entry.timing !== "followOn") {
+      times.set(entry.id, entry.time);
+      return;
+    }
+    if (above === null) {
+      times.set(entry.id, null);
+      return;
+    }
+    times.set(entry.id, above.kind === "block" && above.endTime !== null ? above.endTime : (times.get(above.id) ?? null));
+  });
+  return times;
+}
+
+/** Playing order across courts: day, then start time (unknown last), then court and place on it. */
+export function byPlayingOrder(
+  a: Pick<PublishedPlace, "day" | "startsAround" | "courtNumber" | "position">,
+  b: Pick<PublishedPlace, "day" | "startsAround" | "courtNumber" | "position">,
+): number {
+  const byTime =
+    a.startsAround === b.startsAround ? 0 : a.startsAround === null ? 1 : b.startsAround === null ? -1 : a.startsAround.localeCompare(b.startsAround);
+  return a.day.localeCompare(b.day) || byTime || a.courtNumber - b.courtNumber || a.position - b.position;
 }
 
 /**
@@ -390,6 +426,7 @@ export function publishedPlaces(
   return new Map(
     days.flatMap((day) => {
       const sorted = sortEntries(day.items);
+      const starts = startTimes(sorted);
       return sorted.flatMap((entry, index): [string, PublishedPlace][] => {
         if (entry.kind !== "match" || entry.matchId === null || !matchNumbers.has(entry.matchId)) {
           return [];
@@ -404,6 +441,7 @@ export function publishedPlaces(
               courtNumber: entry.courtNumber,
               position: entry.position,
               timing: timingLabel(entry, previousName),
+              startsAround: starts.get(entry.id) ?? null,
               umpireEmail: entry.umpireEmail,
             },
           ],
@@ -418,14 +456,11 @@ export function placeLabel(place: PublishedPlace): string {
   return `${formatScheduleDay(place.day)} · ${courtTitle(place.courtNumber)} · ${place.timing}`;
 }
 
-/** The ids of the matches an umpire is assigned, in playing order: day, court, then place on court. */
+/** The ids of the matches an umpire is assigned, in playing order. */
 export function umpireMatchIds(places: ReadonlyMap<string, PublishedPlace>, email: string): string[] {
   const normalised = email.trim().toLowerCase();
   return [...places.entries()]
     .filter(([, place]) => place.umpireEmail === normalised)
-    .sort(
-      ([, a], [, b]) =>
-        a.day.localeCompare(b.day) || a.courtNumber - b.courtNumber || a.position - b.position,
-    )
+    .sort(([, a], [, b]) => byPlayingOrder(a, b))
     .map(([matchId]) => matchId);
 }

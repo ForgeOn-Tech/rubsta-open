@@ -398,6 +398,7 @@ describe("publishedPlaces", () => {
       courtNumber: 1,
       position: 1,
       timing: "11:00",
+      startsAround: "11:00",
       umpireEmail: null,
     });
     expect(places.get("match-2")).toEqual({
@@ -405,8 +406,27 @@ describe("publishedPlaces", () => {
       courtNumber: 1,
       position: 2,
       timing: "After M21",
+      startsAround: "11:00",
       umpireEmail: "ump@example.com",
     });
+  });
+
+  it("starts an item following a session from the session's end", () => {
+    const items = [
+      entry({ id: "s", kind: "block", matchId: null, title: "Semi Finals", time: "12:00", endTime: "14:00" }),
+      entry({ id: "a", matchId: "match-1", position: 2, timing: "followOn", time: null }),
+    ];
+
+    expect(publishedPlaces([{ items }], numbers).get("match-1")?.startsAround).toBe("14:00");
+  });
+
+  it("does not carry a time from one court to the next", () => {
+    const items = [
+      entry({ id: "a", matchId: "match-1", courtNumber: 1, time: "10:00" }),
+      entry({ id: "b", matchId: "match-2", courtNumber: 2, timing: "followOn", time: null }),
+    ];
+
+    expect(publishedPlaces([{ items }], numbers).get("match-2")?.startsAround).toBeNull();
   });
 
   it("does not name an item on another court", () => {
@@ -435,6 +455,7 @@ describe("placeLabel", () => {
       courtNumber: 2,
       position: 1,
       timing: "Not before 15:30",
+      startsAround: "15:30",
       umpireEmail: null,
     };
 
@@ -443,8 +464,12 @@ describe("placeLabel", () => {
 });
 
 describe("umpireMatchIds", () => {
+  function placeAt(day: string, courtNumber: number, position: number, umpireEmail: string, startsAround: string): PublishedPlace {
+    return { day, courtNumber, position, timing: startsAround, startsAround, umpireEmail };
+  }
+
   function place(day: string, courtNumber: number, position: number, umpireEmail: string): PublishedPlace {
-    return { day, courtNumber, position, timing: "11:00", umpireEmail };
+    return placeAt(day, courtNumber, position, umpireEmail, "11:00");
   }
 
   it("lists an umpire's matches in playing order, whatever the email's case", () => {
@@ -456,5 +481,14 @@ describe("umpireMatchIds", () => {
     ]);
 
     expect(umpireMatchIds(places, " Ump@Example.com ")).toEqual(["first", "court-2", "late"]);
+  });
+
+  it("puts an earlier match on a higher-numbered court first", () => {
+    const places = new Map([
+      ["court-1-afternoon", placeAt("2026-09-26", 1, 3, "ump@example.com", "15:00")],
+      ["court-2-morning", placeAt("2026-09-26", 2, 1, "ump@example.com", "10:00")],
+    ]);
+
+    expect(umpireMatchIds(places, "ump@example.com")).toEqual(["court-2-morning", "court-1-afternoon"]);
   });
 });

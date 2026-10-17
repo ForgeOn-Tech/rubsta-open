@@ -1,6 +1,6 @@
 import type { ScoringMatchRow } from "@/db/matches";
 import type { Side } from "@/lib/match";
-import type { PublishedPlace } from "@/lib/schedule";
+import { byPlayingOrder, type PublishedPlace } from "@/lib/schedule";
 
 export const PLAYER_DRAWS_PATH = "/draws";
 export const PLAYER_ORDER_OF_PLAY_PATH = "/order-of-play";
@@ -51,12 +51,7 @@ export function nextMatch(
       const place = places.get(row.match.id);
       return place === undefined ? [] : [{ row, place }];
     })
-    .sort(
-      (a, b) =>
-        a.place.day.localeCompare(b.place.day) ||
-        a.place.courtNumber - b.place.courtNumber ||
-        a.place.position - b.place.position,
-    );
+    .sort((a, b) => byPlayingOrder(a.place, b.place));
   if (placed.length > 0) return placed[0].row;
 
   const byRound = [...open].sort(
