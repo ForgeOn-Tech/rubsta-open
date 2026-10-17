@@ -579,23 +579,39 @@ function Controls({
     setPendingSide(null);
     dispatch({ type: "score", event: finish ? { type: "point", side, finish } : { type: "point", side } });
   }
-  if (pendingSide !== null) return (
-    <section aria-label="Point details" className="space-y-3 px-5 py-4">
-      <h2 className="font-semibold">Point to {sides[pendingSide].name}</h2>
-      <p className="text-sm text-muted">How did the point end? It is saved when you choose below.</p>
-      <div className="grid grid-cols-2 gap-3">
-        {pendingSide === match.server && <button type="button" className={SMALL_BUTTON} onClick={() => recordPoint(pendingSide, "ace")}>Ace</button>}
-        <button type="button" className={SMALL_BUTTON} onClick={() => recordPoint(pendingSide, "winner")}>Winning shot</button>
-        <button type="button" className={SMALL_BUTTON} onClick={() => recordPoint(pendingSide, "opponentError")}>Opponent error</button>
-        <button type="button" className={SMALL_BUTTON} onClick={() => recordPoint(pendingSide)}>Skip detail</button>
-      </div>
-      <p className="text-xs text-muted">Opponent error counts against {sides[other(pendingSide)].name}. Aces are counted separately from winning shots.</p>
-      <button type="button" className="btn btn-outline min-h-11" onClick={() => setPendingSide(null)}>Cancel point</button>
-    </section>
-  );
+  if (pendingSide !== null) {
+    const winner = sides[pendingSide].name;
+    const loser = sides[other(pendingSide)].name;
+    return (
+      <section aria-label="Point details" className="space-y-3 px-5 py-4">
+        <h2 className="font-semibold">Point to {winner}</h2>
+        <p className="text-sm text-muted">How was it won? The point is saved when you choose.</p>
+        <div className="grid grid-cols-1 gap-3">
+          {pendingSide === match.server && (
+            <button type="button" className={SMALL_BUTTON} onClick={() => recordPoint(pendingSide, "ace")}>
+              Ace by {winner}
+            </button>
+          )}
+          <button type="button" className={SMALL_BUTTON} onClick={() => recordPoint(pendingSide, "winner")}>
+            Winner by {winner}
+          </button>
+          <button type="button" className={SMALL_BUTTON} onClick={() => recordPoint(pendingSide, "opponentError")}>
+            Mistake by {loser}
+          </button>
+          <button type="button" className={SMALL_BUTTON} onClick={() => recordPoint(pendingSide)}>
+            Don&apos;t record how
+          </button>
+        </div>
+        <p className="text-xs text-muted">
+          Winner: a shot {loser} could not reach. Mistake: {loser} hit the ball out or into the net.
+        </p>
+        <button type="button" className="btn btn-outline min-h-11" onClick={() => setPendingSide(null)}>Cancel point</button>
+      </section>
+    );
+  }
   return (
     <div className="flex flex-col gap-[11px] px-5 pb-5 pt-4">
-      <label className="flex min-h-11 items-center gap-3 text-sm"><input type="checkbox" checked={recordDetails} onChange={event => setRecordDetails(event.target.checked)} className="h-5 w-5" />Record point details (optional)</label>
+      <label className="flex min-h-11 items-center gap-3 text-sm"><input type="checkbox" checked={recordDetails} onChange={event => setRecordDetails(event.target.checked)} className="h-5 w-5" />Also record how each point was won (optional)</label>
       {SIDES.map((side) => {
         const serving = match.server === side;
         return (

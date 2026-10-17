@@ -7,7 +7,9 @@ import Google from "next-auth/providers/google";
 import { authConfig } from "./config";
 import { adminPasswordConfigured, PASSWORD_ADMIN_EMAIL, verifyAdminPassword } from "./admin-password";
 import { db, getDb } from "@/db/client";
+import { activeLinkByToken, umpireLinkAccount } from "@/db/umpire-links";
 import { accounts, sessions, users, verificationTokens } from "@/db/schema";
+import { venueDay } from "@/lib/schedule";
 
 // Demo-mode sign-in identity. Only reachable when DEMO_AUTH=true (the provider
 // is registered conditionally below and `authorize` re-checks the flag).
@@ -76,6 +78,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth(() => ({
         return user ? { id: user.id, email: user.email, name: user.name, image: null } : null;
       },
     })] : []),
+    // An umpire's personal scoring link. Scoring access is checked again on every request,
+    // so revoking the link stops a phone already signed in.
+    Credentials({
+      id: "umpire-link",
+      name: "Umpire scoring link",
+      credentials: { token: { type: "text" } },
+      async authorize(credentials) {
+        if (typeof credentials.token !== "string") return null;
+        const link = activeLinkByToken(getDb(), credentials.token, venueDay(Date.now()));
+        if (link === null) return null;
+        const user = umpireLinkAccount(getDb(), link);
+        return { id: user.id, email: user.email, name: user.name, image: null };
+      },
+    }),
     ...(googleConfigured
       ? [
           Google({
