@@ -13,6 +13,7 @@ import { ADMIN_ENTRIES_PATH, playerName } from "@/lib/admin-entries";
 import { ageFromDob } from "@/lib/age";
 import { CATEGORY_LABELS, entryReference } from "@/lib/entries";
 import { formatEntryTime } from "@/lib/format";
+import { ADMIN_PLAYERS_PATH } from "@/lib/players";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,10 @@ export default async function AdminEntryPage({
   const age = profile ? ageFromDob(profile.dateOfBirth) : null;
 
   const player: Detail[] = [
+    {
+      label: "Player page",
+      value: <Link href={`${ADMIN_PLAYERS_PATH}/${entry.userId}`}>{name}</Link>,
+    },
     { label: "Email", value: email },
     { label: "Mobile", value: profile?.mobile ?? EMPTY_VALUE },
     {
@@ -58,7 +63,13 @@ export default async function AdminEntryPage({
       label: "Partner",
       value: entry.partnerName ? (
         <span className="flex flex-col items-end gap-1">
-          {`${entry.partnerName} · ${entry.partnerEmail}`}
+          {entry.partnerUserId === null ? (
+            `${entry.partnerName} · ${entry.partnerEmail}`
+          ) : (
+            <Link href={`${ADMIN_PLAYERS_PATH}/${entry.partnerUserId}`}>
+              {`${entry.partnerName} · ${entry.partnerEmail}`}
+            </Link>
+          )}
           {entry.partnerStatus === null ? null : <PartnerStatusBadge status={entry.partnerStatus} />}
         </span>
       ) : (
