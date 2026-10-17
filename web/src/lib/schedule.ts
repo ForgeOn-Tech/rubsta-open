@@ -14,6 +14,8 @@ import { checkStreamUrl } from "@/lib/stream";
 export const ADMIN_ORDER_OF_PLAY_PATH = "/admin/order-of-play";
 export const MAX_SCHEDULE_DAYS = 31;
 export const MAX_COURT_NAME_LENGTH = 40;
+/** A sanity cap on how many courts one form can create. */
+export const MAX_COURTS = 20;
 export const MAX_COURT_SURFACE_LENGTH = 40;
 export const MAX_BLOCK_TITLE_LENGTH = 80;
 export const MAX_BLOCK_NOTE_LENGTH = 120;
@@ -225,6 +227,21 @@ export function courtDetail(court: Pick<Court, "name" | "surface"> | null): stri
   if (court === null) return null;
   const parts = [court.name, court.surface].filter((part): part is string => part !== null);
   return parts.length === 0 ? null : parts.join(" · ");
+}
+
+/**
+ * How many courts the tournament should have, from the quick setup. It only adds courts;
+ * one on the order of play keeps its number, so removing stays a per-court choice.
+ */
+export function validateCourtCount(raw: string, existing: number): Validation<number> {
+  const count = Number(raw.trim());
+  if (raw.trim() === "" || !Number.isInteger(count) || count < 1 || count > MAX_COURTS) {
+    return { ok: false, error: `Enter a whole number of courts from 1 to ${MAX_COURTS}.` };
+  }
+  if (count < existing) {
+    return { ok: false, error: `There are already ${existing} courts. Remove a court with its own Remove button.` };
+  }
+  return { ok: true, value: count };
 }
 
 /** The number a new court takes: one more than the highest. */

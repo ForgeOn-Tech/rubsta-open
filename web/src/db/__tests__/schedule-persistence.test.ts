@@ -5,7 +5,7 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { describe, expect, it } from "vitest";
 
-import { CourtInUseError, addCourt, deleteCourt, listCourts, updateCourt } from "@/db/courts";
+import { CourtInUseError, addCourt, addCourtsUpTo, deleteCourt, listCourts, updateCourt } from "@/db/courts";
 import { getDrawWithSlots, saveGeneratedDraw } from "@/db/draws";
 import { publishDraw, unpublishDraw } from "@/db/matches";
 import {
@@ -386,3 +386,30 @@ describe("publishDay", () => {
     expect(listScheduleDaysInUse(database, TOURNAMENT_ID)).toEqual([DAY, NEXT_DAY]);
   });
 });
+
+describe("addCourtsUpTo", () => {
+  it("adds unnamed courts after the existing ones until there are enough", () => {
+    // Arrange: setup made Courts 1 and 2.
+    const { database } = setup();
+
+    // Act
+    const added = addCourtsUpTo(database, TOURNAMENT_ID, 4);
+
+    // Assert
+    expect(added).toBe(2);
+    expect(listCourts(database, TOURNAMENT_ID).map((court) => [court.number, court.name])).toEqual([
+      [1, "Centre"],
+      [2, null],
+      [3, null],
+      [4, null],
+    ]);
+  });
+
+  it("adds nothing when there are already enough", () => {
+    const { database } = setup();
+
+    expect(addCourtsUpTo(database, TOURNAMENT_ID, 2)).toBe(0);
+    expect(listCourts(database, TOURNAMENT_ID)).toHaveLength(2);
+  });
+});
+

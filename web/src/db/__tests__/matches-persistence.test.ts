@@ -19,6 +19,7 @@ import {
   retireMatch,
   saveMatchScore,
   unpublishDraw,
+  walkoverMatch,
 } from "@/db/matches";
 import * as schema from "@/db/schema";
 import { SEED_TOURNAMENT } from "@/db/seed";
@@ -428,6 +429,36 @@ describe("resetMatch", () => {
     const byeMatch = matchByNumber(matches, 1);
 
     expect(() => resetMatch(database, byeMatch.id)).toThrow(/in progress/);
+  });
+});
+
+describe("walkoverMatch", () => {
+  it("gives the match to the side that turned up and moves them into the final", () => {
+    const database = setup();
+    const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
+    const semi = matchByNumber(matches, 2);
+    const final = matchByNumber(matches, 3);
+
+    const row = walkoverMatch(database, semi.id, "top");
+
+    expect(row).toMatchObject({ status: "completed", winnerEntryId: "c", events: [], firstServer: null });
+    expect(loadRow(database, final.id).bottomSlot).toEqual({ kind: "entry", entryId: "c" });
+  });
+
+  it("refuses a match already under way, which ends by retirement instead", () => {
+    const database = setup();
+    const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
+    const semi = matchByNumber(matches, 2);
+    saveMatchScore(database, semi.id, 0, record([]));
+
+    expect(() => walkoverMatch(database, semi.id, "top")).toThrow(/already started/);
+  });
+
+  it("refuses a match still waiting on an earlier result", () => {
+    const database = setup();
+    const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
+
+    expect(() => walkoverMatch(database, matchByNumber(matches, 3).id, "top")).toThrow(/waiting on an earlier result/);
   });
 });
 

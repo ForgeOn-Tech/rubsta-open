@@ -5,12 +5,12 @@ import { revalidatePath } from "next/cache";
 
 import { requireAdmin } from "@/auth/require";
 import { getDb } from "@/db/client";
-import { CourtInUseError, addCourt, deleteCourt, updateCourt } from "@/db/courts";
+import { CourtInUseError, addCourt, addCourtsUpTo, deleteCourt, listCourts, updateCourt } from "@/db/courts";
 import { getCurrentTournament } from "@/db/queries";
 import { saveEventFees } from "@/db/fees";
 import { CATEGORIES, tournaments, type Category } from "@/db/schema";
 import type { ActionState } from "@/lib/form-state";
-import { validateCourt } from "@/lib/schedule";
+import { validateCourt, validateCourtCount } from "@/lib/schedule";
 import { validateSettings, type SettingsFormState } from "@/lib/settings";
 
 function requireTournamentId(): string {
@@ -50,6 +50,17 @@ export async function addCourtAction(_prev: ActionState, formData: FormData): Pr
   if (!fields.ok) return { error: fields.error, savedAt: null };
 
   addCourt(getDb(), tournamentId, fields.value);
+  return courtsSaved();
+}
+
+/** Quick setup: adds unnamed courts until the tournament has the number asked for. */
+export async function setCourtCountAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const tournamentId = requireTournamentId();
+  const count = validateCourtCount(String(formData.get("count") ?? ""), listCourts(getDb(), tournamentId).length);
+  if (!count.ok) return { error: count.error, savedAt: null };
+
+  addCourtsUpTo(getDb(), tournamentId, count.value);
   return courtsSaved();
 }
 

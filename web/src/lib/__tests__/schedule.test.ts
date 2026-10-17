@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { Court } from "@/db/schema";
 import {
   MAX_BLOCK_TITLE_LENGTH,
+  MAX_COURTS,
   MAX_COURT_NAME_LENGTH,
   MAX_SCHEDULE_DAYS,
   courtColumns,
@@ -23,6 +24,7 @@ import {
   umpireMatchIds,
   validateBlock,
   validateCourt,
+  validateCourtCount,
   validateTiming,
   venueClock,
   venueDay,
@@ -226,6 +228,24 @@ describe("moveInOrder", () => {
 
   it("rejects an id that is not in the list", () => {
     expect(() => moveInOrder(["a"], "z", "up")).toThrow(/not in this list/);
+  });
+});
+
+describe("validateCourtCount", () => {
+  it("accepts a whole number at least as large as the courts there are", () => {
+    expect(validateCourtCount(" 4 ", 2)).toEqual({ ok: true, value: 4 });
+    expect(validateCourtCount("2", 2)).toEqual({ ok: true, value: 2 });
+  });
+
+  it.each(["", "0", "2.5", "x", String(MAX_COURTS + 1)])("refuses %j", (raw) => {
+    expect(validateCourtCount(raw, 0)).toEqual({ ok: false, error: `Enter a whole number of courts from 1 to ${MAX_COURTS}.` });
+  });
+
+  it("never removes courts", () => {
+    expect(validateCourtCount("2", 3)).toEqual({
+      ok: false,
+      error: "There are already 3 courts. Remove a court with its own Remove button.",
+    });
   });
 });
 
