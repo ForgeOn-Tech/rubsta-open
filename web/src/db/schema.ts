@@ -629,6 +629,25 @@ export const courtBroadcasts = sqliteTable("court_broadcasts", {
   updatedAt: integer("updated_at").notNull(),
 });
 
+/**
+ * A personal scoring link for an umpire without a listed email. The link signs the phone in
+ * as the umpire's own account, whose email is made up for it. Revoking the link stops that
+ * account scoring at once.
+ */
+export const umpireLinks = sqliteTable("umpire_links", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  tournamentId: text("tournament_id").notNull().references(() => tournaments.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  // The umpire's account, e.g. umpire-<id>@rubstaopen.invalid, lower case.
+  email: text("email").notNull().unique(),
+  token: text("token").notNull().unique(),
+  createdBy: text("created_by").notNull(), // the admin's email, lower case
+  createdAt: integer("created_at").notNull(),
+  revokedAt: integer("revoked_at"),
+});
+
+export type UmpireLink = typeof umpireLinks.$inferSelect;
+
 export const CERTIFICATE_KINDS = ["participation", "runner-up", "winner"] as const;
 export type CertificateKind = (typeof CERTIFICATE_KINDS)[number];
 

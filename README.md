@@ -179,6 +179,7 @@ npm run dev                  # http://localhost:3100
 | `/admin/results/<match id>` | Admins | One match's score and statistics |
 | `/admin/players` | Admins | Everyone with a profile or entry, their entries, and search by name, email, club or mobile |
 | `/admin/fan` | Admins | Every court chat message with the account behind it; hide a message or mute a fan |
+| `/admin/umpires` | Admins | Umpires' personal scoring links: add, copy, send on WhatsApp, remove |
 | `/admin/settings` | Admins | Name, dates, venue, closing time (IST), a fee for each event, entries open or closed, schedule confirmed, courts, stream links |
 | `/score` | Admins and umpires | Matches in progress, ready to start, waiting on earlier results, and completed |
 | `/score/<match id>` | Admins and umpires | Umpire scoring screen, which keeps working when the signal drops |
@@ -198,7 +199,14 @@ Publishing a draw creates its matches. A match against a bye is complete at once
 and each winner moves into the next round.
 
 Umpires score at `/score`. Emails in `ADMIN_EMAILS` or `UMPIRE_EMAILS` can open it,
-and umpires cannot open `/admin`. The scoring screen follows the LiveScore umpire
+and umpires cannot open `/admin`. An umpire without a listed email gets a personal
+scoring link from `/admin/umpires`: the admin adds their name, then copies the
+link or sends it on WhatsApp. The link opens a page with a "Start scoring" button,
+which signs that phone in as the umpire's own account; opening the link alone
+changes nothing, so a chat preview cannot sign anyone in. Anyone with the link can
+score until an admin removes it, which stops it at once, including on phones
+already signed in. Links stop working the day after the tournament ends. Link
+umpires appear in the order of play's umpire list, by name. The scoring screen follows the LiveScore umpire
 artboard. It records points, faults, double faults and lets. The umpire confirms
 the point that ends the match before it saves.
 
