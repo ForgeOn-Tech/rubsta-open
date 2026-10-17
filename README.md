@@ -276,10 +276,11 @@ Statistics come from the events the umpire records: who won each point,
 faults, double faults and lets. `src/lib/match-stats.ts` replays them and counts
 points won, first serves in, points won on first and second serve, double
 faults, break points won, service games held, tiebreak points won and the
-longest run of points. “Record point details” optionally adds an ace, winning shot,
-or opponent error when awarding a point. Skip keeps ordinary scoring available;
-Cancel does not award the point. Only the server can record an ace. Errors count
-against the losing side; aces are separate from winning shots. Undo removes both
+longest run of points. “Also record how each point was won” optionally asks, after
+each point, for "Ace by …", "Winner by …" or "Mistake by …", naming the player.
+"Don't record how" awards the point alone; Cancel does not award it. Only the
+server can record an ace. A mistake counts against the side that made it; aces
+are separate from winners. Undo removes both
 the point and its detail, including before final-result confirmation.
 
 Recorded-detail totals and coverage appear only after details are entered, so
