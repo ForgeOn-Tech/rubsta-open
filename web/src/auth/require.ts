@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
 
 import { auth } from "./auth";
+import { getDb } from "@/db/client";
+import { isActiveUmpireEmail, listActiveUmpireEmails } from "@/db/umpire-links";
 import { isListedEmail, listedEmails } from "@/lib/access";
+import { venueDay } from "@/lib/schedule";
 
 export interface SessionUser {
   id: string;
@@ -41,9 +44,13 @@ export async function requireAdmin(): Promise<SessionUser> {
   return user;
 }
 
-/** Umpires in UMPIRE_EMAILS can score matches, and so can every admin. */
+/** Umpires in UMPIRE_EMAILS or with a working scoring link can score matches, and so can every admin. */
 export function canScoreMatches(email: string): boolean {
-  return canAccessAdmin(email) || isListedEmail(email, process.env.UMPIRE_EMAILS ?? "");
+  return (
+    canAccessAdmin(email) ||
+    isListedEmail(email, process.env.UMPIRE_EMAILS ?? "") ||
+    isActiveUmpireEmail(getDb(), email, venueDay(Date.now()))
+  );
 }
 
 /** Everyone who can score, umpires first, for assigning matches on the order of play. */
@@ -51,6 +58,7 @@ export function listScorerEmails(): string[] {
   return [
     ...new Set([
       ...listedEmails(process.env.UMPIRE_EMAILS ?? ""),
+      ...listActiveUmpireEmails(getDb(), venueDay(Date.now())),
       ...listedEmails(process.env.ADMIN_EMAILS ?? ""),
     ]),
   ];
