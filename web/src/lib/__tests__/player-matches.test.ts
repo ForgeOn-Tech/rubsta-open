@@ -19,6 +19,7 @@ function row(id: string, overrides: Partial<Match>): ScoringMatchRow {
     matchNumber: 1,
     roundIndex: 0,
     roundName: "Quarter-finals",
+    groupNumber: null,
     topSlot: entry("mine"),
     bottomSlot: entry("theirs"),
     events: [],

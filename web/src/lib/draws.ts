@@ -209,7 +209,9 @@ export function generateDraw(entrants: readonly DrawEntrant[], random: () => num
 export type BracketSlot =
   | { kind: "entry"; entryId: string; seed: number | null }
   | { kind: "bye" }
-  | { kind: "winner"; matchNumber: number };
+  | { kind: "winner"; matchNumber: number }
+  // A place a round-robin group fills: 1 for its winner, 2 for its runner-up.
+  | { kind: "group"; group: number; place: number };
 
 export interface BracketMatch {
   number: number;
@@ -249,16 +251,24 @@ export function buildBracket(lines: readonly DrawLine[]): BracketRound[] {
   if (sorted.some((line, index) => line.position !== index + 1)) {
     throw new Error("Draw lines must cover positions 1 to the draw size once each.");
   }
+  return buildBracketFromSlots(
+    sorted.map((line): BracketSlot =>
+      line.entryId === null ? { kind: "bye" } : { kind: "entry", entryId: line.entryId, seed: line.seed },
+    ),
+    1,
+  );
+}
 
-  let matchNumber = 0;
-  const slotFor = (line: DrawLine): BracketSlot =>
-    line.entryId === null
-      ? { kind: "bye" }
-      : { kind: "entry", entryId: line.entryId, seed: line.seed };
-
-  let current: BracketMatch[] = pairs(sorted).map(([top, bottom]) => {
+/**
+ * Every round from first-round slots, top to bottom, numbering matches from `firstNumber`.
+ * A group event's knockout starts after its group matches, so its numbers do not clash.
+ */
+export function buildBracketFromSlots(slots: readonly BracketSlot[], firstNumber: number): BracketRound[] {
+  assertDrawSize(slots.length);
+  let matchNumber = firstNumber - 1;
+  let current: BracketMatch[] = pairs(slots).map(([top, bottom]) => {
     matchNumber += 1;
-    return { number: matchNumber, top: slotFor(top), bottom: slotFor(bottom) };
+    return { number: matchNumber, top, bottom };
   });
   const rounds: BracketRound[] = [{ name: roundName(current.length), matches: current }];
 
