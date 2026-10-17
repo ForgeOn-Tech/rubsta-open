@@ -39,8 +39,12 @@ function row(id: string, overrides: Partial<Match>): ScoringMatchRow {
   return { match, category: "OS", top: null, bottom: null };
 }
 
+function placeAt(day: string, courtNumber: number, position: number, startsAround: string | null): PublishedPlace {
+  return { day, courtNumber, position, timing: startsAround ?? "Time to follow", startsAround, umpireEmail: null };
+}
+
 function place(day: string, courtNumber: number, position: number): PublishedPlace {
-  return { day, courtNumber, position, timing: "11:00", umpireEmail: null };
+  return placeAt(day, courtNumber, position, "11:00");
 }
 
 describe("teamSide and teamMatches", () => {
@@ -77,6 +81,26 @@ describe("nextMatch", () => {
     ]);
 
     expect(nextMatch(rows, MINE, places)?.match.id).toBe("court-2");
+  });
+
+  it("goes by start time across courts: singles on Court 2 at 10:00 before doubles on Court 1 at 15:00", () => {
+    const rows = [row("doubles", {}), row("singles", {})];
+    const places = new Map([
+      ["doubles", placeAt("2026-09-26", 1, 3, "15:00")],
+      ["singles", placeAt("2026-09-26", 2, 1, "10:00")],
+    ]);
+
+    expect(nextMatch(rows, MINE, places)?.match.id).toBe("singles");
+  });
+
+  it("puts a match with no known start time after timed ones that day", () => {
+    const rows = [row("untimed", {}), row("timed", {})];
+    const places = new Map([
+      ["untimed", placeAt("2026-09-26", 1, 1, null)],
+      ["timed", placeAt("2026-09-26", 2, 4, "16:00")],
+    ]);
+
+    expect(nextMatch(rows, MINE, places)?.match.id).toBe("timed");
   });
 
   it("then the earliest round still to play", () => {

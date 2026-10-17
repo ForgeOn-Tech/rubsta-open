@@ -5,12 +5,14 @@ import { Scorer } from "./scorer";
 import { requireScorer } from "@/auth/require";
 import { getDb } from "@/db/client";
 import { listCourts } from "@/db/courts";
-import { getScoringMatch } from "@/db/matches";
+import { getScoringMatch, listScoringMatches } from "@/db/matches";
+import { listEntryPlayers } from "@/db/partners";
 import { getCurrentTournament } from "@/db/queries";
 import { listPublishedDays } from "@/db/schedule";
 import { CATEGORY_LABELS } from "@/lib/entries";
 import { formatFor } from "@/lib/match-formats";
 import { courtOptionLabel, publishedPlaces } from "@/lib/schedule";
+import { busyElsewhereWarnings } from "@/lib/schedule-clashes";
 import { sideLabel } from "@/lib/scoring-display";
 import { snapshotOf } from "@/lib/score-sync";
 
@@ -48,6 +50,11 @@ export default async function ScoreMatchPage({
       }}
       ready={match.topSlot.kind === "entry" && match.bottomSlot.kind === "entry"}
       format={formatFor(row.category, match.roundName)}
+      busyPlayers={
+        tournament
+          ? busyElsewhereWarnings(row, listScoringMatches(database, tournament.id), listEntryPlayers(database, tournament.id))
+          : []
+      }
       initial={snapshotOf(match)}
       completedAt={match.completedAt}
       retireAction={retireMatchAction}

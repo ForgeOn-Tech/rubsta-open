@@ -1,4 +1,4 @@
-import { and, eq, ne, or } from "drizzle-orm";
+import { and, eq, inArray, ne, or } from "drizzle-orm";
 
 import type { Database } from "./draws";
 import {
@@ -210,4 +210,43 @@ export function changePartner(
       .returning()
       .get();
   });
+}
+
+/** One person who plays an entry: the player who made it, or the partner who accepted. */
+export interface EntryPlayer {
+  userId: string;
+  name: string;
+}
+
+/**
+ * The people on court for each live entry of a tournament. A doubles partner counts only
+ * after accepting, since an entry is drawn only then.
+ */
+export function listEntryPlayers(database: Database, tournamentId: string): Map<string, EntryPlayer[]> {
+  const rows = database
+    .select()
+    .from(entries)
+    .where(and(eq(entries.tournamentId, tournamentId), ne(entries.status, "cancelled")))
+    .all();
+  const userIds = [...new Set(rows.flatMap((entry) => [entry.userId, ...(entry.partnerUserId ? [entry.partnerUserId] : [])]))];
+  const names = new Map(
+    userIds.length === 0
+      ? []
+      : database
+          .select({ userId: users.id, email: users.email, accountName: users.name, fullName: profiles.fullName })
+          .from(users)
+          .leftJoin(profiles, eq(profiles.userId, users.id))
+          .where(inArray(users.id, userIds))
+          .all()
+          .map((user) => [user.userId, user.fullName ?? user.accountName ?? user.email]),
+  );
+  return new Map(
+    rows.map((entry) => {
+      const partner =
+        entry.partnerStatus === "accepted" && entry.partnerUserId !== null
+          ? [{ userId: entry.partnerUserId, name: names.get(entry.partnerUserId) ?? entry.partnerName ?? "Partner" }]
+          : [];
+      return [entry.id, [{ userId: entry.userId, name: names.get(entry.userId) ?? "Player" }, ...partner]];
+    }),
+  );
 }
