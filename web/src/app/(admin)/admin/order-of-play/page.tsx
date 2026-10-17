@@ -4,10 +4,12 @@ import {
   addBlockToScheduleAction,
   addMatchToScheduleAction,
   changeScheduleItemAction,
+  fillScheduleAction,
   publishDayAction,
   walkoverAction,
 } from "./actions";
 import { AddToSchedule, type MatchChoice } from "./add-to-schedule";
+import { FillSchedule } from "./fill-schedule";
 import { PublishDayButton } from "./publish-day-button";
 import { ScheduleItemEditor } from "./schedule-item-editor";
 import { WalkoverButton } from "./walkover-button";
@@ -15,6 +17,7 @@ import { listScorerEmails, requireAdmin } from "@/auth/require";
 import { AdminNotice } from "@/components/admin-notice";
 import { AdminPageHeader } from "@/components/admin-page-header";
 import { ScheduleCard } from "@/components/schedule-card";
+import { listFillRounds } from "@/db/auto-schedule";
 import { getDb } from "@/db/client";
 import { listCourts } from "@/db/courts";
 import { listScoringMatches, type ScoringMatchRow } from "@/db/matches";
@@ -203,6 +206,17 @@ export default async function AdminOrderOfPlayPage({
             matches={matchChoices(rows, listScheduledMatchIds(database, tournament.id))}
             addMatchAction={addMatchToScheduleAction}
             addBlockAction={addBlockToScheduleAction}
+          />
+        )}
+
+        {courts.length === 0 ? null : (
+          <FillSchedule
+            key={day}
+            day={day}
+            dayLabel={dayLabel}
+            courts={courtOptions}
+            rounds={listFillRounds(database, tournament.id)}
+            action={fillScheduleAction}
           />
         )}
 
