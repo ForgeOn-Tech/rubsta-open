@@ -1,36 +1,138 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { changeDrawStatus, generateDrawAction, saveDrawSeeds } from "../actions";
+import { changeDrawStatus, decideGroupPlaceAction, generateDrawAction, saveDrawSeeds } from "../actions";
 import { Bracket } from "../bracket";
 import { DrawActions } from "../draw-actions";
+import { GroupsSection, type GroupCard } from "../groups-section";
 import { SeedsForm } from "../seeds-form";
 import { requireAdmin } from "@/auth/require";
 import { AdminNotice } from "@/components/admin-notice";
 import { AdminPageHeader } from "@/components/admin-page-header";
 import { getDb } from "@/db/client";
-import { getDrawWithSlots } from "@/db/draws";
+import { getDrawWithSlots, type DrawWithSlots } from "@/db/draws";
+import { listGroups, planOfGroups } from "@/db/groups";
+import { listScoringMatches, type ScoringMatchRow } from "@/db/matches";
 import { getCurrentTournament, listTournamentEntries } from "@/db/queries";
-import { DRAW_STATUS_LABELS } from "@/db/schema";
+import { DRAW_STATUS_LABELS, type Category, type MatchSlot } from "@/db/schema";
 import { entrantLabel, parseCategoryFilter } from "@/lib/admin-entries";
 import {
   ADMIN_DRAWS_PATH,
   MAX_DRAW_SIZE,
   MIN_DRAW_ENTRANTS,
   buildBracket,
+  buildBracketFromSlots,
   canDraw,
   describeDrawChanges,
   drawChanges,
   drawSize,
   eligibleRows,
   hasDrawChanges,
-  maxSeeds,
   toDrawEntrant,
+  type BracketRound,
+  type BracketSlot,
 } from "@/lib/draws";
+import { groupPlan, groupPlanLabel, knockoutSlots, seedLimit } from "@/lib/groups";
 import { CATEGORY_LABELS } from "@/lib/entries";
 import { countLabel } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
+
+function bracketSlotOf(slot: MatchSlot, seed: number | null): BracketSlot {
+  return slot.kind === "entry" ? { kind: "entry", entryId: slot.entryId, seed } : slot;
+}
+
+/** A published knockout as it stands, with group places filled in as they are decided. */
+function knockoutFromMatches(rows: readonly ScoringMatchRow[]): BracketRound[] {
+  const knockout = rows.filter((row) => row.match.groupNumber === null);
+  const roundIndexes = [...new Set(knockout.map((row) => row.match.roundIndex))].sort((a, b) => a - b);
+  return roundIndexes.map((roundIndex) => {
+    const inRound = knockout
+      .filter((row) => row.match.roundIndex === roundIndex)
+      .sort((a, b) => a.match.matchNumber - b.match.matchNumber);
+    return {
+      name: inRound[0].match.roundName,
+      matches: inRound.map((row) => ({
+        number: row.match.matchNumber,
+        top: bracketSlotOf(row.match.topSlot, row.top?.seed ?? null),
+        bottom: bracketSlotOf(row.match.bottomSlot, row.bottom?.seed ?? null),
+      })),
+    };
+  });
+}
+
+/** Each group of a group draw: from the draw's lines, with the table once published. */
+function groupCards(
+  existing: DrawWithSlots,
+  labels: ReadonlyMap<string, string>,
+  published: boolean,
+): GroupCard[] {
+  const views = published ? listGroups(getDb(), existing.draw) : [];
+  const numbers = [...new Set(existing.slots.flatMap((slot) => (slot.groupNumber === null ? [] : [slot.groupNumber])))].sort((a, b) => a - b);
+  return numbers.map((groupNumber) => {
+    const view = views.find((each) => each.groupNumber === groupNumber) ?? null;
+    return {
+      groupNumber,
+      members: existing.slots
+        .filter((slot) => slot.groupNumber === groupNumber && slot.entryId !== null)
+        .sort((a, b) => a.position - b.position)
+        .map((slot) => {
+          const entryId = slot.entryId as string;
+          const label = labels.get(entryId);
+          if (label === undefined) throw new Error(`The draw refers to unknown entry ${entryId}.`);
+          return { entryId, label, seed: slot.seed };
+        }),
+      standings: view?.standings ?? null,
+      through: view?.through ?? [],
+    };
+  });
+}
+
+/** The draw section: groups and a knockout for a group draw, else the bracket. */
+function DrawSection({
+  category,
+  existing,
+  labels,
+  published,
+  tournamentId,
+}: {
+  category: Category;
+  existing: DrawWithSlots;
+  labels: ReadonlyMap<string, string>;
+  published: boolean;
+  tournamentId: string;
+}) {
+  const groups = groupCards(existing, labels, published);
+  if (groups.length === 0) {
+    return (
+      <section aria-labelledby="draw-heading">
+        <h2 id="draw-heading" className="thead">
+          Draw
+        </h2>
+        <div className="mt-2">
+          <Bracket rounds={buildBracket(existing.slots)} labels={labels} />
+        </div>
+      </section>
+    );
+  }
+  const groupMatchCount = groups.reduce((total, group) => total + (group.members.length * (group.members.length - 1)) / 2, 0);
+  const knockout = published
+    ? knockoutFromMatches(listScoringMatches(getDb(), tournamentId).filter((row) => row.category === category))
+    : buildBracketFromSlots(knockoutSlots(planOfGroups(category, groups.length)), groupMatchCount + 1);
+  return (
+    <>
+      <GroupsSection drawId={existing.draw.id} groups={groups} decideAction={decideGroupPlaceAction} />
+      <section aria-labelledby="knockout-heading">
+        <h2 id="knockout-heading" className="thead">
+          Knockout
+        </h2>
+        <div className="mt-2">
+          <Bracket rounds={knockout} labels={labels} />
+        </div>
+      </section>
+    </>
+  );
+}
 
 export default async function AdminDrawPage({
   params,
@@ -49,6 +151,7 @@ export default async function AdminDrawPage({
   const entrants = accepted.map(toDrawEntrant);
   const existing = getDrawWithSlots(getDb(), tournament.id, category);
   const size = canDraw(entrants.length) ? drawSize(entrants.length) : null;
+  const plan = groupPlan(category, entrants.length);
   const changes = existing ? drawChanges(existing.slots, entrants) : null;
   const published = existing?.draw.status === "published";
   const labels = new Map(rows.map((row) => [row.entry.id, entrantLabel(row)]));
@@ -63,9 +166,9 @@ export default async function AdminDrawPage({
 
   const stats = [
     `${entrants.length} accepted`,
-    size === null ? `Needs ${MIN_DRAW_ENTRANTS} accepted` : `${size}-line draw`,
+    size === null ? `Needs ${MIN_DRAW_ENTRANTS} accepted` : plan !== null ? groupPlanLabel(plan) : `${size}-line draw`,
     countLabel(entrants.filter((entrant) => entrant.seed !== null).length, "seed", "seeds"),
-    size === null ? null : countLabel(size - entrants.length, "bye", "byes"),
+    size === null || plan !== null ? null : countLabel(size - entrants.length, "bye", "byes"),
     existing ? DRAW_STATUS_LABELS[existing.draw.status] : "Not generated",
   ].filter((stat): stat is string => stat !== null);
 
@@ -116,21 +219,20 @@ export default async function AdminDrawPage({
           <SeedsForm
             category={category}
             entrants={seedRows}
-            maxSeeds={maxSeeds(size)}
+            maxSeeds={seedLimit(category, entrants.length)}
             locked={published}
             action={saveDrawSeeds}
           />
         )}
 
         {existing ? (
-          <section aria-labelledby="draw-heading">
-            <h2 id="draw-heading" className="thead">
-              Draw
-            </h2>
-            <div className="mt-2">
-              <Bracket rounds={buildBracket(existing.slots)} labels={labels} />
-            </div>
-          </section>
+          <DrawSection
+            category={category}
+            existing={existing}
+            labels={labels}
+            published={published}
+            tournamentId={tournament.id}
+          />
         ) : null}
       </div>
     </>

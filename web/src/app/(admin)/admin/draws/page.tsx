@@ -18,6 +18,7 @@ import {
   toDrawEntrant,
 } from "@/lib/draws";
 import { CATEGORY_LABELS } from "@/lib/entries";
+import { groupPlan, groupPlanLabel } from "@/lib/groups";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +42,7 @@ export default async function AdminDrawsPage() {
       accepted: entrants.length,
       seeds: entrants.filter((entrant) => entrant.seed !== null).length,
       size: canDraw(entrants.length) ? drawSize(entrants.length) : null,
+      plan: groupPlan(category, entrants.length),
       status: existing?.draw.status ?? null,
       outOfDate: existing ? hasDrawChanges(drawChanges(existing.slots, entrants)) : false,
     };
@@ -81,6 +83,8 @@ export default async function AdminDrawsPage() {
                   <td className="mono px-4 py-3">
                     {event.size === null ? (
                       <span className="text-dim">Needs 2</span>
+                    ) : event.plan !== null ? (
+                      groupPlanLabel(event.plan)
                     ) : (
                       `${event.size} lines`
                     )}

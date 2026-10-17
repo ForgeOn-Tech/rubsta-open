@@ -10,6 +10,7 @@ import {
   groupQualifiers,
   groupRoundName,
   groupStandings,
+  hasStarted,
   knockoutSlots,
   roundRobinPairs,
   seedLimit,
@@ -235,6 +236,11 @@ describe("groupStandings", () => {
     expect(standings.complete).toBe(true);
     expect(standings.rows.every((row) => row.place === 1)).toBe(true);
     expect(groupQualifiers(standings, 2)).toEqual([null, null]);
+  });
+
+  it("has no places worth showing until a match has a result", () => {
+    expect(hasStarted(groupStandings(["a", "b"], [result("a", "b", null, 3, 2)]))).toBe(false);
+    expect(hasStarted(groupStandings(["a", "b"], [result("a", "b", "a", 6, 2)]))).toBe(true);
   });
 
   it("counts a walkover as a win with no games", () => {

@@ -1,5 +1,15 @@
 import type { Category } from "@/db/schema";
-import { bracketOrder, drawSize, maxSeeds, type BracketSlot, type DrawEntrant } from "@/lib/draws";
+import {
+  bracketOrder,
+  drawSize,
+  maxSeeds,
+  roundName,
+  validateSeedList,
+  validateSeeds,
+  type BracketSlot,
+  type DrawEntrant,
+  type SeedValidation,
+} from "@/lib/draws";
 
 /**
  * Round-robin groups before a knockout, for the events the organiser plays that way. Each
@@ -33,6 +43,24 @@ export function groupPlan(category: Category, entrantCount: number): GroupPlan |
 export function seedLimit(category: Category, entrantCount: number): number {
   const plan = groupPlan(category, entrantCount);
   return plan === null ? maxSeeds(drawSize(entrantCount)) : plan.groupCount;
+}
+
+/** Seeds for an event's draw: one per group in a group event, else the draw's usual rule. */
+export function validateEventSeeds(category: Category, seeds: readonly (number | null)[]): SeedValidation {
+  const plan = groupPlan(category, seeds.length);
+  if (plan === null) return validateSeeds(seeds, drawSize(seeds.length));
+  return validateSeedList(seeds, plan.groupCount, `${plan.groupCount} groups have at most ${plan.groupCount} seeds, one for each.`);
+}
+
+/** The knockout round group qualifiers go into, e.g. "quarter-finals". */
+export function knockoutStartName(plan: GroupPlan): string {
+  return roundName((plan.groupCount * plan.qualifiersPerGroup) / 2).toLowerCase();
+}
+
+/** e.g. "8 groups, winners to the quarter-finals" or "4 groups, top 2 to the quarter-finals". */
+export function groupPlanLabel(plan: GroupPlan): string {
+  const through = plan.qualifiersPerGroup === 1 ? "winners" : `top ${plan.qualifiersPerGroup}`;
+  return `${plan.groupCount} groups, ${through} to the ${knockoutStartName(plan)}`;
 }
 
 /** Group 1 is "A". */
@@ -266,6 +294,11 @@ export function groupStandings(members: readonly string[], results: readonly Gro
   });
   const expected = (members.length * (members.length - 1)) / 2;
   return { rows, complete: results.filter((result) => result.winner !== null).length === expected };
+}
+
+/** True once any match in the group has a result, so places mean something. */
+export function hasStarted(standings: GroupStandings): boolean {
+  return standings.rows.some((row) => row.played > 0);
 }
 
 /**

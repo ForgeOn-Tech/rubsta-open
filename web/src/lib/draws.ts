@@ -106,20 +106,21 @@ export type SeedValidation = { ok: true } | { ok: false; error: string };
 
 /** Seeds must be whole numbers 1..k with no gaps or repeats, and k within the draw's limit. */
 export function validateSeeds(seeds: readonly (number | null)[], size: number): SeedValidation {
-  const given = seeds.filter((seed): seed is number => seed !== null);
   const limit = maxSeeds(size);
+  return validateSeedList(
+    seeds,
+    limit,
+    limit === 0 ? `A ${size}-line draw has no seeds.` : `A ${size}-line draw has at most ${limit} seeds.`,
+  );
+}
+
+/** Seeds must be whole numbers 1..k with no gaps or repeats, and at most `limit` of them. */
+export function validateSeedList(seeds: readonly (number | null)[], limit: number, tooMany: string): SeedValidation {
+  const given = seeds.filter((seed): seed is number => seed !== null);
   if (given.some((seed) => !Number.isInteger(seed) || seed < 1)) {
     return { ok: false, error: "Seeds must be whole numbers from 1." };
   }
-  if (given.length > limit) {
-    return {
-      ok: false,
-      error:
-        limit === 0
-          ? `A ${size}-line draw has no seeds.`
-          : `A ${size}-line draw has at most ${limit} seeds.`,
-    };
-  }
+  if (given.length > limit) return { ok: false, error: tooMany };
   if (new Set(given).size !== given.length) {
     return { ok: false, error: "Each seed number can be used once." };
   }
