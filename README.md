@@ -404,8 +404,14 @@ can have 2, 3 or 4 players. With up to twice as many (16), half as many groups s
 their winner and runner-up. With no more entrants than places, the event is a plain
 knockout.
 
+These are suggestions. Entries arrive late, so the admin sets the groups when making
+the draw: next to "Generate draw", "Groups" and "Through from each" (1 or 2) start
+from the suggestion and can be changed until the draw is published. The groups must
+fill a knockout of 2, 4, 8 or 16 places, with at least two players in each group.
+
 Seeds go one per group: seed k heads group k, and the rest are drawn by lot. An
-event in groups allows only as many seeds as groups. Every group match is one set.
+event in groups takes at most one seed per group it could have; generating checks
+the seeds against the groups chosen. Every group match is one set.
 Group k's winner takes seed k's line in the knockout; with two through, each
 runner-up faces the neighbouring group's winner (A against B, C against D), so they
 can meet their own group's winner only in the final. The placement is fixed, not

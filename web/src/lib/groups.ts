@@ -39,17 +39,66 @@ export function groupPlan(category: Category, entrantCount: number): GroupPlan |
   return { groupCount: qualifiers, qualifiersPerGroup: 1 };
 }
 
-/** Seeds allowed: one per group in a group event, else the draw's usual limit. */
+/**
+ * Seeds allowed: in a group event, one for each group the entrants could fill (groups of at
+ * least 2, at most MAX_GROUPS), since the admin chooses the groups when making the draw.
+ * Otherwise the draw's usual limit.
+ */
 export function seedLimit(category: Category, entrantCount: number): number {
   const plan = groupPlan(category, entrantCount);
-  return plan === null ? maxSeeds(drawSize(entrantCount)) : plan.groupCount;
+  return plan === null ? maxSeeds(drawSize(entrantCount)) : Math.min(MAX_GROUPS, Math.floor(entrantCount / 2));
 }
 
 /** Seeds for an event's draw: one per group in a group event, else the draw's usual rule. */
 export function validateEventSeeds(category: Category, seeds: readonly (number | null)[]): SeedValidation {
-  const plan = groupPlan(category, seeds.length);
-  if (plan === null) return validateSeeds(seeds, drawSize(seeds.length));
-  return validateSeedList(seeds, plan.groupCount, `${plan.groupCount} groups have at most ${plan.groupCount} seeds, one for each.`);
+  if (groupPlan(category, seeds.length) === null) return validateSeeds(seeds, drawSize(seeds.length));
+  const limit = seedLimit(category, seeds.length);
+  return validateSeedList(seeds, limit, `This event takes at most ${limit} seeds, one for each possible group.`);
+}
+
+/** The most groups one event can have; 16 groups of 2 already fills a 32-player knockout. */
+export const MAX_GROUPS = 16;
+export const QUALIFIER_CHOICES = [1, 2] as const;
+
+export type PlanValidation = { ok: true; plan: GroupPlan } | { ok: false; error: string };
+
+function isPowerOfTwo(value: number): boolean {
+  return value >= 2 && (value & (value - 1)) === 0;
+}
+
+/**
+ * The admin's choice of groups for an event, checked: whole numbers, 1 or 2 through from each,
+ * a knockout of 2, 4, 8 or 16 places, at least two players in every group, and no more seeds
+ * than groups, since each group takes one.
+ */
+export function validateGroupPlan(input: {
+  groupCount: string;
+  qualifiersPerGroup: string;
+  entrantCount: number;
+  seedCount: number;
+}): PlanValidation {
+  const groupCount = Number(input.groupCount.trim());
+  const qualifiersPerGroup = Number(input.qualifiersPerGroup.trim());
+  if (!Number.isInteger(groupCount) || groupCount < 1 || groupCount > MAX_GROUPS) {
+    return { ok: false, error: `Groups must be a whole number from 1 to ${MAX_GROUPS}.` };
+  }
+  if (!QUALIFIER_CHOICES.some((choice) => choice === qualifiersPerGroup)) {
+    return { ok: false, error: "Choose 1 or 2 to go through from each group." };
+  }
+  const places = groupCount * qualifiersPerGroup;
+  if (!isPowerOfTwo(places)) {
+    return {
+      ok: false,
+      error: `${groupCount} groups with ${qualifiersPerGroup} through make ${places} knockout places; it must be 2, 4, 8 or 16.`,
+    };
+  }
+  if (input.entrantCount < groupCount * 2) {
+    return { ok: false, error: `${input.entrantCount} players cannot fill ${groupCount} groups of at least 2.` };
+  }
+  if (input.seedCount > groupCount) {
+    return { ok: false, error: `${groupCount} groups take at most ${groupCount} seeds, one each. Remove the extra seeds first.` };
+  }
+  return { ok: true, plan: { groupCount, qualifiersPerGroup } };
 }
 
 /** The knockout round group qualifiers go into, e.g. "quarter-finals". */

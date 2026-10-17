@@ -31,7 +31,7 @@ function setup() {
       .run();
   }
   const entrants = Array.from({ length: 16 }, (_unused, index) => ({ entryId: `e${index + 1}`, seed: index < 4 ? index + 1 : null }));
-  saveGeneratedGroups(database, { tournamentId: TOURNAMENT_ID, category: "OS", lines: generateGroups(entrants, groupPlan("OS", 16)!, Math.random) });
+  saveGeneratedGroups(database, { tournamentId: TOURNAMENT_ID, category: "OS", qualifiersPerGroup: 2, lines: generateGroups(entrants, groupPlan("OS", 16)!, Math.random) });
   const current = getDrawWithSlots(database, TOURNAMENT_ID, "OS")!;
   publishDraw(database, current.draw, current.slots);
   addCourt(database, TOURNAMENT_ID, { name: null, surface: null, streamUrl: null });
