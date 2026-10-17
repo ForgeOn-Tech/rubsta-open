@@ -32,6 +32,7 @@ import {
 } from "@/lib/entries";
 import { countLabel, formatEntryCloses, formatEntryTime } from "@/lib/format";
 import { feeRangeLabel } from "@/lib/fees";
+import { ADMIN_PLAYERS_PATH } from "@/lib/players";
 
 export const dynamic = "force-dynamic";
 
@@ -160,18 +161,28 @@ export default async function AdminEntriesPage({
                   return (
                     <tr key={entry.id} className="border-b border-line align-top last:border-b-0">
                       <td className="px-4 py-3">
-                        <Link href={`${ADMIN_ENTRIES_PATH}/${entry.id}`} className="font-medium">
+                        <Link href={`${ADMIN_PLAYERS_PATH}/${entry.userId}`} className="font-medium">
                           {name}
                         </Link>
                         <div className="mono mt-0.5 text-[11px] text-dim">{email}</div>
                       </td>
                       <td className="whitespace-nowrap px-4 py-3">
-                        {CATEGORY_LABELS[entry.category]}
+                        <Link href={`${ADMIN_ENTRIES_PATH}/${entry.id}`}>
+                          {CATEGORY_LABELS[entry.category]}
+                        </Link>
                       </td>
                       <td className="px-4 py-3">
                         {entry.partnerName ? (
                           <>
-                            <div>{entry.partnerName}</div>
+                            <div>
+                              {entry.partnerUserId === null ? (
+                                entry.partnerName
+                              ) : (
+                                <Link href={`${ADMIN_PLAYERS_PATH}/${entry.partnerUserId}`}>
+                                  {entry.partnerName}
+                                </Link>
+                              )}
+                            </div>
                             <div className="mono mt-0.5 text-[11px] text-dim">
                               {entry.partnerEmail}
                             </div>

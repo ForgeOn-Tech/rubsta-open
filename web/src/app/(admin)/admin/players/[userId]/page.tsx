@@ -50,6 +50,7 @@ export default async function AdminPlayerPage({ params }: { params: Promise<{ us
   const age = profile ? ageFromDob(profile.dateOfBirth) : null;
   const card = getPlayerCard(database, userId);
   const certificates = card?.tournaments.flatMap((t) => t.certificates) ?? [];
+  const results = card?.tournaments.flatMap((t) => t.results) ?? [];
 
   const activeIds = new Set(
     player.entries.filter(({ entry }) => entry.status !== "cancelled").map(({ entry }) => entry.id),
@@ -133,6 +134,24 @@ export default async function AdminPlayerPage({ params }: { params: Promise<{ us
                     )}
                   </span>
                   <StatusBadge status={entry.status} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section aria-labelledby="results-heading" className="card lg:col-span-2">
+          <h2 id="results-heading" className="thead px-4 pt-4">
+            Results
+          </h2>
+          {results.length === 0 ? (
+            <p className="px-4 py-3 text-[13px] text-muted">No results yet.</p>
+          ) : (
+            <ul className="mt-2 divide-y divide-line">
+              {results.map((result) => (
+                <li key={result.category} className="flex items-center justify-between gap-4 px-4 py-2.5 text-[13px]">
+                  <span>{CATEGORY_LABELS[result.category]}</span>
+                  <strong className="font-medium">{result.label}</strong>
                 </li>
               ))}
             </ul>
