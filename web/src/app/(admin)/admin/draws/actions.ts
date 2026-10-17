@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 
 import { requireAdmin } from "@/auth/require";
 import { getDb } from "@/db/client";
-import { getDrawWithSlots, saveGeneratedDraw, saveSeeds } from "@/db/draws";
+import { getDrawWithSlots, saveGeneratedDraw, saveGeneratedGroups, saveSeeds } from "@/db/draws";
+import { GroupDecisionError, decideGroupPlace } from "@/db/groups";
 import { hasPlayedMatches, publishDraw, unpublishDraw } from "@/db/matches";
 import { getCurrentTournament, listTournamentEntries } from "@/db/queries";
 import { draws, type Category } from "@/db/schema";
@@ -14,14 +15,13 @@ import {
   MIN_DRAW_ENTRANTS,
   canDraw,
   drawChanges,
-  drawSize,
   eligibleRows,
   generateDraw,
   hasDrawChanges,
   parseSeedInput,
   toDrawEntrant,
-  validateSeeds,
 } from "@/lib/draws";
+import { generateGroups, groupPlan, validateEventSeeds } from "@/lib/groups";
 import type { ActionState } from "@/lib/form-state";
 
 const NOT_ENOUGH_ENTRANTS = `A draw needs ${MIN_DRAW_ENTRANTS} to 128 confirmed or paid entries.`;
@@ -64,9 +64,9 @@ export async function saveDrawSeeds(_prev: ActionState, formData: FormData): Pro
     entryId: row.entry.id,
     seed: parseSeedInput(String(formData.get(`seed-${row.entry.id}`) ?? "")),
   }));
-  const check = validateSeeds(
+  const check = validateEventSeeds(
+    category,
     seeds.map((item) => item.seed),
-    drawSize(eligible.length),
   );
   if (!check.ok) return failed(check.error);
 
@@ -90,18 +90,19 @@ export async function generateDrawAction(
   if (!canDraw(entrants.length)) return failed(NOT_ENOUGH_ENTRANTS);
 
   // Seeds can go stale, e.g. when a seeded entry is cancelled after seeding.
-  const check = validateSeeds(
+  const check = validateEventSeeds(
+    category,
     entrants.map((entrant) => entrant.seed),
-    drawSize(entrants.length),
   );
   if (!check.ok) return failed(`Fix the seeds first. ${check.error}`);
 
   // Lots need no cryptographic randomness.
-  saveGeneratedDraw(database, {
-    tournamentId,
-    category,
-    lines: generateDraw(entrants, Math.random),
-  });
+  const plan = groupPlan(category, entrants.length);
+  if (plan === null) {
+    saveGeneratedDraw(database, { tournamentId, category, lines: generateDraw(entrants, Math.random) });
+  } else {
+    saveGeneratedGroups(database, { tournamentId, category, lines: generateGroups(entrants, plan, Math.random) });
+  }
   return saved();
 }
 
@@ -136,3 +137,26 @@ export async function changeDrawStatus(
   }
   return saved();
 }
+
+/** Decides a group place the standings leave level. */
+export async function decideGroupPlaceAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const admin = await requireAdmin();
+  const number = (name: string) => Number(String(formData.get(name) ?? ""));
+  try {
+    decideGroupPlace(getDb(), {
+      drawId: String(formData.get("drawId") ?? ""),
+      groupNumber: number("groupNumber"),
+      place: number("place"),
+      entryId: String(formData.get("entryId") ?? ""),
+      adminEmail: admin.email,
+      now: Date.now(),
+    });
+  } catch (error) {
+    if (error instanceof GroupDecisionError) return failed(error.message);
+    throw error;
+  }
+  // The knockout, the draw pages and the order of play now show who is through.
+  revalidatePath("/", "layout");
+  return { error: null, savedAt: Date.now() };
+}
+
