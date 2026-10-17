@@ -47,7 +47,7 @@ function row(id: string, overrides: Partial<Match>): ScoringMatchRow {
 }
 
 function place(courtNumber: number, position: number): PublishedPlace {
-  return { day: DAY, courtNumber, position, timing: "Not before 15:30", umpireEmail: null };
+  return { day: DAY, courtNumber, position, timing: "Not before 15:30", startsAround: "15:30", umpireEmail: null };
 }
 
 function court(number: number): Court {
