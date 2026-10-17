@@ -87,7 +87,7 @@ export default async function ResultPage({ params }: { params: Promise<{ matchId
       <section aria-label="Statistics" className="border border-club-line px-4 py-3">
         {record === null ? (
           <p className="text-[13px] text-club-muted" role="status">
-            {match.status === "completed" ? "Walkover. No points were played." : "This match has not started."}
+            {match.status === "completed" ? "W/O: a walkover. No points were played." : "This match has not started."}
           </p>
         ) : (
           <MatchStatsTable

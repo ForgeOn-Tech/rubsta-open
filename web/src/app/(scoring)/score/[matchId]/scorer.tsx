@@ -704,7 +704,7 @@ function Result({
   const detail = playedOut
     ? scoreLine(match.sets, winner)
     : match === null
-      ? "Walkover"
+      ? "W/O"
       : `${sides[other(winner)].name} retired · ${scoreLine(match.sets, winner) || "no sets finished"}`;
 
   return (
