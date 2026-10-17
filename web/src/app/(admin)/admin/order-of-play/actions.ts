@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 
 import { listScorerEmails, requireAdmin } from "@/auth/require";
+import { applyFill, previewFill, type FillPreview } from "@/db/auto-schedule";
 import { getDb } from "@/db/client";
+import { listCourts } from "@/db/courts";
 import { ScoreRejectedError, walkoverMatch } from "@/db/matches";
 import { getCurrentTournament } from "@/db/queries";
 import {
@@ -20,6 +22,7 @@ import {
   updateMatchItem,
 } from "@/db/schedule";
 import type { Tournament } from "@/db/schema";
+import { validateFillRequest, type FillValidation } from "@/lib/auto-schedule";
 import type { ActionState } from "@/lib/form-state";
 import { SIDES } from "@/lib/match";
 import {
@@ -211,3 +214,50 @@ export async function walkoverAction(_previous: ActionState, formData: FormData)
   return { error: null, savedAt: Date.now() };
 }
 
+export interface FillState {
+  error: string | null;
+  preview: FillPreview | null;
+  /** How many matches the last fill added, or null before one. */
+  added: number | null;
+}
+
+function fillRequestFrom(formData: FormData, tournament: Tournament): FillValidation {
+  const text = (name: string) => String(formData.get(name) ?? "");
+  return validateFillRequest(
+    {
+      day: text("day"),
+      courts: formData.getAll("courts").map(String),
+      startTime: text("startTime"),
+      restMinutes: text("restMinutes"),
+      oneSet: text("oneSet"),
+      eightGames: text("eightGames"),
+      bestOfThree: text("bestOfThree"),
+      rounds: formData.getAll("rounds").map(String),
+    },
+    scheduleDayChoices(tournamentDays(tournament.startsOn, tournament.endsOn), listScheduleDaysInUse(getDb(), tournament.id)),
+    listCourts(getDb(), tournament.id).map((court) => court.number),
+  );
+}
+
+/**
+ * The fill form's buttons: "preview" shows what a fill would place and changes nothing; "apply"
+ * adds it to the working order of play, which umpires see once the day is published.
+ */
+export async function fillScheduleAction(_previous: FillState, formData: FormData): Promise<FillState> {
+  await requireAdmin();
+  const tournament = getCurrentTournament();
+  if (!tournament) return { error: "No tournament has been set up.", preview: null, added: null };
+  const request = fillRequestFrom(formData, tournament);
+  if (!request.ok) return { error: request.error, preview: null, added: null };
+  if (formData.get("intent") !== "apply") {
+    return { error: null, preview: previewFill(getDb(), tournament.id, request.request), added: null };
+  }
+  try {
+    const added = applyFill(getDb(), tournament.id, request.request);
+    revalidatePath(ADMIN_ORDER_OF_PLAY_PATH);
+    return { error: null, preview: null, added };
+  } catch (error) {
+    if (error instanceof ScheduleRejectedError) return { error: error.message, preview: null, added: null };
+    throw error;
+  }
+}

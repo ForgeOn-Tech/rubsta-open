@@ -267,6 +267,20 @@ the admin picks who did not play, and the other side wins and moves on at once.
 It is for matches not yet started; a match under way ends by retirement on the
 scoring screen.
 
+"Fill <day> automatically" places many matches at once. The admin ticks the rounds
+to place (each event's earliest stage starts ticked, every group of a group event
+together), the courts, the first match time, the rest every player gets between
+matches, and the minutes a match usually takes: one set, 8 games or best of 3
+(45, 60 and 90 to begin with). "Preview" shows the plan; "Add" puts it on the
+working order of play after anything already on those courts. Matches go round by
+round, each on the court where it can start soonest, so nobody is on two courts at
+once and everyone gets their rest. A match that waits on a result ("Winner of M3",
+"Group A winner") counts everyone who could reach it, so it goes after the matches
+that decide who plays; one whose earlier match has no place yet is listed as not
+placed. The first match on an empty court starts at its time, a match that starts
+as the one above ends follows on, and any other waits with "Not before". Nothing
+reaches umpires until the day is published, and every item can still be moved.
+
 Umpires see only what an admin published. Publishing copies the day, so later
 edits wait for the next publish, and the page shows "Unpublished changes" until
 then. The print sheet shows the published day without the admin sidebar.
