@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { saveScore, type SaveOutcome } from "../save-score";
 import { Scorer, type ScorerProps } from "../scorer";
-import { ONE_SET } from "@/lib/match-formats";
+import { ONE_SET, ONE_SET_DECIDING_POINT } from "@/lib/match-formats";
 import type { MatchEvent, Side } from "@/lib/match";
 import type { ScoreRecord } from "@/lib/score-record";
 import type { MatchSnapshot, PendingSave } from "@/lib/score-sync";
@@ -239,6 +239,23 @@ describe("Scorer", () => {
     await waitFor(() =>
       expect(mockedSave).toHaveBeenCalledWith(MATCH_ID, expect.objectContaining({ baseVersion: 1 })),
     );
+  });
+
+  it("offers to start again when the phone started the match on rules that have since changed", () => {
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        baseVersion: 0,
+        unsaved: true,
+        record: { ...record([point("bottom")]), format: ONE_SET_DECIDING_POINT },
+      }),
+    );
+
+    renderScorer(snapshot(0, null));
+    fireEvent.click(screen.getByRole("button", { name: "Start again" }));
+
+    expect(screen.getByRole("button", { name: "Start match" })).toBeInTheDocument();
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull();
   });
 
   it("shows the newer score kept on the device when the page is an older copy", () => {

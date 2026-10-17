@@ -218,7 +218,8 @@ singles the first deuce is played out and the second is one deciding point; in
 doubles every deuce is one deciding point. At a deciding point the scoring screen
 says "Deciding point · Receiver chooses side". A match keeps the format it started
 with, so a change to the table reaches only matches not yet started. Resetting a
-match lets it start again on the current format.
+match lets it start again on the current format. A phone that started a match on
+older rules, without the score reaching the server, offers "Start again".
 
 Scoring keeps working when the connection drops. The phone holds the score: each
 tap shows at once and stays in the browser's localStorage. Saves run in the

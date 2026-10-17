@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Match } from "@/db/schema";
 import type { MatchEvent, Side } from "@/lib/match";
+import { ONE_SET, ONE_SET_DECIDING_POINT } from "@/lib/match-formats";
 import type { ScoreRecord } from "@/lib/score-record";
 import {
   deviceScoreOf,
@@ -12,6 +13,7 @@ import {
   retryDelayMs,
   scorerReducer,
   snapshotOf,
+  startedOnOtherRules,
   type MatchSnapshot,
   type ScorerAction,
   type ScorerState,
@@ -309,3 +311,33 @@ describe("deviceScoreOf", () => {
     expect(deviceScoreOf(started)).toEqual({ baseVersion: 0, record: record([]), unsaved: true });
   });
 });
+
+describe("starting again on new rules", () => {
+  const oldRules = { ...record([point("top")]), format: ONE_SET_DECIDING_POINT };
+
+  it("spots a device score started on other rules that never reached the server", () => {
+    const state = initialScorerState(snapshot(0, null), { baseVersion: 0, unsaved: true, record: oldRules });
+
+    expect(startedOnOtherRules(state, ONE_SET)).toBe(true);
+    expect(startedOnOtherRules(state, ONE_SET_DECIDING_POINT)).toBe(false);
+  });
+
+  it("drops the device score so the match can start again", () => {
+    const state = initialScorerState(snapshot(0, null), { baseVersion: 0, unsaved: true, record: oldRules });
+
+    const again = run(state, { type: "startAgain" });
+
+    expect(again.record).toBeNull();
+    expect(again.status).toBe("scheduled");
+    expect(deviceScoreOf(again)).toBeNull();
+    expect(pendingSave(again)).toBeNull();
+  });
+
+  it("never starts again once the server holds a started score", () => {
+    const state = initialScorerState(snapshot(1, [point("top")]), null);
+
+    expect(startedOnOtherRules(state, ONE_SET)).toBe(false);
+    expect(() => run(state, { type: "startAgain" })).toThrow(/cannot start again/);
+  });
+});
+

@@ -45,6 +45,7 @@ import {
   deviceScoreOf,
   hasUnsavedChanges,
   initialScorerState,
+  startedOnOtherRules,
   pendingSave,
   retryDelayMs,
   scorerReducer,
@@ -241,12 +242,29 @@ function LiveScorer({
       </header>
 
       {state.conflict ? <ConflictBanner conflict={state.conflict} dispatch={dispatch} /> : null}
-      {state.error ? (
+      {startedOnOtherRules(state, format) ? (
+        <div role="alert" className="flex flex-col gap-3 border-b border-line bg-surface-1 px-5 py-4 text-[13px]">
+          <p>
+            The rules for this match changed after it was started on this phone, and the score never reached
+            the server. Start it again to play: {formatSummary(format)}.
+          </p>
+          <button type="button" className="btn btn-primary h-10 self-start text-[13px]" onClick={() => dispatch({ type: "startAgain" })}>
+            Start again
+          </button>
+        </div>
+      ) : state.error ? (
         <div role="alert" className="flex items-center justify-between gap-3 border-b border-line bg-surface-1 px-5 py-3 text-[13px]">
           <span className="text-bad">Not saved: {state.error}</span>
-          <button type="button" className="btn btn-outline h-9 flex-none text-[12px]" onClick={() => dispatch({ type: "retryNow" })}>
-            Try again
-          </button>
+          <div className="flex flex-none gap-2">
+            <button type="button" className="btn btn-outline h-9 text-[12px]" onClick={() => dispatch({ type: "retryNow" })}>
+              Try again
+            </button>
+            {state.serverStarted ? null : (
+              <button type="button" className="btn btn-outline h-9 text-[12px]" onClick={() => dispatch({ type: "startAgain" })}>
+                Start again
+              </button>
+            )}
+          </div>
         </div>
       ) : null}
 
