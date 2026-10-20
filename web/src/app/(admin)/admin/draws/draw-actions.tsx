@@ -4,7 +4,7 @@ import { useActionState } from "react";
 
 import type { DrawStatus } from "@/db/schema";
 import { INITIAL_ACTION_STATE, type FormAction } from "@/lib/form-state";
-import { MAX_GROUPS, QUALIFIER_CHOICES, type GroupPlan } from "@/lib/groups";
+import { MAX_GROUPS, MIN_GROUPS, QUALIFIER_CHOICES, type GroupPlan } from "@/lib/groups";
 
 export interface DrawActionsProps {
   category: string;
@@ -44,7 +44,7 @@ export function DrawActions({
                   <input
                     name="groupCount"
                     type="number"
-                    min={1}
+                    min={MIN_GROUPS}
                     max={MAX_GROUPS}
                     defaultValue={groupPlan.groupCount}
                     className="field mono h-8 w-16 py-0"

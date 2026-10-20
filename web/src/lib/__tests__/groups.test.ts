@@ -73,11 +73,11 @@ describe("validateGroupPlan", () => {
   });
 
   it.each([
-    ["no groups", { groupCount: "0" }, "Groups must be a whole number from 1 to 16."],
-    ["a fraction", { groupCount: "2.5" }, "Groups must be a whole number from 1 to 16."],
+    ["no groups", { groupCount: "0" }, "Groups must be a whole number from 2 to 16."],
+    ["one group, which feeds no knockout", { groupCount: "1", seedCount: 1 }, "Groups must be a whole number from 2 to 16."],
+    ["a fraction", { groupCount: "2.5" }, "Groups must be a whole number from 2 to 16."],
     ["three through", { qualifiersPerGroup: "3" }, "Choose 1 or 2 to go through from each group."],
     ["a knockout of 6", { groupCount: "3" }, "3 groups with 2 through make 6 knockout places; it must be 2, 4, 8 or 16."],
-    ["a single place", { groupCount: "1", qualifiersPerGroup: "1" }, "1 groups with 1 through make 1 knockout places; it must be 2, 4, 8 or 16."],
     ["groups of one", { groupCount: "16", qualifiersPerGroup: "1" }, "16 players cannot fill 16 groups of at least 2."],
     ["more seeds than groups", { groupCount: "2", seedCount: 4 }, "2 groups take at most 2 seeds, one each. Remove the extra seeds first."],
   ] as const)("refuses %s", (_case, change, error) => {

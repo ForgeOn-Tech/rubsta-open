@@ -57,6 +57,8 @@ export function validateEventSeeds(category: Category, seeds: readonly (number |
 }
 
 /** The most groups one event can have; 16 groups of 2 already fills a 32-player knockout. */
+/** One group has no knockout to feed, so a group event needs two. */
+export const MIN_GROUPS = 2;
 export const MAX_GROUPS = 16;
 export const QUALIFIER_CHOICES = [1, 2] as const;
 
@@ -79,8 +81,8 @@ export function validateGroupPlan(input: {
 }): PlanValidation {
   const groupCount = Number(input.groupCount.trim());
   const qualifiersPerGroup = Number(input.qualifiersPerGroup.trim());
-  if (!Number.isInteger(groupCount) || groupCount < 1 || groupCount > MAX_GROUPS) {
-    return { ok: false, error: `Groups must be a whole number from 1 to ${MAX_GROUPS}.` };
+  if (!Number.isInteger(groupCount) || groupCount < MIN_GROUPS || groupCount > MAX_GROUPS) {
+    return { ok: false, error: `Groups must be a whole number from ${MIN_GROUPS} to ${MAX_GROUPS}.` };
   }
   if (!QUALIFIER_CHOICES.some((choice) => choice === qualifiersPerGroup)) {
     return { ok: false, error: "Choose 1 or 2 to go through from each group." };
