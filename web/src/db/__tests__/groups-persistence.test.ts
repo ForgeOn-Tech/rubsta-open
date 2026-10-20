@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 
 import { getDrawWithSlots, saveGeneratedGroups } from "@/db/draws";
 import { GroupDecisionError, decideGroupPlace, listGroups } from "@/db/groups";
-import { publishDraw, retireMatch, saveMatchScore, unpublishDraw, walkoverMatch } from "@/db/matches";
+import { publishDraw, retireMatch, saveMatchScore, undoWalkover, unpublishDraw, walkoverMatch } from "@/db/matches";
 import * as schema from "@/db/schema";
 import { SEED_TOURNAMENT } from "@/db/seed";
 import type { Category } from "@/db/schema";
@@ -165,6 +165,49 @@ describe("a group draw", () => {
     expect(view.through[0]).not.toBeNull();
     const semis = matchesOf(database, draw.id).filter((match) => match.roundName === "Semi-finals");
     expect(semis.some((match) => entryOf(match.topSlot) === view.through[0] || entryOf(match.bottomSlot) === view.through[0])).toBe(true);
+  });
+
+  it("undoes a group's last walkover and takes back the places it sent through", () => {
+    // Arrange: 40+ singles group A, its last match a walkover.
+    const { database, draw } = setup("S40", 12);
+    const groupA = groupMatches(database, draw.id, 1);
+    play(database, groupA[0], entryOf(groupA[0].topSlot)!, 0);
+    play(database, groupA[1], entryOf(groupA[1].topSlot)!, 0);
+    walkoverMatch(database, groupA[2].id, "bottom");
+    expect(listGroups(database, draw)[0].through[0]).not.toBeNull();
+
+    // Act
+    undoWalkover(database, groupA[2].id);
+
+    // Assert
+    const view = listGroups(database, draw)[0];
+    expect(view.standings.complete).toBe(false);
+    expect(view.through).toEqual([null]);
+    const semis = matchesOf(database, draw.id).filter((match) => match.roundName === "Semi-finals");
+    expect(semis.flatMap((match) => [match.topSlot, match.bottomSlot])).toContainEqual({ kind: "group", group: 1, place: 1 });
+    expect(database.select().from(schema.groupPlaces).all()).toEqual([]);
+  });
+
+  it("keeps a group walkover once the knockout match it filled has started", () => {
+    // Arrange
+    const { database, draw } = setup("S40", 12);
+    // Group A's winner meets group D's in a semi-final.
+    for (const group of [1, 4]) {
+      const rows = groupMatches(database, draw.id, group);
+      rows.forEach((match, index) =>
+        index === rows.length - 1 && group === 1
+          ? walkoverMatch(database, match.id, "bottom")
+          : play(database, match, entryOf(match.topSlot)!, 0),
+      );
+    }
+    const semi = matchesOf(database, draw.id).find(
+      (match) => match.roundName === "Semi-finals" && match.topSlot.kind === "entry" && match.bottomSlot.kind === "entry",
+    )!;
+    saveMatchScore(database, semi.id, 0, { ...record(points("top", 1)), format: EIGHT_GAMES });
+    const lastOfA = groupMatches(database, draw.id, 1).at(-1)!;
+
+    // Act and assert
+    expect(() => undoWalkover(database, lastOfA.id)).toThrow(/has already started/);
   });
 
   it("waits for an admin when the rules leave players level, and takes only a level player", () => {

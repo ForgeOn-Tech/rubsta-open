@@ -1,4 +1,4 @@
-import { and, eq, gt, inArray, isNotNull } from "drizzle-orm";
+import { and, eq, gt, inArray, isNotNull, isNull } from "drizzle-orm";
 
 import { setDrawStatus, type Database } from "./draws";
 import { fillGroupPlaces, groupMatchRows, membersByGroup, planOfGroups } from "./groups";
@@ -391,8 +391,47 @@ export function isWalkover(match: Pick<Match, "status" | "events" | "firstServer
 }
 
 /**
+ * Takes back the places a finished group sent through, so the group can finish again.
+ * Refused once a knockout match holding one of them has started.
+ */
+function reopenGroup(database: Database, match: Match, groupNumber: number, now: number): void {
+  const places = database
+    .select()
+    .from(groupPlaces)
+    .where(and(eq(groupPlaces.drawId, match.drawId), eq(groupPlaces.groupNumber, groupNumber)))
+    .all();
+  const knockout = database
+    .select()
+    .from(matches)
+    .where(and(eq(matches.drawId, match.drawId), isNull(matches.groupNumber)))
+    .all()
+    .sort((a, b) => a.roundIndex - b.roundIndex);
+  for (const place of places) {
+    const holds = (slot: MatchSlot): boolean => slot.kind === "entry" && slot.entryId === place.entryId;
+    const next = knockout.find((candidate) => holds(candidate.topSlot) || holds(candidate.bottomSlot));
+    if (!next) throw new Error(`No knockout match holds group ${groupNumber} place ${place.place}.`);
+    if (next.status !== "scheduled") {
+      throw new ScoreRejectedError(
+        `Match ${next.matchNumber} has already started, so the walkover in match ${match.matchNumber} stays.`,
+      );
+    }
+    const waiting: MatchSlot = { kind: "group", group: groupNumber, place: place.place };
+    database
+      .update(matches)
+      .set(holds(next.topSlot) ? { topSlot: waiting, updatedAt: now } : { bottomSlot: waiting, updatedAt: now })
+      .where(eq(matches.id, next.id))
+      .run();
+  }
+  database
+    .delete(groupPlaces)
+    .where(and(eq(groupPlaces.drawId, match.drawId), eq(groupPlaces.groupNumber, groupNumber)))
+    .run();
+}
+
+/**
  * Undoes a walkover recorded by mistake: the match goes back to scheduled, and its winner
- * leaves the next match. Refused once that next match has started.
+ * leaves the next match. A group match takes back the places its group sent through.
+ * Refused once a match the result reached has started.
  */
 export function undoWalkover(database: Database, matchId: string): Match {
   return database.transaction((tx) => {
@@ -403,7 +442,9 @@ export function undoWalkover(database: Database, matchId: string): Match {
     const winnerEntryId = row.winnerEntryId;
     const now = Date.now();
 
-    if (!isLastRound(tx, row)) {
+    if (row.groupNumber !== null) {
+      reopenGroup(tx, row, row.groupNumber, now);
+    } else if (!isLastRound(tx, row)) {
       const holdsWinner = (slot: MatchSlot): boolean => slot.kind === "entry" && slot.entryId === winnerEntryId;
       const next = tx
         .select()
