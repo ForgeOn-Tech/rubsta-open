@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Match } from "@/db/schema";
-import { formatPlayerId, matchRecord } from "@/lib/player-card";
+import { eventResultLabel, formatPlayerId, matchRecord } from "@/lib/player-card";
 
 const STARTED_AT = Date.parse("2026-09-25T05:30:00Z");
 
@@ -77,5 +77,41 @@ describe("matchRecord", () => {
       won: 0,
       lost: 1,
     });
+  });
+});
+
+describe("eventResultLabel", () => {
+  const groupMatch = (status: Match["status"], winnerEntryId: string | null): Match => ({
+    ...BASE, roundIndex: 0, roundName: "Group A", groupNumber: 1, status, winnerEntryId,
+  });
+  const quarter = (status: Match["status"], winnerEntryId: string | null): Match => ({
+    ...BASE, roundIndex: 1, roundName: "Quarter-finals", status, winnerEntryId,
+  });
+
+  it("puts a player out in the group once every group match is played and none took them through", () => {
+    const matches = [groupMatch("completed", "mine"), groupMatch("completed", "theirs"), groupMatch("completed", "theirs")];
+    expect(eventResultLabel(matches, "mine", false)).toBe("Out in Group A");
+  });
+
+  it("takes a group winner through, even with a group match lost", () => {
+    const matches = [groupMatch("completed", "theirs"), groupMatch("completed", "mine"), quarter("scheduled", null)];
+    expect(eventResultLabel(matches, "mine", false)).toBe("Through from Group A");
+  });
+
+  it("follows the knockout once it has started", () => {
+    expect(eventResultLabel([groupMatch("completed", "mine"), quarter("completed", "mine")], "mine", false)).toBe("Advanced from Quarter-finals");
+    expect(eventResultLabel([groupMatch("completed", "mine"), quarter("completed", "theirs")], "mine", false)).toBe("Reached Quarter-finals");
+  });
+
+  it("shows a group under way, and a final lost", () => {
+    expect(eventResultLabel([groupMatch("completed", "mine"), groupMatch("scheduled", null)], "mine", false)).toBe("Playing Group A");
+    expect(eventResultLabel([groupMatch("in_progress", null)], "mine", false)).toBe("In progress");
+    expect(eventResultLabel([{ ...quarter("completed", "theirs"), roundName: "Final" }], "mine", false)).toBe("Runner-up");
+  });
+
+  it("waits for a first match, and names the event winner", () => {
+    expect(eventResultLabel([], "mine", false)).toBe("Awaiting match");
+    expect(eventResultLabel([groupMatch("scheduled", null)], "mine", false)).toBe("Awaiting match");
+    expect(eventResultLabel([], "mine", true)).toBe("Winner");
   });
 });
