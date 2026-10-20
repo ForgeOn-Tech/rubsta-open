@@ -40,7 +40,7 @@ export default async function AdminUmpiresPage() {
             </h2>
             <p className="mt-1 text-[12px] text-muted">
               Each umpire gets a personal link. Send it to them, and they open it on their phone to score, with no
-              account or password. Anyone with the link can score, so remove it if it reaches the wrong person.
+              account or password. The link scores only the matches you assign to this umpire on the order of play. Anyone with it can score those, so remove it if it reaches the wrong person.
               Links stop working the day after the tournament ends.
             </p>
           </div>

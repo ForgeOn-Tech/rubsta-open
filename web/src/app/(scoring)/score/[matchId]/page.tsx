@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 
 import { resetMatchAction, retireMatchAction } from "../actions";
 import { Scorer } from "./scorer";
-import { requireScorer } from "@/auth/require";
+import { requireMatchScorer } from "@/auth/require";
 import { getDb } from "@/db/client";
 import { listCourts } from "@/db/courts";
 import { getScoringMatch } from "@/db/matches";
@@ -21,9 +21,10 @@ export default async function ScoreMatchPage({
 }: {
   params: Promise<{ matchId: string }>;
 }) {
-  await requireScorer();
+  const { matchId } = await params;
+  await requireMatchScorer(matchId);
   const database = getDb();
-  const row = getScoringMatch(database, (await params).matchId);
+  const row = getScoringMatch(database, matchId);
   if (!row) notFound();
   const { match } = row;
   const tournament = getCurrentTournament();

@@ -2,7 +2,7 @@ import { ScoringLink as Link } from "@/components/scoring-link";
 
 import { ConnectionNotice } from "./connection-notice";
 import { signOutAction } from "@/auth/actions";
-import { canAccessAdmin, requireScorer } from "@/auth/require";
+import { canAccessAdmin, requireScorer, scoresOnlyAssignedMatches } from "@/auth/require";
 import { getDb } from "@/db/client";
 import { listScoringMatches, type ScoringMatchRow } from "@/db/matches";
 import { getCurrentTournament } from "@/db/queries";
@@ -35,9 +35,10 @@ export default async function ScoringListPage() {
   const database = getDb();
   const rows = tournament ? listScoringMatches(database, tournament.id) : [];
   const groups = tournament ? groupScoringMatches(rows) : null;
-  const shownGroups = groups
-    ? SCORING_GROUP_ORDER.filter((group) => groups[group].length > 0)
-    : [];
+  // A scoring link sees only its own matches, under "Your matches".
+  const onlyAssigned = scoresOnlyAssignedMatches(user.email);
+  const shownGroups =
+    groups && !onlyAssigned ? SCORING_GROUP_ORDER.filter((group) => groups[group].length > 0) : [];
 
   const publishedDays = tournament ? listPublishedDays(database, tournament.id) : [];
   const places = publishedPlaces(
@@ -96,7 +97,11 @@ export default async function ScoringListPage() {
           <p className="card p-4 text-[13px] text-muted" role="status">
             No tournament has been set up.
           </p>
-        ) : shownGroups.length === 0 ? (
+        ) : onlyAssigned && yours.length === 0 ? (
+          <p className="card p-4 text-[13px] text-muted" role="status">
+            No matches are assigned to you yet. Ask the referee to put your name on the order of play.
+          </p>
+        ) : shownGroups.length === 0 && yours.length === 0 ? (
           <p className="card p-4 text-[13px] text-muted" role="status">
             No matches yet. They appear here once an admin publishes a draw.
           </p>

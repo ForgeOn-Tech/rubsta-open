@@ -346,6 +346,16 @@ export function getPublishedDay(database: Database, tournamentId: string, day: s
   );
 }
 
+/** The umpire a match is assigned to on the published order of play, or null when none is. */
+export function publishedUmpireOf(database: Database, matchId: string): string | null {
+  const days = database.select({ items: scheduleDays.items }).from(scheduleDays).all();
+  for (const day of days) {
+    const item = day.items.find((entry) => entry.kind === "match" && entry.matchId === matchId);
+    if (item !== undefined) return item.umpireEmail;
+  }
+  return null;
+}
+
 /** Every published day, in date order. */
 export function listPublishedDays(database: Database, tournamentId: string): ScheduleDay[] {
   return database

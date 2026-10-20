@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { auth } from "./auth";
 import { getDb } from "@/db/client";
+import { publishedUmpireOf } from "@/db/schedule";
 import { isActiveUmpireEmail, listActiveUmpireEmails } from "@/db/umpire-links";
 import { isListedEmail, listedEmails } from "@/lib/access";
 import { venueDay } from "@/lib/schedule";
@@ -53,6 +54,24 @@ export function canScoreMatches(email: string): boolean {
   );
 }
 
+/**
+ * Admins and umpires in UMPIRE_EMAILS can score any match. A scoring link can be forwarded,
+ * so it scores only the matches the published order of play assigns to it.
+ */
+export function canScoreMatch(email: string, matchId: string): boolean {
+  if (canAccessAdmin(email) || isListedEmail(email, process.env.UMPIRE_EMAILS ?? "")) return true;
+  const database = getDb();
+  return (
+    isActiveUmpireEmail(database, email, venueDay(Date.now())) &&
+    publishedUmpireOf(database, matchId) === email.trim().toLowerCase()
+  );
+}
+
+/** True for an umpire who scores through a link, and so sees only their own matches. */
+export function scoresOnlyAssignedMatches(email: string): boolean {
+  return !canAccessAdmin(email) && !isListedEmail(email, process.env.UMPIRE_EMAILS ?? "");
+}
+
 /** Everyone who can score, umpires first, for assigning matches on the order of play. */
 export function listScorerEmails(): string[] {
   return [
@@ -68,5 +87,12 @@ export function listScorerEmails(): string[] {
 export async function requireScorer(): Promise<SessionUser> {
   const user = await requireUser();
   if (!canScoreMatches(user.email)) redirect("/home");
+  return user;
+}
+
+/** Guard for one match's scoring page and actions. Scorers not allowed this match go to /score. */
+export async function requireMatchScorer(matchId: string): Promise<SessionUser> {
+  const user = await requireScorer();
+  if (!canScoreMatch(user.email, matchId)) redirect("/score");
   return user;
 }

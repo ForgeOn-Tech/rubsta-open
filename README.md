@@ -203,9 +203,10 @@ and umpires cannot open `/admin`. An umpire without a listed email gets a person
 scoring link from `/admin/umpires`: the admin adds their name, then copies the
 link or sends it on WhatsApp. The link opens a page with a "Start scoring" button,
 which signs that phone in as the umpire's own account; opening the link alone
-changes nothing, so a chat preview cannot sign anyone in. Anyone with the link can
-score until an admin removes it, which stops it at once, including on phones
-already signed in. Links stop working the day after the tournament ends. Link
+changes nothing, so a chat preview cannot sign anyone in. A link scores only the
+matches the published order of play assigns to its umpire, and its scoring list
+shows only those. Anyone with the link can score them until an admin removes it,
+which stops it at once, including on phones already signed in. Links stop working the day after the tournament ends. Link
 umpires appear in the order of play's umpire list, by name. The scoring screen follows the LiveScore umpire
 artboard. It records points, faults, double faults and lets. The umpire confirms
 the point that ends the match before it saves.
