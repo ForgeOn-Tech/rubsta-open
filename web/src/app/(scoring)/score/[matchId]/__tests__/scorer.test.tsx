@@ -357,3 +357,14 @@ it("takes a second fault as a double fault", async () => {
     expect(mockedSave.mock.calls.at(-1)?.[1].record.events).toEqual([{ type: "fault" }, { type: "doubleFault" }]),
   );
 });
+
+it("says to change ends while the reason for the game's last point is still open", () => {
+  mockedSave.mockImplementation(savedAsSent);
+  // Asha Anand leads 40–0 in the first game.
+  renderScorer(snapshot(1, [point("top"), point("top"), point("top")]));
+
+  fireEvent.click(screen.getByRole("button", { name: /^Point — Asha Anand/ }));
+
+  expect(screen.getByRole("region", { name: "How the point was won" })).toBeInTheDocument();
+  expect(screen.getByText("Game Asha Anand · 1–0 · Change ends")).toBeInTheDocument();
+});

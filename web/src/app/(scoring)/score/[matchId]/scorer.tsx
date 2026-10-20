@@ -659,13 +659,11 @@ function Controls({
   const message = lastEventMessage(record.events, format, record.firstServer, namesOf(sides));
   return (
     <div className="flex flex-col gap-3 px-5 pb-5 pt-3">
-      {reasons.length > 0 ? (
-        <ReasonRow reasons={reasons} dispatch={dispatch} />
-      ) : (
-        <p aria-live="polite" className="card min-h-11 px-3 py-2.5 text-center text-[14px] font-semibold">
-          {message ?? "Tap whoever wins each point."}
-        </p>
-      )}
+      {/* The line stays with the reason row, so "Change ends" shows whether or not a reason is given. */}
+      <p aria-live="polite" className="card min-h-11 px-3 py-2.5 text-center text-[14px] font-semibold">
+        {message ?? "Tap whoever wins each point."}
+      </p>
+      {reasons.length > 0 ? <ReasonRow reasons={reasons} dispatch={dispatch} /> : null}
       <div className="grid grid-cols-2 gap-3">
         {SIDES.map((side) => {
           const serving = match.server === side;
