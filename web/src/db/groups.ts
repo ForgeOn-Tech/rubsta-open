@@ -1,10 +1,9 @@
 import { and, asc, eq, isNotNull } from "drizzle-orm";
 
 import type { Database } from "./draws";
-import { draws, drawSlots, groupPlaces, matches, type Category, type Draw, type Match, type MatchSlot } from "./schema";
+import { draws, drawSlots, groupPlaces, matches, type Draw, type Match, type MatchSlot } from "./schema";
 import { groupResultOf } from "@/lib/group-results";
 import {
-  GROUP_EVENT_QUALIFIERS,
   groupQualifiers,
   groupRoundName,
   groupStandings,
@@ -30,11 +29,18 @@ export interface GroupView {
   through: (string | null)[];
 }
 
-/** The plan a group draw was made with, from its number of groups. */
-export function planOfGroups(category: Category, groupCount: number): GroupPlan {
-  const qualifiers = GROUP_EVENT_QUALIFIERS[category];
-  if (qualifiers === undefined) throw new Error(`${category} is not played in groups.`);
-  return { groupCount, qualifiersPerGroup: qualifiers / groupCount };
+/** The plan a group draw was made with: its number of groups, and how many go through. */
+export function planOfDraw(draw: Draw, groupCount: number): GroupPlan {
+  if (draw.qualifiersPerGroup === null) {
+    throw new Error(`Draw ${draw.id} has ${groupCount} groups but no count of who goes through.`);
+  }
+  return { groupCount, qualifiersPerGroup: draw.qualifiersPerGroup };
+}
+
+/** The groups an admin chose for a generated draw, or null for a knockout draw. */
+export function chosenPlan(existing: { draw: Draw; slots: readonly { groupNumber: number | null }[] }): GroupPlan | null {
+  const groupCount = new Set(existing.slots.flatMap((slot) => (slot.groupNumber === null ? [] : [slot.groupNumber]))).size;
+  return groupCount === 0 ? null : planOfDraw(existing.draw, groupCount);
 }
 
 /** Each group's members in draw order. Empty for a knockout draw. */
@@ -91,7 +97,7 @@ function throughOf(database: Database, drawId: string, groupNumber: number, plac
 export function listGroups(database: Database, draw: Draw): GroupView[] {
   const groups = membersByGroup(database, draw.id);
   if (groups.size === 0) return [];
-  const plan = planOfGroups(draw.category, groups.size);
+  const plan = planOfDraw(draw, groups.size);
   const groupMatches: Match[] = database
     .select()
     .from(matches)

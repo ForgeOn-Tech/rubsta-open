@@ -6,6 +6,7 @@ import { AdminPageHeader } from "@/components/admin-page-header";
 import { DrawStatusBadge } from "@/components/draw-status-badge";
 import { getDb } from "@/db/client";
 import { listDrawsWithSlots } from "@/db/draws";
+import { chosenPlan } from "@/db/groups";
 import { getCurrentTournament, listTournamentEntries } from "@/db/queries";
 import { CATEGORIES } from "@/db/schema";
 import {
@@ -42,7 +43,8 @@ export default async function AdminDrawsPage() {
       accepted: entrants.length,
       seeds: entrants.filter((entrant) => entrant.seed !== null).length,
       size: canDraw(entrants.length) ? drawSize(entrants.length) : null,
-      plan: groupPlan(category, entrants.length),
+      // A generated group draw shows the groups the admin chose; otherwise the suggestion.
+      plan: (existing === null ? null : chosenPlan(existing)) ?? groupPlan(category, entrants.length),
       status: existing?.draw.status ?? null,
       outOfDate: existing ? hasDrawChanges(drawChanges(existing.slots, entrants)) : false,
     };

@@ -4,12 +4,15 @@ import { useActionState } from "react";
 
 import type { DrawStatus } from "@/db/schema";
 import { INITIAL_ACTION_STATE, type FormAction } from "@/lib/form-state";
+import { MAX_GROUPS, MIN_GROUPS, QUALIFIER_CHOICES, type GroupPlan } from "@/lib/groups";
 
 export interface DrawActionsProps {
   category: string;
   drawId: string | null;
   status: DrawStatus | null;
   canGenerate: boolean;
+  /** For a group event, the plan to start from; the admin can change it before generating. */
+  groupPlan: GroupPlan | null;
   generateAction: FormAction;
   statusAction: FormAction;
 }
@@ -21,6 +24,7 @@ export function DrawActions({
   drawId,
   status,
   canGenerate,
+  groupPlan,
   generateAction,
   statusAction,
 }: DrawActionsProps) {
@@ -31,8 +35,34 @@ export function DrawActions({
     <div className="flex flex-col items-end gap-2">
       <div className="flex flex-wrap gap-2">
         {status !== "published" && canGenerate ? (
-          <form action={generate}>
+          <form action={generate} className="flex flex-wrap items-center gap-2">
             <input type="hidden" name="category" value={category} />
+            {groupPlan === null ? null : (
+              <>
+                <label className="flex items-center gap-1.5 text-[12px]">
+                  Groups
+                  <input
+                    name="groupCount"
+                    type="number"
+                    min={MIN_GROUPS}
+                    max={MAX_GROUPS}
+                    defaultValue={groupPlan.groupCount}
+                    className="field mono h-8 w-16 py-0"
+                    required
+                  />
+                </label>
+                <label className="flex items-center gap-1.5 text-[12px]">
+                  Through from each
+                  <select name="qualifiersPerGroup" defaultValue={groupPlan.qualifiersPerGroup} className="field h-8 w-16 py-0">
+                    {QUALIFIER_CHOICES.map((choice) => (
+                      <option key={choice} value={choice}>
+                        {choice}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </>
+            )}
             <button type="submit" className={`${BUTTON} btn-outline`} disabled={generating}>
               {generating ? "Generating…" : status === "draft" ? "Generate again" : "Generate draw"}
             </button>

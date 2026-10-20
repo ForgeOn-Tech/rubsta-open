@@ -31,7 +31,7 @@ function setup() {
       .run();
   }
   const entrants = Array.from({ length: 16 }, (_unused, index) => ({ entryId: `e${index + 1}`, seed: index < 4 ? index + 1 : null }));
-  saveGeneratedGroups(database, { tournamentId: TOURNAMENT_ID, category: "OS", lines: generateGroups(entrants, groupPlan("OS", 16)!, Math.random) });
+  saveGeneratedGroups(database, { tournamentId: TOURNAMENT_ID, category: "OS", qualifiersPerGroup: 2, lines: generateGroups(entrants, groupPlan("OS", 16)!, Math.random) });
   const current = getDrawWithSlots(database, TOURNAMENT_ID, "OS")!;
   publishDraw(database, current.draw, current.slots);
   addCourt(database, TOURNAMENT_ID, { name: null, surface: null, streamUrl: null });
@@ -40,7 +40,7 @@ function setup() {
 }
 
 function request(rounds: string[]): FillRequest {
-  return { day: DAY, courts: [1, 2], startTime: "08:00", restMinutes: 30, lengths: DEFAULT_MATCH_LENGTHS, rounds };
+  return { day: DAY, courts: [1, 2], startTime: "08:00", finishBy: null, restMinutes: 30, lengths: DEFAULT_MATCH_LENGTHS, rounds };
 }
 
 const GROUPS = ["OS|Group A", "OS|Group B", "OS|Group C", "OS|Group D"];
@@ -105,6 +105,15 @@ describe("filling a day", () => {
     // A quarter-final waits for both groups that feed it; with groups interleaved, that is near the end.
     expect(firstQuarter).toBeGreaterThan(minutesOf("08:00"));
     expect(firstQuarter).toBeLessThanOrEqual(lastGroupEnd + 30);
+  });
+
+  it("lists the matches that would start after the last start as not placed", () => {
+    const preview = previewFill(setup(), TOURNAMENT_ID, { ...request(GROUPS), finishBy: "10:00" });
+
+    // Two courts from 08:00 to a last start of 10:00 take three rounds of 45-minute matches each.
+    expect(preview.placed).toHaveLength(6);
+    expect(preview.unplaced).toHaveLength(18);
+    expect(preview.unplaced[0].reason).toBe("It would start after 10:00, the last start.");
   });
 
   it("adds the fill after what a court already has, with times the umpires can read", () => {

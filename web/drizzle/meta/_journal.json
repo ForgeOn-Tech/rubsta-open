@@ -169,6 +169,13 @@
       "when": 1792222433459,
       "tag": "0023_round_robin_groups",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1792251712429,
+      "tag": "0024_group_qualifiers",
+      "breakpoints": true
     }
   ]
 }

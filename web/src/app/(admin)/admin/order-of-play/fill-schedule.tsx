@@ -115,6 +115,12 @@ export function FillSchedule({
             <input id="fill-start" name="startTime" type="time" defaultValue={DEFAULT_START_TIME} className="field mono" required />
           </div>
           <div>
+            <label className="caps" htmlFor="fill-finish">
+              Last start (optional)
+            </label>
+            <input id="fill-finish" name="finishBy" type="time" className="field mono" />
+          </div>
+          <div>
             <label className="caps" htmlFor="fill-rest">
               Rest (min)
             </label>

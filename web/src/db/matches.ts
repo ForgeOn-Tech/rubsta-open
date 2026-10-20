@@ -1,7 +1,7 @@
 import { and, eq, gt, inArray, isNotNull, isNull } from "drizzle-orm";
 
 import { setDrawStatus, type Database } from "./draws";
-import { fillGroupPlaces, groupMatchRows, membersByGroup, planOfGroups } from "./groups";
+import { fillGroupPlaces, groupMatchRows, membersByGroup, planOfDraw } from "./groups";
 import { clearMatchFanData } from "./fan";
 import {
   CATEGORIES,
@@ -129,7 +129,7 @@ export function materializeMatches(database: Database, draw: Draw, slots: DrawSl
 function materializeGroupDraw(database: Database, draw: Draw): void {
   const groups = membersByGroup(database, draw.id);
   const groupRows = groupMatchRows(draw, groups);
-  const rounds = buildBracketFromSlots(knockoutSlots(planOfGroups(draw.category, groups.size)), groupRows.length + 1);
+  const rounds = buildBracketFromSlots(knockoutSlots(planOfDraw(draw, groups.size)), groupRows.length + 1);
   database.transaction((tx) => {
     tx.insert(matches).values([...groupRows, ...knockoutRows(draw, rounds, 1)]).run();
   });

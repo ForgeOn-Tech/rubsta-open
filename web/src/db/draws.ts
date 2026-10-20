@@ -59,20 +59,25 @@ export function saveGeneratedDraw(
   database: Database,
   input: { tournamentId: string; category: Category; lines: readonly DrawLine[] },
 ): string {
-  return saveLines(database, { ...input, lines: input.lines.map((line) => ({ ...line, groupNumber: null })) });
+  return saveLines(database, { ...input, qualifiersPerGroup: null, lines: input.lines.map((line) => ({ ...line, groupNumber: null })) });
 }
 
 /** As saveGeneratedDraw, for a group event: each line is an entrant's place in a group. */
 export function saveGeneratedGroups(
   database: Database,
-  input: { tournamentId: string; category: Category; lines: readonly GroupLine[] },
+  input: { tournamentId: string; category: Category; qualifiersPerGroup: number; lines: readonly GroupLine[] },
 ): string {
   return saveLines(database, input);
 }
 
 function saveLines(
   database: Database,
-  input: { tournamentId: string; category: Category; lines: readonly (DrawLine & { groupNumber: number | null })[] },
+  input: {
+    tournamentId: string;
+    category: Category;
+    qualifiersPerGroup: number | null;
+    lines: readonly (DrawLine & { groupNumber: number | null })[];
+  },
 ): string {
   return database.transaction((tx) => {
     const existing = tx
@@ -90,7 +95,7 @@ function saveLines(
     if (existing) {
       tx.delete(drawSlots).where(eq(drawSlots.drawId, drawId)).run();
       tx.update(draws)
-        .set({ size: input.lines.length, generatedAt: Date.now(), publishedAt: null })
+        .set({ size: input.lines.length, qualifiersPerGroup: input.qualifiersPerGroup, generatedAt: Date.now(), publishedAt: null })
         .where(eq(draws.id, drawId))
         .run();
     } else {
@@ -100,6 +105,7 @@ function saveLines(
           tournamentId: input.tournamentId,
           category: input.category,
           size: input.lines.length,
+          qualifiersPerGroup: input.qualifiersPerGroup,
         })
         .run();
     }

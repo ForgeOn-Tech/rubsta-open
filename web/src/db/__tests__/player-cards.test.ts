@@ -54,7 +54,7 @@ it("does not count walkovers as played matches", () => {
  db.update(schema.matches).set({ events: [], firstServer: null, startedAt: null }).run();
  const card = getPlayerCard(db, "a")!;
  expect(card.totals.played).toBe(0);
- expect(card.tournaments[0].history[0].score).toBe("Walkover");
+ expect(card.tournaments[0].history[0].score).toBe("W/O");
 });
 it("excludes an unaccepted doubles partner", () => {
  db.update(schema.entries).set({ partnerStatus: "pending" }).where(eq(schema.entries.id, "entry-a")).run();
