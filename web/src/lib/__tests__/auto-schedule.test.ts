@@ -132,6 +132,23 @@ describe("courtEnd", () => {
     expect(courtEnd([], EIGHT)).toBeNull();
     expect(clockOf(courtEnd([{ timing: "followOn", time: null, endTime: null, minutes: 45 }], EIGHT) ?? 0)).toBe("08:45");
   });
+
+  it("starts a timed morning item at its own time when the fill starts later", () => {
+    const afternoon = minutesOf("14:00");
+    const end = courtEnd([{ timing: "notBefore", time: "08:00", endTime: null, minutes: 60 }], afternoon);
+    expect(clockOf(end ?? 0)).toBe("09:00");
+  });
+
+  it("keeps a court busy until a long match ends, past a short session at a fixed time", () => {
+    const end = courtEnd(
+      [
+        { timing: "at", time: "08:00", endTime: null, minutes: 90 },
+        { timing: "at", time: "09:00", endTime: "09:15", minutes: null },
+      ],
+      EIGHT,
+    );
+    expect(clockOf(end ?? 0)).toBe("09:30");
+  });
 });
 
 describe("validateFillRequest", () => {
