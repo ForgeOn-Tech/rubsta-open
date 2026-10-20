@@ -237,6 +237,11 @@ deletes the kept pages, so the next person on a shared phone cannot open them
 offline. Scores kept in localStorage stay, because they may not have reached
 the server yet.
 
+A release that changes how scores are saved must bump `CACHE_VERSION` in
+`public/sw.js`, so phones drop pages kept from the old release. A scoring tab
+left open across a deploy still runs the old code. Before play starts, close
+and reopen the scoring page on every umpire's phone.
+
 ### Order of play
 
 Admins add courts in `/admin/settings`, each with a name and a surface. A court
