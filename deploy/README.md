@@ -188,6 +188,40 @@ print expanded Compose configuration because it contains environment secrets.
 - Still outstanding for merchant review: the landing page describes its own sponsor
   names, logos and imagery as placeholders and its venue photo as unconfirmed.
 
+## Verified match-day deployment — 20 October 2026
+
+- URL: `https://www.rubstaopen.com`. App and site release
+  `a392f8cf561c45882025b7a296f324f6cb99013e` (`main` after PRs #22–#34). Previous
+  values: app `12d9da41386d98a6e26c328bab9621a97eb03a7b`, site
+  `634e57686040d5befb7849aff0c3973ed051d71a`. Both were already in `main`.
+- Backups before the switch: an online SQLite backup at
+  `/var/lib/rubsta/data/backups/before-match-day-a392f8c.db` (mode 600), and the disk
+  snapshot `rubsta-data-before-match-day-20261020`.
+- The image was built on the VM from a `git archive` of the release commit. The site
+  was built locally with `scripts/build-site.py` from the same archive and installed
+  at `/var/lib/rubsta/site/a392f8cf561c45882025b7a296f324f6cb99013e`.
+- Dry run: the new image ran with no network against a copy of the backup.
+  Migrations run on the first database request, not at start-up, so a request to
+  `/draws` triggered them. All 25 migrations (through 0024) applied. Entries
+  (57, 22 paid) and the tournament row were unchanged.
+- The VM's `Caddyfile`, `compose.yaml`, `access.public.caddy` and `preflight.mjs`
+  match the release, so only `RUBSTA_RELEASE` and `RUBSTA_SITE_RELEASE` changed.
+  The previous file is `deploy/.env.pre-match-day-a392f8c`. Preflight passed.
+- Verified after deployment:
+  - Both containers report healthy, and the logs show no errors.
+  - `/`, `/signin`, `/draws` and `/terms` return 200, and `/register` redirects to sign-in.
+  - An unsigned webhook POST returns 400.
+  - Both new partner logos load.
+  - The live database holds 57 entries (22 paid) and 25 migrations.
+  - Admin Entries shows **Add entry**.
+- Rollback: restore `deploy/.env.pre-match-day-a392f8c` as `deploy/.env` and run
+  `up -d --wait`. The new migrations only add tables and columns. If the old app
+  fails on the new schema, restore the backup or the snapshot.
+- Before play on match day:
+  - Close and reopen the scoring page on every umpire's phone. The scoring cache
+    moved to v2, and old scoring code cannot save.
+  - Assign link umpires to their matches on the order of play, then publish the day.
+
 ## Team payment testing
 
 Verified on 19 September 2026: checkout displayed Test Mode and ₹3,000; choosing
