@@ -342,3 +342,25 @@ describe("starting again on new rules", () => {
   });
 });
 
+describe("recording how a point was won", () => {
+  it("gives the last point its reason as a new revision to save", () => {
+    const state = run(initialScorerState(snapshot(1, [point("top")]), null), { type: "reason", finish: "winner" });
+
+    expect(state.record?.events).toEqual([{ type: "point", side: "top", finish: "winner" }]);
+    expect(pendingSave(state)?.record.events.at(-1)).toEqual({ type: "point", side: "top", finish: "winner" });
+  });
+
+  it("refuses a reason the point cannot have, or a missing point", () => {
+    expect(() => run(initialScorerState(snapshot(1, [point("bottom")]), null), { type: "reason", finish: "ace" })).toThrow();
+    expect(() => run(initialScorerState(snapshot(1, []), null), { type: "reason", finish: "winner" })).toThrow(/no point/);
+  });
+
+  it("gives the point that ends the match its reason while it waits to be confirmed", () => {
+    const matchPoint = run(initialScorerState(snapshot(1, matchPointEvents()), null), { type: "score", event: point("top") });
+
+    const state = run(matchPoint, { type: "reason", finish: "ace" });
+
+    expect(state.finalEvent).toEqual({ type: "point", side: "top", finish: "ace" });
+  });
+});
+

@@ -27,7 +27,6 @@ import {
   setScores,
   type MatchFormat,
   type MatchState,
-  type PointFinish,
   type Side,
 } from "@/lib/match";
 import {
@@ -41,6 +40,7 @@ import { formatSummary } from "@/lib/match-formats";
 import { statRows, statsOfRecord } from "@/lib/match-stats";
 import type { CourtOption } from "@/lib/schedule";
 import { formatElapsed, situationLabel, type SideLabel } from "@/lib/scoring-display";
+import { lastEventMessage, pointReasons, reasonChoices, umpireCall } from "@/lib/umpire-call";
 import {
   deviceScoreOf,
   hasUnsavedChanges,
@@ -300,17 +300,20 @@ function LiveScorer({
         )
       ) : (
         <>
+          {match && record && !finished && finalEvent === null ? (
+            <CallBoard match={match} sides={sides} format={formatOfRecord(record)} dispatch={dispatch} />
+          ) : null}
           {shown && record ? (
-            <div className="px-5 pt-4">
+            <div className="px-5 pt-3">
               <Scoreboard match={shown} sides={sides} format={formatOfRecord(record)} startedAt={record.startedAt} endedAt={endedAt} />
             </div>
           ) : null}
           {finished ? (
             <Result state={state} record={record} match={match} sides={sides} />
-          ) : finalEvent !== null && shown ? (
-            <FinalConfirmation match={shown} sides={sides} dispatch={dispatch} />
-          ) : match ? (
-            <Controls match={match} sides={sides} dispatch={dispatch} />
+          ) : finalEvent !== null && shown && match ? (
+            <FinalConfirmation match={shown} before={match} finalEvent={finalEvent} sides={sides} dispatch={dispatch} />
+          ) : match && record ? (
+            <Controls record={record} match={match} sides={sides} dispatch={dispatch} />
           ) : null}
         </>
       )}
@@ -572,111 +575,161 @@ function Scoreboard({
   );
 }
 
-const SMALL_BUTTON =
-  "flex h-[46px] items-center justify-center gap-1.5 border border-line bg-surface-1 text-[12.5px] font-medium text-muted disabled:opacity-50";
+/** Names as the call and messages use them. */
+function namesOf(sides: Record<Side, SideLabel>): Record<Side, string> {
+  return { top: sides.top.name, bottom: sides.bottom.name };
+}
 
-function Controls({
+/** The score as the umpire calls it, who is serving, and Undo, always in the same place. */
+function CallBoard({
   match,
   sides,
+  format,
   dispatch,
 }: {
   match: MatchState;
   sides: Record<Side, SideLabel>;
+  format: MatchFormat;
   dispatch: Dispatch<ScorerAction>;
 }) {
-  const [recordDetails, setRecordDetails] = useState(false);
-  const [pendingSide, setPendingSide] = useState<Side | null>(null);
-  function recordPoint(side: Side, finish?: PointFinish) {
-    setPendingSide(null);
-    dispatch({ type: "score", event: finish ? { type: "point", side, finish } : { type: "point", side } });
-  }
-  if (pendingSide !== null) {
-    const winner = sides[pendingSide].name;
-    const loser = sides[other(pendingSide)].name;
-    return (
-      <section aria-label="Point details" className="space-y-3 px-5 py-4">
-        <h2 className="font-semibold">Point to {winner}</h2>
-        <p className="text-sm text-muted">How was it won? The point is saved when you choose.</p>
-        <div className="grid grid-cols-1 gap-3">
-          {pendingSide === match.server && (
-            <button type="button" className={SMALL_BUTTON} onClick={() => recordPoint(pendingSide, "ace")}>
-              Ace by {winner}
-            </button>
-          )}
-          <button type="button" className={SMALL_BUTTON} onClick={() => recordPoint(pendingSide, "winner")}>
-            Winner by {winner}
-          </button>
-          <button type="button" className={SMALL_BUTTON} onClick={() => recordPoint(pendingSide, "opponentError")}>
-            Mistake by {loser}
-          </button>
-          <button type="button" className={SMALL_BUTTON} onClick={() => recordPoint(pendingSide)}>
-            Don&apos;t record how
-          </button>
-        </div>
-        <p className="text-xs text-muted">
-          Winner: a shot {loser} could not reach. Mistake: {loser} hit the ball out or into the net.
-        </p>
-        <button type="button" className="btn btn-outline min-h-11" onClick={() => setPendingSide(null)}>Cancel point</button>
-      </section>
-    );
-  }
+  const { call, detail } = umpireCall(match, namesOf(sides), format);
   return (
-    <div className="flex flex-col gap-[11px] px-5 pb-5 pt-4">
-      <label className="flex min-h-11 items-center gap-3 text-sm"><input type="checkbox" checked={recordDetails} onChange={event => setRecordDetails(event.target.checked)} className="h-5 w-5" />Also record how each point was won (optional)</label>
-      {SIDES.map((side) => {
-        const serving = match.server === side;
-        return (
+    <section aria-label="Call" className="relative flex flex-col items-center gap-1.5 px-5 pb-1 pt-4">
+      <button
+        type="button"
+        className="btn btn-outline absolute right-5 top-3 h-11 px-4 text-[14px]"
+        onClick={() => dispatch({ type: "undo" })}
+      >
+        Undo
+      </button>
+      <p className={`font-serif font-semibold leading-none ${call.length > 7 ? "text-[38px]" : "text-[64px]"}`}>{call}</p>
+      <p className="min-h-5 text-[14px] font-semibold text-accent">{detail ?? ""}</p>
+      <p className="flex items-center gap-2 text-[14px]">
+        <span>{sides[match.server].name} serving</span>
+        {match.faultPending ? (
+          <span className="bg-warn px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.06em] text-ink">2nd serve</span>
+        ) : null}
+      </p>
+    </section>
+  );
+}
+
+/** The reasons a point can have, as buttons; choosing one records it and the row goes away. */
+function ReasonRow({
+  reasons,
+  dispatch,
+}: {
+  reasons: ReturnType<typeof pointReasons>;
+  dispatch: Dispatch<ScorerAction>;
+}) {
+  return (
+    <section aria-label="How the point was won" className="card flex flex-col gap-2 p-3">
+      <p className="text-[13px] font-semibold">
+        How was it won? <span className="font-normal text-muted">Optional</span>
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {reasons.map((reason) => (
           <button
-            key={side}
+            key={reason.finish}
             type="button"
-            onClick={() => recordDetails ? setPendingSide(side) : recordPoint(side)}
-            className={`flex h-[70px] items-center justify-between gap-3 px-5 text-left ${
-              serving ? "bg-accent text-accent-fg" : "border border-line bg-surface-1 text-ink"
-            }`}
+            className="btn btn-outline h-11 text-[13px]"
+            onClick={() => dispatch({ type: "reason", finish: reason.finish })}
           >
-            <span className="truncate text-[16px] font-semibold">Point — {sides[side].name}</span>
-            {serving ? <span className="mono flex-none text-[11px] tracking-[0.08em]">SERVING</span> : null}
+            {reason.label}
           </button>
-        );
-      })}
-      <div className="grid grid-cols-2 gap-[11px]">
-        <button type="button" className={SMALL_BUTTON} disabled={match.faultPending} onClick={() => dispatch({ type: "score", event: { type: "fault" } })}>
-          Fault
-        </button>
-        <button type="button" className={SMALL_BUTTON} onClick={() => dispatch({ type: "score", event: { type: "doubleFault" } })}>
-          Double fault
-        </button>
-        <button type="button" className={SMALL_BUTTON} onClick={() => dispatch({ type: "score", event: { type: "let" } })}>
-          Let
-        </button>
-        <button type="button" className={SMALL_BUTTON} onClick={() => dispatch({ type: "undo" })}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M3 7v6h6" />
-            <path d="M3.5 13a9 9 0 1 0 2.1-5.6L3 10" />
-          </svg>
-          Undo
-        </button>
+        ))}
       </div>
+    </section>
+  );
+}
+
+function Controls({
+  record,
+  match,
+  sides,
+  dispatch,
+}: {
+  record: ScoreRecord;
+  match: MatchState;
+  sides: Record<Side, SideLabel>;
+  dispatch: Dispatch<ScorerAction>;
+}) {
+  const format = formatOfRecord(record);
+  const reasons = reasonChoices(record.events, format, record.firstServer, namesOf(sides));
+  const message = lastEventMessage(record.events, format, record.firstServer, namesOf(sides));
+  return (
+    <div className="flex flex-col gap-3 px-5 pb-5 pt-3">
+      {/* The line stays with the reason row, so "Change ends" shows whether or not a reason is given. */}
+      <p aria-live="polite" className="card min-h-11 px-3 py-2.5 text-center text-[14px] font-semibold">
+        {message ?? "Tap whoever wins each point."}
+      </p>
+      {reasons.length > 0 ? <ReasonRow reasons={reasons} dispatch={dispatch} /> : null}
+      <div className="grid grid-cols-2 gap-3">
+        {SIDES.map((side) => {
+          const serving = match.server === side;
+          return (
+            <button
+              key={side}
+              type="button"
+              aria-label={`Point — ${sides[side].name}${serving ? ", serving" : ""}`}
+              onClick={() => dispatch({ type: "score", event: { type: "point", side } })}
+              className={`flex min-h-[150px] flex-col items-start justify-between gap-2 p-4 text-left ${
+                serving ? "bg-accent text-accent-fg" : "border border-line bg-surface-1 text-ink"
+              }`}
+            >
+              <span className="mono min-h-4 text-[11px] tracking-[0.08em]">{serving ? "SERVING" : ""}</span>
+              <span className="font-serif text-[24px] font-semibold leading-tight">{sides[side].name}</span>
+              <span className="text-[13px] opacity-85">Tap if they won the point</span>
+            </button>
+          );
+        })}
+      </div>
+      <button
+        type="button"
+        className="h-16 border-2 border-warn bg-surface-1 text-[18px] font-bold text-ink"
+        onClick={() => dispatch({ type: "score", event: { type: match.faultPending ? "doubleFault" : "fault" } })}
+      >
+        {match.faultPending ? "Fault again = double fault" : "Fault"}
+      </button>
+      <button
+        type="button"
+        className="h-11 self-center px-3 text-[14px] text-muted underline"
+        onClick={() => dispatch({ type: "score", event: { type: "let" } })}
+      >
+        Let
+      </button>
     </div>
   );
 }
 
 function FinalConfirmation({
   match,
+  before,
+  finalEvent,
   sides,
   dispatch,
 }: {
+  /** The match with the final point. */
   match: MatchState;
+  /** The match before it, which says who served the final point. */
+  before: MatchState;
+  finalEvent: NonNullable<ScorerState["finalEvent"]>;
   sides: Record<Side, SideLabel>;
   dispatch: Dispatch<ScorerAction>;
 }) {
   if (match.winner === null) throw new Error("A final point must decide a winner.");
+  const reasons =
+    finalEvent.type === "point" && finalEvent.finish === undefined
+      ? pointReasons(finalEvent.side, before.server, namesOf(sides))
+      : [];
   return (
     <section aria-labelledby="final-heading" className="mx-5 my-4 card flex flex-col gap-3 p-4">
       <h2 id="final-heading" className="text-[16px] font-semibold">
         Game, set and match — {sides[match.winner].name}
       </h2>
       <p className="mono text-[13px] text-muted">{scoreLine(match.sets, match.winner)}</p>
+      {reasons.length > 0 ? <ReasonRow reasons={reasons} dispatch={dispatch} /> : null}
+      <p className="text-[13px] text-muted">Check the score with both players, then confirm. Nothing is final until you do.</p>
       <button type="button" className="btn btn-primary" onClick={() => dispatch({ type: "confirmFinal" })}>
         Confirm result
       </button>

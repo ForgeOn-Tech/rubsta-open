@@ -165,12 +165,24 @@ export function sameScore(a: ScoreRecord, b: ScoreRecord): boolean {
   );
 }
 
-/** True when `longer` starts like `shorter`, keeps all its events in order, and adds more. */
+/** True when `later` is `earlier`, or the same point with how it was won added. */
+function keepsEvent(earlier: MatchEvent, later: MatchEvent): boolean {
+  if (earlier.type === "point" && later.type === "point" && earlier.finish === undefined) {
+    return earlier.side === later.side;
+  }
+  return sameEvent(earlier, later);
+}
+
+/**
+ * True when `longer` starts like `shorter`, keeps all its events in order, and adds to
+ * them: more events, or how a point was won.
+ */
 export function extendsScore(longer: ScoreRecord, shorter: ScoreRecord): boolean {
   return (
     sameStart(longer, shorter) &&
-    longer.events.length > shorter.events.length &&
-    shorter.events.every((event, index) => sameEvent(event, longer.events[index]))
+    longer.events.length >= shorter.events.length &&
+    shorter.events.every((event, index) => keepsEvent(event, longer.events[index])) &&
+    !sameScore(longer, shorter)
   );
 }
 
@@ -191,8 +203,9 @@ export function scoreRecordOf(match: StoredScoreColumns): ScoreRecord | null {
  * Picks the score to show when the scoring page opens. A device record built
  * on a newer version than the page wins, saved or not: the page is an older
  * copy, such as one kept for use without a connection. Otherwise unsaved
- * device changes win while the server is still at their base version. They are
- * dropped when the server already holds the same record, and conflict otherwise.
+ * device changes win while the server is still at their base version, or when they
+ * only add to what the server holds. They are dropped when the server already holds
+ * the same record, and conflict otherwise.
  */
 export function reconcileScore(
   serverVersion: number,
@@ -204,6 +217,8 @@ export function reconcileScore(
   if (!device.unsaved) return { kind: "server" };
   if (device.baseVersion === serverVersion) return { kind: "device", device };
   if (serverRecord !== null && sameScore(serverRecord, device.record)) return { kind: "server" };
+  // A save whose answer was lost, then more on this phone: the server takes it as an addition.
+  if (serverRecord !== null && extendsScore(device.record, serverRecord)) return { kind: "device", device };
   return { kind: "conflict", device };
 }
 

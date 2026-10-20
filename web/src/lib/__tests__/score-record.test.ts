@@ -119,6 +119,13 @@ describe("extendsScore", () => {
     expect(extendsScore(record([top]), record([]))).toBe(true);
   });
 
+  it("accepts a record that adds how a stored point was won", () => {
+    const tagged: MatchEvent = { type: "point", side: "top", finish: "winner" };
+    expect(extendsScore(record([tagged]), record([top]))).toBe(true);
+    expect(extendsScore(record([tagged, bottom]), record([top]))).toBe(true);
+    expect(extendsScore(record([top]), record([tagged]))).toBe(false);
+  });
+
   it("rejects an equal, shorter, diverging or differently started record", () => {
     expect(extendsScore(record([top]), record([top]))).toBe(false);
     expect(extendsScore(record([top]), record([top, bottom]))).toBe(false);
@@ -164,6 +171,13 @@ describe("reconcileScore", () => {
 
     expect(reconcileScore(4, record([]), saved)).toEqual({ kind: "device", device: saved });
     expect(reconcileScore(4, null, unsaved)).toEqual({ kind: "device", device: unsaved });
+  });
+
+  it("resumes device changes that only add to what the server holds", () => {
+    const tagged = device(4, [{ type: "point", side: "top", finish: "ace" }], true);
+    const more = device(4, [point, point], true);
+    expect(reconcileScore(5, record([point]), tagged)).toEqual({ kind: "device", device: tagged });
+    expect(reconcileScore(5, record([point]), more)).toEqual({ kind: "device", device: more });
   });
 
   it("reports a conflict when both changed", () => {

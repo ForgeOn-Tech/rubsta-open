@@ -284,11 +284,11 @@ describe("Scorer", () => {
     mockedSave.mockImplementation(savedAsSent);
     // Top leads 6–0 5–0 40–0.
     renderScorer(snapshot(1, Array.from({ length: 47 }, () => point("top"))));
-    fireEvent.click(screen.getByRole("checkbox", { name: "Also record how each point was won (optional)" }));
     fireEvent.click(screen.getByRole("button", { name: /^Point — Asha Anand/ }));
-    fireEvent.click(screen.getByRole("button", { name: /^Winner by / }));
 
     expect(screen.getByRole("heading", { name: "Game, set and match — Asha Anand" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Winner by Asha Anand" }));
+    expect(screen.queryByRole("region", { name: "How the point was won" })).toBeNull();
     expect(mockedSave).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("button", { name: "Confirm result" }));
@@ -320,24 +320,51 @@ describe("Scorer", () => {
 });
 
 
-it("keeps point details optional and supports skip, cancel and undo", async () => {
+it("asks how each point was won, optionally, and clears the question once answered", async () => {
   mockedSave.mockImplementation(savedAsSent);
   renderScorer(snapshot(1, []));
-  fireEvent.click(screen.getByRole("checkbox", { name: "Also record how each point was won (optional)" }));
+
+  // Bela Rao receives, so their point cannot be an ace.
   fireEvent.click(screen.getByRole("button", { name: /^Point — Bela Rao/ }));
-  expect(screen.queryByRole("button", { name: /^Ace by / })).not.toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Mistake by Asha Anand" })).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Cancel point" }));
-  expect(mockedSave).not.toHaveBeenCalled();
+  const reasons = screen.getByRole("region", { name: "How the point was won" });
+  expect(within(reasons).queryByRole("button", { name: /^Ace by / })).toBeNull();
+  fireEvent.click(within(reasons).getByRole("button", { name: "Winner by Bela Rao" }));
+
+  expect(screen.queryByRole("region", { name: "How the point was won" })).toBeNull();
+  expect(screen.getByText("Point Bela Rao · Winner")).toBeInTheDocument();
+  await waitFor(() =>
+    expect(mockedSave.mock.calls.at(-1)?.[1].record.events).toEqual([{ type: "point", side: "bottom", finish: "winner" }]),
+  );
+
+  // Asha Anand serves: an ace is offered. Skipping it and scoring on leaves the point without a reason.
   fireEvent.click(screen.getByRole("button", { name: /^Point — Asha Anand/ }));
-  fireEvent.click(screen.getByRole("button", { name: "Don't record how" }));
-  await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Saved"));
-  expect(mockedSave.mock.calls.at(-1)?.[1].record.events).toEqual([point("top")]);
-  fireEvent.click(screen.getByRole("button", { name: /^Point — Asha Anand/ }));
-  fireEvent.click(screen.getByRole("button", { name: "Ace by Asha Anand" }));
-  await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Saved"));
-  expect(mockedSave.mock.calls.at(-1)?.[1].record.events.at(-1)).toEqual({ type: "point", side: "top", finish: "ace" });
+  expect(screen.getByRole("button", { name: "Ace by Asha Anand" })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Undo" }));
-  await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Saved"));
-  expect(mockedSave.mock.calls.at(-1)?.[1].record.events).toEqual([point("top")]);
+  await waitFor(() => expect(mockedSave.mock.calls.at(-1)?.[1].record.events).toHaveLength(1));
+  expect(screen.getByText("Point Bela Rao · Winner")).toBeInTheDocument();
+});
+
+it("takes a second fault as a double fault", async () => {
+  mockedSave.mockImplementation(savedAsSent);
+  renderScorer(snapshot(1, []));
+
+  fireEvent.click(screen.getByRole("button", { name: "Fault" }));
+  expect(screen.getByText("2nd serve")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Fault again = double fault" }));
+
+  expect(screen.getByText("Double fault · point Bela Rao")).toBeInTheDocument();
+  await waitFor(() =>
+    expect(mockedSave.mock.calls.at(-1)?.[1].record.events).toEqual([{ type: "fault" }, { type: "doubleFault" }]),
+  );
+});
+
+it("says to change ends while the reason for the game's last point is still open", () => {
+  mockedSave.mockImplementation(savedAsSent);
+  // Asha Anand leads 40–0 in the first game.
+  renderScorer(snapshot(1, [point("top"), point("top"), point("top")]));
+
+  fireEvent.click(screen.getByRole("button", { name: /^Point — Asha Anand/ }));
+
+  expect(screen.getByRole("region", { name: "How the point was won" })).toBeInTheDocument();
+  expect(screen.getByText("Game Asha Anand · 1–0 · Change ends")).toBeInTheDocument();
 });
