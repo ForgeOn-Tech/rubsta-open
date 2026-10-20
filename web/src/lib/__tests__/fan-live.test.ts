@@ -21,6 +21,7 @@ function row(id: string, overrides: Partial<Match>): ScoringMatchRow {
     matchNumber: 1,
     roundIndex: 1,
     roundName: "Final",
+    groupNumber: null,
     topSlot: { kind: "entry", entryId: "top-entry" },
     bottomSlot: { kind: "entry", entryId: "bottom-entry" },
     events: [],

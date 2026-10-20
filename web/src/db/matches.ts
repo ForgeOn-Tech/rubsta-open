@@ -1,11 +1,13 @@
-import { and, eq, gt, inArray, isNotNull } from "drizzle-orm";
+import { and, eq, gt, inArray, isNotNull, isNull } from "drizzle-orm";
 
 import { setDrawStatus, type Database } from "./draws";
+import { fillGroupPlaces, groupMatchRows, membersByGroup, planOfGroups } from "./groups";
 import { clearMatchFanData } from "./fan";
 import {
   CATEGORIES,
   draws,
   entries,
+  groupPlaces,
   matches,
   profiles,
   users,
@@ -15,7 +17,8 @@ import {
   type Match,
   type MatchSlot,
 } from "./schema";
-import { buildBracket, type BracketSlot } from "@/lib/draws";
+import { buildBracket, buildBracketFromSlots, type BracketRound, type BracketSlot } from "@/lib/draws";
+import { knockoutSlots } from "@/lib/groups";
 import { deriveState, type MatchState, type Side } from "@/lib/match";
 import { formatFor } from "@/lib/match-formats";
 import {
@@ -67,6 +70,8 @@ function slotFor(bracket: BracketSlot): MatchSlot {
       return { kind: "entry", entryId: bracket.entryId };
     case "winner":
       return { kind: "winner", matchNumber: bracket.matchNumber };
+    case "group":
+      return { kind: "group", group: bracket.group, place: bracket.place };
     case "bye":
       return { kind: "bye" };
   }
@@ -105,12 +110,34 @@ function entryIdOf(slot: MatchSlot, matchNumber: number): string {
  * is created already completed, with the entry through to the next round.
  */
 export function materializeMatches(database: Database, draw: Draw, slots: DrawSlot[]): void {
+  if (slots.some((slot) => slot.groupNumber !== null)) {
+    materializeGroupDraw(database, draw);
+    return;
+  }
   const lines = [...slots]
     .sort((a, b) => a.position - b.position)
     .map((slot) => ({ position: slot.position, entryId: slot.entryId, seed: slot.seed }));
-  const rounds = buildBracket(lines);
+  database.transaction((tx) => {
+    tx.insert(matches).values(knockoutRows(draw, buildBracket(lines), 0)).run();
+  });
+}
 
-  const values = rounds.flatMap((round, roundIndex) =>
+/**
+ * A group event's matches: every pairing in each group, then the knockout, whose first round
+ * waits on group places ("Group A winner") and whose numbers follow the group matches.
+ */
+function materializeGroupDraw(database: Database, draw: Draw): void {
+  const groups = membersByGroup(database, draw.id);
+  const groupRows = groupMatchRows(draw, groups);
+  const rounds = buildBracketFromSlots(knockoutSlots(planOfGroups(draw.category, groups.size)), groupRows.length + 1);
+  database.transaction((tx) => {
+    tx.insert(matches).values([...groupRows, ...knockoutRows(draw, rounds, 1)]).run();
+  });
+}
+
+/** Match rows for knockout rounds, the first at `firstRoundIndex`. */
+function knockoutRows(draw: Draw, rounds: readonly BracketRound[], firstRoundIndex: number) {
+  return rounds.flatMap((round, index) =>
     round.matches.map((match) => {
       const topSlot = slotFor(match.top);
       const bottomSlot = slotFor(match.bottom);
@@ -126,7 +153,7 @@ export function materializeMatches(database: Database, draw: Draw, slots: DrawSl
       return {
         drawId: draw.id,
         matchNumber: match.number,
-        roundIndex,
+        roundIndex: firstRoundIndex + index,
         roundName: round.name,
         topSlot,
         bottomSlot,
@@ -136,10 +163,18 @@ export function materializeMatches(database: Database, draw: Draw, slots: DrawSl
       };
     }),
   );
+}
 
-  database.transaction((tx) => {
-    tx.insert(matches).values(values).run();
-  });
+/**
+ * Moves a finished match's winner on: a group match updates its group, which may send
+ * players into the knockout; a knockout winner goes to the next round, if there is one.
+ */
+function afterMatchCompleted(database: Database, match: Match): void {
+  if (match.groupNumber !== null) {
+    fillGroupPlaces(database, match.drawId, match.groupNumber, Date.now());
+    return;
+  }
+  if (!isLastRound(database, match)) advanceWinnerToNextMatch(database, match);
 }
 
 /** True when no later round follows `match`, so its winner has nowhere to go. */
@@ -247,8 +282,8 @@ export function saveMatchScore(
       .run();
 
     const updated = loadMatch(tx, matchId);
-    if (completed && !isLastRound(tx, updated)) {
-      advanceWinnerToNextMatch(tx, updated);
+    if (completed) {
+      afterMatchCompleted(tx, updated);
     }
     return { kind: "saved", match: updated };
   });
@@ -319,7 +354,7 @@ export function retireMatch(database: Database, matchId: string, retiringSide: S
       .run();
 
     const updated = loadMatch(tx, matchId);
-    if (!isLastRound(tx, updated)) advanceWinnerToNextMatch(tx, updated);
+    afterMatchCompleted(tx, updated);
     return updated;
   });
 }
@@ -356,8 +391,47 @@ export function isWalkover(match: Pick<Match, "status" | "events" | "firstServer
 }
 
 /**
+ * Takes back the places a finished group sent through, so the group can finish again.
+ * Refused once a knockout match holding one of them has started.
+ */
+function reopenGroup(database: Database, match: Match, groupNumber: number, now: number): void {
+  const places = database
+    .select()
+    .from(groupPlaces)
+    .where(and(eq(groupPlaces.drawId, match.drawId), eq(groupPlaces.groupNumber, groupNumber)))
+    .all();
+  const knockout = database
+    .select()
+    .from(matches)
+    .where(and(eq(matches.drawId, match.drawId), isNull(matches.groupNumber)))
+    .all()
+    .sort((a, b) => a.roundIndex - b.roundIndex);
+  for (const place of places) {
+    const holds = (slot: MatchSlot): boolean => slot.kind === "entry" && slot.entryId === place.entryId;
+    const next = knockout.find((candidate) => holds(candidate.topSlot) || holds(candidate.bottomSlot));
+    if (!next) throw new Error(`No knockout match holds group ${groupNumber} place ${place.place}.`);
+    if (next.status !== "scheduled") {
+      throw new ScoreRejectedError(
+        `Match ${next.matchNumber} has already started, so the walkover in match ${match.matchNumber} stays.`,
+      );
+    }
+    const waiting: MatchSlot = { kind: "group", group: groupNumber, place: place.place };
+    database
+      .update(matches)
+      .set(holds(next.topSlot) ? { topSlot: waiting, updatedAt: now } : { bottomSlot: waiting, updatedAt: now })
+      .where(eq(matches.id, next.id))
+      .run();
+  }
+  database
+    .delete(groupPlaces)
+    .where(and(eq(groupPlaces.drawId, match.drawId), eq(groupPlaces.groupNumber, groupNumber)))
+    .run();
+}
+
+/**
  * Undoes a walkover recorded by mistake: the match goes back to scheduled, and its winner
- * leaves the next match. Refused once that next match has started.
+ * leaves the next match. A group match takes back the places its group sent through.
+ * Refused once a match the result reached has started.
  */
 export function undoWalkover(database: Database, matchId: string): Match {
   return database.transaction((tx) => {
@@ -368,7 +442,9 @@ export function undoWalkover(database: Database, matchId: string): Match {
     const winnerEntryId = row.winnerEntryId;
     const now = Date.now();
 
-    if (!isLastRound(tx, row)) {
+    if (row.groupNumber !== null) {
+      reopenGroup(tx, row, row.groupNumber, now);
+    } else if (!isLastRound(tx, row)) {
       const holdsWinner = (slot: MatchSlot): boolean => slot.kind === "entry" && slot.entryId === winnerEntryId;
       const next = tx
         .select()
@@ -406,6 +482,7 @@ export function undoWalkover(database: Database, matchId: string): Match {
 
 /** Removes every match of a draw (when it moves back to draft). */
 export function deleteMatchesForDraw(database: Database, drawId: string): void {
+  database.delete(groupPlaces).where(eq(groupPlaces.drawId, drawId)).run();
   database.delete(matches).where(eq(matches.drawId, drawId)).run();
 }
 

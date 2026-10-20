@@ -4,6 +4,7 @@ import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
 import * as schema from "./schema";
 import { drawSlots, draws, entries, type Category, type Draw, type DrawSlot, type DrawStatus } from "./schema";
 import { DRAW_ELIGIBLE_STATUSES, type DrawEntrant, type DrawLine } from "@/lib/draws";
+import type { GroupLine } from "@/lib/groups";
 
 /** Takes the database as an argument so tests can pass an in-memory one. */
 export type Database = BetterSQLite3Database<typeof schema>;
@@ -58,6 +59,21 @@ export function saveGeneratedDraw(
   database: Database,
   input: { tournamentId: string; category: Category; lines: readonly DrawLine[] },
 ): string {
+  return saveLines(database, { ...input, lines: input.lines.map((line) => ({ ...line, groupNumber: null })) });
+}
+
+/** As saveGeneratedDraw, for a group event: each line is an entrant's place in a group. */
+export function saveGeneratedGroups(
+  database: Database,
+  input: { tournamentId: string; category: Category; lines: readonly GroupLine[] },
+): string {
+  return saveLines(database, input);
+}
+
+function saveLines(
+  database: Database,
+  input: { tournamentId: string; category: Category; lines: readonly (DrawLine & { groupNumber: number | null })[] },
+): string {
   return database.transaction((tx) => {
     const existing = tx
       .select()
@@ -95,6 +111,7 @@ export function saveGeneratedDraw(
           position: line.position,
           entryId: line.entryId,
           seed: line.seed,
+          groupNumber: line.groupNumber,
         })),
       )
       .run();

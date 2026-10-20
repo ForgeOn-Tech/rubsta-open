@@ -12,6 +12,7 @@ import {
   type MatchState,
   type Side,
 } from "@/lib/match";
+import { groupLetter, groupOfRoundName, groupPlaceLabel } from "@/lib/groups";
 import { formatOfRecord } from "@/lib/score-record";
 import { snapshotOf } from "@/lib/score-sync";
 
@@ -50,6 +51,8 @@ const ROUND_OF = /^Round of (\d+)$/;
 export function shortRoundName(roundName: string): string {
   const short = SHORT_ROUND_NAMES.get(roundName);
   if (short !== undefined) return short;
+  const group = groupOfRoundName(roundName);
+  if (group !== null) return `Grp ${groupLetter(group)}`;
   const roundOf = ROUND_OF.exec(roundName);
   if (roundOf === null) throw new Error(`"${roundName}" is not a round name from lib/draws.`);
   return `R${roundOf[1]}`;
@@ -61,6 +64,8 @@ export function sideLabel(info: MatchSideInfo | null, slot: MatchSlot): SideLabe
       return { name: "Bye", seed: null };
     case "winner":
       return { name: `Winner of M${slot.matchNumber}`, seed: null };
+    case "group":
+      return { name: groupPlaceLabel(slot.group, slot.place), seed: null };
     case "entry":
       if (info === null) throw new Error(`Entry ${slot.entryId} has no player details.`);
       return {

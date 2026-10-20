@@ -4,7 +4,7 @@ import { draws, entries, playerCardShares, profiles, tournaments } from "./schem
 import { listScoringMatches } from "./matches";
 import { listTeamEntryIds } from "./partners";
 import { earnedCertificates } from "@/lib/certificates";
-import { formatPlayerId, matchRecord } from "@/lib/player-card";
+import { eventResultLabel, formatPlayerId, matchRecord } from "@/lib/player-card";
 import { teamMatches, teamSide } from "@/lib/player-matches";
 import { other } from "@/lib/match";
 import { matchSummary, sideLabel } from "@/lib/scoring-display";
@@ -40,10 +40,8 @@ export function getPlayerCard(db: Database, userId: string) {
     const eventEntries = db.select({ id: entries.id, category: entries.category, status: entries.status }).from(entries).where(eq(entries.tournamentId, tournament.id)).all().filter(e => ids.has(e.id) && e.status !== "cancelled");
     const results = eventEntries.map(entry => {
       const matches = mine.filter(row => row.category === entry.category && teamSide(row, new Set([entry.id])) !== null);
-      const last = [...matches].sort((a,b) => b.match.roundIndex - a.match.roundIndex).find(row => row.match.status !== "scheduled");
       const won = certificates.some(c => c.entryId === entry.id && c.kind === "winner");
-      const label = won ? "Winner" : !last ? "Awaiting match" : last.match.status === "in_progress" ? "In progress" : last.match.winnerEntryId === entry.id ? "Advanced from " + last.match.roundName : last.match.roundName.toLowerCase() === "final" ? "Runner-up" : "Reached " + last.match.roundName;
-      return { category: entry.category, label };
+      return { category: entry.category, label: eventResultLabel(matches.map(row => row.match), entry.id, won) };
     });
     const history = mine.filter(row => row.match.status === "completed").sort((a,b) => (b.match.completedAt ?? 0) - (a.match.completedAt ?? 0)).map(row => {
       const side = teamSide(row, ids)!;
