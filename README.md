@@ -178,6 +178,7 @@ npm run dev                  # http://localhost:3100
 | `/admin/results` | Admins | Matches in progress and completed, by event, with scores |
 | `/admin/results/<match id>` | Admins | One match's score and statistics |
 | `/admin/players` | Admins | Everyone with a profile or entry, their entries, and search by name, email, club or mobile |
+| `/admin/players/[userId]` | Admins | One player: profile, entries (including doubles joined as a partner), matches with court and score, and certificates |
 | `/admin/fan` | Admins | Every court chat message with the account behind it; hide a message or mute a fan |
 | `/admin/umpires` | Admins | Umpires' personal scoring links: add, copy, send on WhatsApp, remove |
 | `/admin/settings` | Admins | Name, dates, venue, closing time (IST), a fee for each event, entries open or closed, schedule confirmed, courts, stream links |

@@ -98,7 +98,9 @@ export default async function AdminPlayersPage({
                       className="border-b border-line align-top last:border-b-0"
                     >
                       <td className="px-4 py-3">
-                        <div className="font-medium">{playerName(account)}</div>
+                        <Link href={`${ADMIN_PLAYERS_PATH}/${account.userId}`} className="font-medium">
+                          {playerName(account)}
+                        </Link>
                         <div className="mono mt-0.5 text-[11px] text-dim">{account.email}</div>
                         {profile ? null : (
                           <div className="mt-0.5 text-[11px] text-warn">No profile saved</div>
