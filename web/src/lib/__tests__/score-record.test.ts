@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { MatchEvent } from "@/lib/match";
+import { ONE_SET, ONE_SET_DECIDING_POINT } from "@/lib/match-formats";
 import {
   MAX_EVENTS,
   extendsScore,
@@ -16,7 +17,7 @@ import {
 const STARTED_AT = 1_700_000_000_000;
 
 function record(events: MatchEvent[]): ScoreRecord {
-  return { firstServer: "top", decidingSet: "set", court: 2, startedAt: STARTED_AT, events };
+  return { firstServer: "top", decidingSet: "set", format: null, court: 2, startedAt: STARTED_AT, events };
 }
 
 function device(baseVersion: number, events: MatchEvent[], unsaved: boolean): DeviceScore {
@@ -79,6 +80,25 @@ describe("parseDeviceScore", () => {
   });
 });
 
+describe("score record formats", () => {
+  it("reads a record kept before formats existed as the earlier rules", () => {
+    const old = { firstServer: "top", decidingSet: "set", court: 2, startedAt: STARTED_AT, events: [] };
+
+    expect(parseScoreRecord(old).format).toBeNull();
+  });
+
+  it("reads a record's format and refuses an unknown one", () => {
+    expect(parseScoreRecord({ ...record([]), format: ONE_SET }).format).toEqual(ONE_SET);
+    expect(() => parseScoreRecord({ ...record([]), format: { setsToWin: 1 } })).toThrow(/Unknown match format/);
+  });
+
+  it("treats records with different formats as different scores", () => {
+    expect(sameScore({ ...record([]), format: ONE_SET }, { ...record([]), format: ONE_SET_DECIDING_POINT })).toBe(false);
+    expect(sameScore({ ...record([]), format: ONE_SET }, record([]))).toBe(false);
+    expect(sameScore({ ...record([]), format: ONE_SET }, { ...record([]), format: { ...ONE_SET } })).toBe(true);
+  });
+});
+
 describe("sameScore", () => {
   it("ignores the court but compares start details and every event", () => {
     const events: MatchEvent[] = [{ type: "point", side: "top" }];
@@ -111,7 +131,7 @@ describe("extendsScore", () => {
 
 describe("scoreRecordOf", () => {
   it("returns null before the match is started", () => {
-    const columns = { firstServer: null, decidingSet: "set" as const, court: null, startedAt: null, events: [] };
+    const columns = { firstServer: null, decidingSet: "set" as const, format: null, court: null, startedAt: null, events: [] };
     expect(scoreRecordOf(columns)).toBeNull();
     expect(scoreRecordOf({ ...columns, startedAt: STARTED_AT })).toBeNull();
   });

@@ -17,20 +17,28 @@ export type DecidingSet = "set" | "matchTiebreak";
 export interface MatchFormat {
   /** Sets needed to win the match (best of 2n − 1). */
   setsToWin: number;
-  /** Games needed for a set; at games-a-side a tiebreak decides it. */
+  /** Games needed for a set, won by two. */
   gamesPerSet: number;
+  /** Games each at which a tiebreak decides the set: 6 in a 6-game set, 7 in an 8-game set. */
+  tiebreakAt: number;
   /** Points needed in a regular tiebreak, won by two. */
   tiebreakPoints: number;
   /** "matchTiebreak": the deciding set is a 10-point tiebreak, not games. */
   decidingSet: DecidingSet;
+  /**
+   * The deuce at which one deciding point settles the game, the receiver choosing the side:
+   * 1 when every deuce is one point, 2 when the first deuce is played out normally. Null
+   * for advantage at every deuce.
+   */
+  decidingPointAtDeuce: number | null;
 }
 
 /** Points needed in a match tiebreak (the "10-point tiebreak"), won by two. */
 export const MATCH_TIEBREAK_POINTS = 10;
 
-/** Club default: best of 3 sets, 6 games, 7-point tiebreaks at 6–6. */
-export function standardFormat(decidingSet: DecidingSet = "set"): MatchFormat {
-  return { setsToWin: 2, gamesPerSet: 6, tiebreakPoints: 7, decidingSet };
+/** The rules before formats were set by event and round: best of 3 sets, 6 games, 7-point tiebreaks at 6–6, advantage. */
+export function standardFormat(decidingSet: DecidingSet): MatchFormat {
+  return { setsToWin: 2, gamesPerSet: 6, tiebreakAt: 6, tiebreakPoints: 7, decidingSet, decidingPointAtDeuce: null };
 }
 
 export const POINT_FINISHES = ["ace", "winner", "opponentError"] as const;
@@ -121,13 +129,26 @@ export function setsWon(state: MatchState, side: Side): number {
 }
 
 /** True when `side` is one point from taking the current game. */
-export function hasGamePoint(state: MatchState, side: Side): boolean {
-  return state.points[side] >= 3 && state.points[side] > state.points[other(side)];
+export function hasGamePoint(state: MatchState, side: Side, format: MatchFormat): boolean {
+  return pointWinsGame({ ...state.points, [side]: state.points[side] + 1 }, side, format);
 }
 
-function pointWinsGame(points: Record<Side, number>, side: Side): boolean {
+/** True at the deuce where one point settles the game, the receiver choosing the side. */
+export function isDecidingPoint(state: MatchState, format: MatchFormat): boolean {
+  return (
+    !state.tiebreak &&
+    format.decidingPointAtDeuce !== null &&
+    state.points.top === state.points.bottom &&
+    state.points.top === 2 + format.decidingPointAtDeuce
+  );
+}
+
+function pointWinsGame(points: Record<Side, number>, side: Side, format: MatchFormat): boolean {
   // 40 counts as 3; a game needs four points and a two-point lead.
-  return points[side] >= 4 && points[side] - points[other(side)] >= 2;
+  const lead = points[side] - points[other(side)];
+  if (points[side] >= 4 && lead >= 2) return true;
+  // Deuce number n is n + 2 points each, so its deciding point ends the game at n + 3.
+  return format.decidingPointAtDeuce !== null && lead >= 1 && points[side] >= 3 + format.decidingPointAtDeuce;
 }
 
 function pointWinsTiebreak(points: Record<Side, number>, side: Side, target: number): boolean {
@@ -144,7 +165,7 @@ function gameWinsSet(games: Record<Side, number>, side: Side, format: MatchForma
 function awardPoint(state: MatchState, side: Side, format: MatchFormat): void {
   if (!state.tiebreak) {
     const receiver = other(state.server);
-    if (hasGamePoint(state, receiver)) {
+    if (hasGamePoint(state, receiver, format)) {
       state.breakPointChances[receiver] += 1;
       if (side === receiver) state.breakPointsWon[receiver] += 1;
     }
@@ -162,10 +183,10 @@ function awardPoint(state: MatchState, side: Side, format: MatchFormat): void {
       state.server = tiebreakServerFor(nextPoint, state.tiebreakServer);
       return;
     }
-    // A tiebreak at 6–6 makes the set 7–6; a match tiebreak is the whole set, 1–0.
+    // A tiebreak at 6–6 makes the set 7–6, and at 7–7 8–7; a match tiebreak is the whole set, 1–0.
     const matchTiebreak = isDecidingTiebreakSet(state.sets.length, format);
-    const winnerGames = matchTiebreak ? 1 : format.gamesPerSet + 1;
-    const loserGames = matchTiebreak ? 0 : format.gamesPerSet;
+    const winnerGames = matchTiebreak ? 1 : format.tiebreakAt + 1;
+    const loserGames = matchTiebreak ? 0 : format.tiebreakAt;
     state.sets.push({
       games: {
         top: side === "top" ? winnerGames : loserGames,
@@ -178,7 +199,7 @@ function awardPoint(state: MatchState, side: Side, format: MatchFormat): void {
     return;
   }
 
-  if (!pointWinsGame(state.points, side)) return;
+  if (!pointWinsGame(state.points, side, format)) return;
   state.games[side] += 1;
   state.points = zeroScore();
 
@@ -190,8 +211,8 @@ function awardPoint(state: MatchState, side: Side, format: MatchFormat): void {
 
   // The serve alternates every game, whoever won it, into a tiebreak too.
   state.server = other(state.server);
-  if (state.games.top === format.gamesPerSet && state.games.bottom === format.gamesPerSet) {
-    // 6–6: the next game is a tiebreak.
+  if (state.games.top === format.tiebreakAt && state.games.bottom === format.tiebreakAt) {
+    // 6–6, or 7–7 in an 8-game set: the next game is a tiebreak.
     startTiebreak(
       state,
       isDecidingTiebreakSet(state.sets.length, format) ? MATCH_TIEBREAK_POINTS : format.tiebreakPoints,

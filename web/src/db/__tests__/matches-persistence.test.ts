@@ -25,6 +25,7 @@ import { SEED_TOURNAMENT } from "@/db/seed";
 import type { DrawLine } from "@/lib/draws";
 import type { MatchEvent, Side } from "@/lib/match";
 import type { ScoreRecord } from "@/lib/score-record";
+import { BEST_OF_THREE, EIGHT_GAMES, ONE_SET } from "@/lib/match-formats";
 
 const TOURNAMENT_ID = "tournament-1";
 const STARTED_AT = 1_700_000_000_000;
@@ -120,9 +121,9 @@ function setEvents(side: Side, won: number, lost: number): MatchEvent[] {
   return events;
 }
 
-/** A score record served first by top, with a full deciding set. */
+/** A score record served first by top, to the Open singles semi-final and final format. */
 function record(events: MatchEvent[]): ScoreRecord {
-  return { firstServer: "top", decidingSet: "set", court: 1, startedAt: STARTED_AT, events };
+  return { firstServer: "top", decidingSet: "matchTiebreak", format: BEST_OF_THREE, court: 1, startedAt: STARTED_AT, events };
 }
 
 /** Saves a 6–0 6–0 win for the top side in one save. */
@@ -199,7 +200,8 @@ describe("saveMatchScore", () => {
       match: {
         status: "in_progress",
         firstServer: "top",
-        decidingSet: "set",
+        decidingSet: "matchTiebreak",
+        format: BEST_OF_THREE,
         court: 1,
         startedAt: STARTED_AT,
         events: [],
@@ -346,6 +348,59 @@ describe("saveMatchScore", () => {
   });
 });
 
+describe("match formats", () => {
+  it("refuses a first save to rules other than the event and round's", () => {
+    const database = setup();
+    const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
+    const semi = matchByNumber(matches, 2);
+
+    expect(() => saveMatchScore(database, semi.id, 0, { ...record([]), format: ONE_SET })).toThrow(
+      /played to different rules/,
+    );
+    expect(() => saveMatchScore(database, semi.id, 0, { ...record([]), format: null })).toThrow(ScoreRejectedError);
+  });
+
+  it("keeps scoring a started match by the rules it started with", () => {
+    // Arrange: the semi-final started as 8 games, before the formats said best of 3.
+    const database = setup();
+    const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
+    const semi = matchByNumber(matches, 2);
+    const eightGames = { ...record([]), decidingSet: "set" as const, format: EIGHT_GAMES };
+    saveMatchScore(database, semi.id, 0, { ...record([]), format: BEST_OF_THREE });
+    database.update(schema.matches).set({ format: EIGHT_GAMES, decidingSet: "set" }).where(eq(schema.matches.id, semi.id)).run();
+
+    // Act: 8–6 in one save.
+    const result = saveMatchScore(database, semi.id, 1, { ...eightGames, events: setEvents("top", 8, 6) });
+
+    // Assert
+    expect(result).toMatchObject({ kind: "saved", match: { status: "completed", format: EIGHT_GAMES } });
+    expect(() => saveMatchScore(database, semi.id, 2, { ...record([]), format: BEST_OF_THREE })).toThrow(
+      ScoreRejectedError,
+    );
+  });
+
+  it("scores a match started before formats existed as the earlier best of 3", () => {
+    const database = setup();
+    const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
+    const semi = matchByNumber(matches, 2);
+    database
+      .update(schema.matches)
+      .set({ status: "in_progress", firstServer: "top", decidingSet: "set", startedAt: STARTED_AT, version: 1 })
+      .where(eq(schema.matches.id, semi.id))
+      .run();
+    const oldRules = { ...record([]), decidingSet: "set" as const, format: null };
+
+    const oneSet = saveMatchScore(database, semi.id, 1, { ...oldRules, events: setEvents("top", 6, 0) });
+    const twoSets = saveMatchScore(database, semi.id, 2, {
+      ...oldRules,
+      events: [...setEvents("top", 6, 0), ...setEvents("top", 6, 0)],
+    });
+
+    expect(oneSet).toMatchObject({ kind: "saved", match: { status: "in_progress", format: null } });
+    expect(twoSets).toMatchObject({ kind: "saved", match: { status: "completed" } });
+  });
+});
+
 describe("resetMatch", () => {
   it("clears a started match back to scheduled and bumps the version", () => {
     const database = setup();
@@ -360,6 +415,7 @@ describe("resetMatch", () => {
       events: [],
       startedAt: null,
       firstServer: null,
+      format: null,
       version: 2,
     });
 

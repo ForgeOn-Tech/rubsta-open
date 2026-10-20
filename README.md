@@ -199,9 +199,27 @@ and each winner moves into the next round.
 
 Umpires score at `/score`. Emails in `ADMIN_EMAILS` or `UMPIRE_EMAILS` can open it,
 and umpires cannot open `/admin`. The scoring screen follows the LiveScore umpire
-artboard. It records points, faults, double faults and lets. It handles deuce,
-tiebreaks and an optional 10-point match tiebreak for the deciding set. The umpire
-confirms the point that ends the match before it saves.
+artboard. It records points, faults, double faults and lets. The umpire confirms
+the point that ends the match before it saves.
+
+Each match's format comes from its event and round, in `web/src/lib/match-formats.ts`.
+The start screen shows it, and the umpire no longer chooses it.
+
+| Event | Groups and early rounds | Quarter-finals | Semi-finals | Final |
+|---|---|---|---|---|
+| Open singles, U-15, Women's 30+ | One set | 8 games | Best of 3 | Best of 3 |
+| 40+ singles | One set | One set | 8 games | 8 games |
+| 40+ doubles | One set, deciding point | Same | Same | Same |
+| Open doubles | One set, deciding point | Same | Same | Best of 3, deciding point |
+
+A set goes to 6 games with a tiebreak to 7 at 6–all. An 8-game set has its
+tiebreak at 7–all. Best of 3 plays a super tiebreak to 10 at one set all. In
+singles the first deuce is played out and the second is one deciding point; in
+doubles every deuce is one deciding point. At a deciding point the scoring screen
+says "Deciding point · Receiver chooses side". A match keeps the format it started
+with, so a change to the table reaches only matches not yet started. Resetting a
+match lets it start again on the current format. A phone that started a match on
+older rules, without the score reaching the server, offers "Start again".
 
 Scoring keeps working when the connection drops. The phone holds the score: each
 tap shows at once and stays in the browser's localStorage. Saves run in the
@@ -218,6 +236,11 @@ opened on the phone shows a "No connection" notice instead. The sign-in page
 deletes the kept pages, so the next person on a shared phone cannot open them
 offline. Scores kept in localStorage stay, because they may not have reached
 the server yet.
+
+A release that changes how scores are saved must bump `CACHE_VERSION` in
+`public/sw.js`, so phones drop pages kept from the old release. A scoring tab
+left open across a deploy still runs the old code. Before play starts, close
+and reopen the scoring page on every umpire's phone.
 
 ### Order of play
 

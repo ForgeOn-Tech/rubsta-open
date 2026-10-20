@@ -6,14 +6,13 @@ import {
   hasGamePoint,
   initialState,
   other,
-  standardFormat,
   type MatchEvent,
   type MatchFormat,
   type PointFinish,
   type MatchState,
   type Side,
 } from "@/lib/match";
-import type { ScoreRecord } from "@/lib/score-record";
+import { formatOfRecord, type ScoreRecord } from "@/lib/score-record";
 
 export const ADMIN_RESULTS_PATH = "/admin/results";
 
@@ -139,7 +138,7 @@ function step(tally: Tally, event: MatchEvent, format: MatchFormat): Tally {
     finish: event.type === "point" ? event.finish : undefined,
     secondServe: before.faultPending || event.type === "doubleFault",
     doubleFault: event.type === "doubleFault",
-    breakPoint: !before.tiebreak && hasGamePoint(before, other(before.server)),
+    breakPoint: !before.tiebreak && hasGamePoint(before, other(before.server), format),
     inTiebreak: before.tiebreak,
     gameEnded:
       !before.tiebreak &&
@@ -172,7 +171,7 @@ export function matchStats(
 
 /** Statistics for a saved or kept score record. */
 export function statsOfRecord(record: ScoreRecord): MatchStats {
-  return matchStats(record.events, standardFormat(record.decidingSet), record.firstServer);
+  return matchStats(record.events, formatOfRecord(record), record.firstServer);
 }
 
 function percent(part: number, whole: number): string {

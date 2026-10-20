@@ -14,7 +14,7 @@
  */
 
 const CACHE_PREFIX = "tournament-os-scoring-";
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
 const SCOPE_PATH = "/score";
 const APP_FILES_PATH = "/_next/";

@@ -123,7 +123,7 @@ describe("matchStats", () => {
 describe("statsOfRecord", () => {
   it("replays the record's own format, so a match tiebreak counts as tiebreak points", () => {
     const events = [...points("top", 24), ...points("bottom", 24), ...points("top", 10)];
-    const record = { firstServer: "top" as const, court: null, startedAt: 1, events };
+    const record = { firstServer: "top" as const, format: null, court: null, startedAt: 1, events };
 
     expect(statsOfRecord({ ...record, decidingSet: "matchTiebreak" }).top.tiebreakPointsWon).toBe(10);
     expect(statsOfRecord({ ...record, decidingSet: "set" }).top.tiebreakPointsWon).toBe(0);

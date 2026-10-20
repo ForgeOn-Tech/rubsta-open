@@ -9,7 +9,7 @@ import { OFFLINE_CACHE_PREFIX } from "@/lib/offline-pages";
 
 const SOURCE = readFileSync(path.join(process.cwd(), "public", "sw.js"), "utf8");
 const ORIGIN = "https://scores.example";
-const CACHE_NAME = `${OFFLINE_CACHE_PREFIX}v1`;
+const CACHE_NAME = `${OFFLINE_CACHE_PREFIX}v2`;
 const NAVIGATION_TIMEOUT_MS = 5_000;
 
 /** The parts of a Request the worker reads. Node cannot build a navigate-mode Request. */
@@ -308,7 +308,7 @@ describe("the scoring service worker", () => {
 
   it("drops older scoring caches on activation and takes control of open pages", async () => {
     const worker = loadWorker();
-    worker.stores.set(`${OFFLINE_CACHE_PREFIX}v0`, new Map());
+    worker.stores.set(`${OFFLINE_CACHE_PREFIX}v1`, new Map());
     worker.stores.set("another-app", new Map());
 
     await (await dispatch(worker, "activate", {})).settle();
