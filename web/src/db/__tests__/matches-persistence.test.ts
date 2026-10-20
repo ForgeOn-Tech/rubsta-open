@@ -259,6 +259,20 @@ describe("saveMatchScore", () => {
     expect(result.match.events).toEqual([point("top"), point("bottom")]);
   });
 
+  it("saves a reason added on an old version to the point it describes", () => {
+    const database = setup();
+    const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
+    const match = matchByNumber(matches, 2);
+    const tagged: MatchEvent = { type: "point", side: "top", finish: "ace" };
+
+    saveMatchScore(database, match.id, 0, record([point("top")]));
+    // The answer to that save was lost, and the umpire then tagged the point as an ace.
+    const result = saveMatchScore(database, match.id, 0, record([tagged]));
+
+    expect(result).toMatchObject({ kind: "saved", match: { version: 2 } });
+    expect(result.match.events).toEqual([tagged]);
+  });
+
   it("returns a conflict for an undo sent on an old version", () => {
     const database = setup();
     const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
