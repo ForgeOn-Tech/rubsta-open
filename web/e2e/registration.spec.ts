@@ -90,10 +90,17 @@ test.describe.serial("registration", () => {
     await row.getByRole("button", { name: /^Mark paid/ }).click();
     await expect(row).toContainText("Paid");
 
-    await row.getByRole("link", { name: "Demo Player" }).click();
+    // The event opens the entry; the name opens the player.
+    await row.getByRole("link", { name: "Open singles" }).click();
     await expect(page.getByRole("heading", { name: "Demo Player" })).toBeVisible();
     const entry = page.getByRole("region", { name: "Entry" });
     await expect(entry).toContainText("manual");
+
+    await page.getByRole("region", { name: "Player" }).getByRole("link", { name: "Demo Player" }).click();
+    await expect(page).toHaveURL(/\/admin\/players\/[^/]+$/);
+    const entries = page.getByRole("region", { name: "Entries" });
+    await expect(entries).toContainText("Open singles");
+    await expect(entries).toContainText("Paid");
 
     await page.goto("/register");
     await expect(page.getByRole("radio", { name: "Open singles", exact: true })).toBeDisabled();
