@@ -5,19 +5,20 @@ import {
   addMatchToScheduleAction,
   changeScheduleItemAction,
   publishDayAction,
+  undoWalkoverAction,
   walkoverAction,
 } from "./actions";
 import { AddToSchedule, type MatchChoice } from "./add-to-schedule";
 import { PublishDayButton } from "./publish-day-button";
 import { ScheduleItemEditor } from "./schedule-item-editor";
-import { WalkoverButton } from "./walkover-button";
+import { UndoWalkoverButton, WalkoverButton } from "./walkover-button";
 import { listScorerEmails, requireAdmin } from "@/auth/require";
 import { AdminNotice } from "@/components/admin-notice";
 import { AdminPageHeader } from "@/components/admin-page-header";
 import { ScheduleCard } from "@/components/schedule-card";
 import { getDb } from "@/db/client";
 import { listCourts } from "@/db/courts";
-import { listScoringMatches, type ScoringMatchRow } from "@/db/matches";
+import { isWalkover, listScoringMatches, type ScoringMatchRow } from "@/db/matches";
 import { getCurrentTournament } from "@/db/queries";
 import {
   getPublishedDay,
@@ -236,6 +237,8 @@ export default async function AdminOrderOfPlayPage({
                                   }}
                                   action={walkoverAction}
                                 />
+                              ) : row !== null && isWalkover(row.match) ? (
+                                <UndoWalkoverButton matchId={row.match.id} action={undoWalkoverAction} />
                               ) : null}
                               <ScheduleItemEditor
                                 entry={entry}

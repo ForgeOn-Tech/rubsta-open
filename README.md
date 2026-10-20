@@ -272,6 +272,8 @@ bye needs none. Times are venue times in India.
 the admin picks who did not play, and the other side wins and moves on at once.
 It is for matches not yet started; a match under way ends by retirement on the
 scoring screen.
+A walkover given by mistake can be undone with "Undo walkover…" on the same card,
+until the winner's next match starts.
 
 Umpires see only what an admin published. Publishing copies the day, so later
 edits wait for the next publish, and the page shows "Unpublished changes" until

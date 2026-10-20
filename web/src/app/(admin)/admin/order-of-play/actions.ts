@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { listScorerEmails, requireAdmin } from "@/auth/require";
 import { getDb } from "@/db/client";
-import { ScoreRejectedError, walkoverMatch } from "@/db/matches";
+import { ScoreRejectedError, undoWalkover, walkoverMatch } from "@/db/matches";
 import { getCurrentTournament } from "@/db/queries";
 import {
   ScheduleRejectedError,
@@ -211,3 +211,15 @@ export async function walkoverAction(_previous: ActionState, formData: FormData)
   return { error: null, savedAt: Date.now() };
 }
 
+/** Undoes a walkover recorded by mistake, while the next match has not started. */
+export async function undoWalkoverAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  try {
+    undoWalkover(getDb(), field(formData, "matchId"));
+  } catch (error) {
+    if (error instanceof ScoreRejectedError) return failed(error.message);
+    throw error;
+  }
+  revalidatePath("/", "layout");
+  return { error: null, savedAt: Date.now() };
+}
