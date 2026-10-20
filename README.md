@@ -279,11 +279,25 @@ Umpires see only what an admin published. Publishing copies the day, so later
 edits wait for the next publish, and the page shows "Unpublished changes" until
 then. The print sheet shows the published day without the admin sidebar.
 
+A player can play more than one event, such as singles and doubles. When a
+player is in two unfinished matches on the same day, each match card says so,
+for example "Arjun Mehta also plays Open doubles M2 · Court 2 · 10:00". Doubles
+partners count once they accept. The app has no match lengths, so it cannot
+tell whether two matches overlap; the organiser decides. A slot still waiting
+for a winner, such as a final, has no players yet, so its warning appears once
+the earlier match finishes.
+
 On `/score`, "Your matches" lists the unfinished matches assigned to the
 signed-in umpire, and each scheduled match shows its day, court and time.
 `/score/schedule/<day>` shows a published day. The day is part of the path,
 because the service worker keeps pages by path. When courts exist, the scoring
-screen offers them as a list and picks the scheduled court.
+screen offers them as a list and picks the scheduled court. Before a match
+starts, the scoring screen warns when one of its players was still in another
+match in progress when the page loaded.
+
+"Your matches" and a player's next match go by start time across courts. An
+item that follows on takes the time above it on its court, or the end of a
+session above it.
 
 ### Match statistics
 

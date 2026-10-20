@@ -19,6 +19,7 @@ import { ScheduleCard } from "@/components/schedule-card";
 import { getDb } from "@/db/client";
 import { listCourts } from "@/db/courts";
 import { isWalkover, listScoringMatches, type ScoringMatchRow } from "@/db/matches";
+import { listEntryPlayers } from "@/db/partners";
 import { getCurrentTournament } from "@/db/queries";
 import {
   getPublishedDay,
@@ -42,10 +43,13 @@ import {
   playFrom,
   scheduleDayChoices,
   scheduleEntryOf,
+  type ScheduleEntry,
+  timingLabel,
   tournamentDays,
   venueClock,
   venueDay,
 } from "@/lib/schedule";
+import { sameDayWarnings } from "@/lib/schedule-clashes";
 import { scoringGroupOf, sideLabel } from "@/lib/scoring-display";
 
 export const dynamic = "force-dynamic";
@@ -117,6 +121,23 @@ export default async function AdminOrderOfPlayPage({
   const courtOptions = courts.map((court) => ({ number: court.number, label: courtOptionLabel(court) }));
 
   const columns = courtColumns(courts, entries);
+  const previousNameOf = (items: readonly ScheduleEntry[], index: number): string | null => {
+    const above = index === 0 ? null : items[index - 1];
+    return above === null ? null : itemName(above, rowOf(above.matchId)?.match.matchNumber ?? null);
+  };
+  const warnings = sameDayWarnings(
+    columns.flatMap((column) =>
+      column.items.flatMap((entry, index) => {
+        const row = rowOf(entry.matchId);
+        if (row === null) return [];
+        // "After M10" would be unclear from another court, where M10 is out of sight and
+        // match numbers restart in each event, so a match that follows on gives its place.
+        const when = entry.timing === "followOn" ? `match ${index + 1} on court` : timingLabel(entry, previousNameOf(column.items, index));
+        return [{ row, place: `${courtTitle(column.number)} · ${when}` }];
+      }),
+    ),
+    listEntryPlayers(database, tournament.id),
+  );
   const matchRows = entries.flatMap((entry) => {
     const row = rowOf(entry.matchId);
     return row === null ? [] : [row];
@@ -212,9 +233,8 @@ export default async function AdminOrderOfPlayPage({
                     <ol className="flex flex-col gap-3">
                       {column.items.map((entry, index) => {
                         const row = rowOf(entry.matchId);
-                        const above = index === 0 ? null : column.items[index - 1];
-                        const previousName =
-                          above === null ? null : itemName(above, rowOf(above.matchId)?.match.matchNumber ?? null);
+                        const previousName = previousNameOf(column.items, index);
+                        const clashes = row === null ? [] : (warnings.get(row.match.id) ?? []);
                         return (
                           <li key={entry.id}>
                             <ScheduleCard
@@ -225,6 +245,15 @@ export default async function AdminOrderOfPlayPage({
                                 entry.umpireEmail === null ? null : (names.get(entry.umpireEmail) ?? entry.umpireEmail)
                               }
                             >
+                              {clashes.length === 0 ? null : (
+                                <ul aria-label="Players with another match today" className="mt-2 flex flex-col gap-1">
+                                  {clashes.map((clash) => (
+                                    <li key={clash} className="text-[11.5px] leading-snug text-warn">
+                                      {clash}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
                               {row !== null &&
                               row.match.status === "scheduled" &&
                               row.match.topSlot.kind === "entry" &&

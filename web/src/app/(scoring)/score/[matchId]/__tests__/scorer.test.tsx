@@ -50,6 +50,7 @@ function scorerProps(initial: MatchSnapshot, courts: ScorerProps["courts"]): Sco
     sides: { top: { name: "Asha Anand", seed: 1 }, bottom: { name: "Bela Rao", seed: null } },
     ready: true,
     format: ONE_SET,
+    busyPlayers: [],
     initial,
     completedAt: null,
     retireAction: vi.fn(),
@@ -142,6 +143,14 @@ describe("Scorer", () => {
         expect.objectContaining({ record: expect.objectContaining({ court: 3 }) }),
       ),
     );
+  });
+
+  it("warns before the start when a player is still on another court", () => {
+    const busy = ["Bela Rao was still playing Open doubles M7 on Court 2 when this page loaded."];
+
+    render(<Scorer {...scorerProps(snapshot(0, null), [])} busyPlayers={busy} />);
+
+    expect(screen.getByRole("status", { name: "Players still on another court" })).toHaveTextContent(busy[0]);
   });
 
   it("asks who serves first before starting", () => {
