@@ -251,14 +251,14 @@ test.describe.serial("registration", () => {
     const score = page.getByRole("table", { name: "Score" });
     const topPoint = page.getByRole("button", { name: /^Point — / }).first();
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.getByRole("checkbox", { name: "Record point details (optional)" }).check();
+    await page.getByRole("checkbox", { name: "Also record how each point was won (optional)" }).check();
     await context.setOffline(true);
     await topPoint.click();
     await expect(page.getByRole("region", { name: "Point details" })).toBeVisible();
     await page.screenshot({ path: testInfo.outputPath("point-details-mobile.png"), fullPage: true });
-    await page.getByRole("button", { name: "Ace", exact: true }).click();
+    await page.getByRole("button", { name: /^Ace by / }).click();
     await topPoint.click();
-    await page.getByRole("button", { name: "Winning shot", exact: true }).click();
+    await page.getByRole("button", { name: /^Winner by / }).click();
     await expect(score).toContainText("30");
     await expect(sync).toContainText("Offline");
 
@@ -268,12 +268,12 @@ test.describe.serial("registration", () => {
     // The server kept both points: they survive a reload and show on the list.
     await page.reload();
     await expect(score).toContainText("30");
-    await page.getByRole("checkbox", { name: "Record point details (optional)" }).check();
+    await page.getByRole("checkbox", { name: "Also record how each point was won (optional)" }).check();
     await page.getByRole("button", { name: /^Point — / }).nth(1).click();
-    await expect(page.getByRole("button", { name: "Ace", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^Ace by / })).toHaveCount(0);
     await page.getByRole("button", { name: "Cancel point" }).click();
     await topPoint.click();
-    await page.getByRole("button", { name: "Opponent error", exact: true }).click();
+    await page.getByRole("button", { name: /^Mistake by / }).click();
     await expect(sync).toHaveText("Saved");
     await expect(score).toContainText("40");
     await page.getByRole("button", { name: "Undo", exact: true }).click();

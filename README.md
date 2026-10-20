@@ -179,6 +179,7 @@ npm run dev                  # http://localhost:3100
 | `/admin/results/<match id>` | Admins | One match's score and statistics |
 | `/admin/players` | Admins | Everyone with a profile or entry, their entries, and search by name, email, club or mobile |
 | `/admin/fan` | Admins | Every court chat message with the account behind it; hide a message or mute a fan |
+| `/admin/umpires` | Admins | Umpires' personal scoring links: add, copy, send on WhatsApp, remove |
 | `/admin/settings` | Admins | Name, dates, venue, closing time (IST), a fee for each event, entries open or closed, schedule confirmed, courts, stream links |
 | `/score` | Admins and umpires | Matches in progress, ready to start, waiting on earlier results, and completed |
 | `/score/<match id>` | Admins and umpires | Umpire scoring screen, which keeps working when the signal drops |
@@ -198,7 +199,15 @@ Publishing a draw creates its matches. A match against a bye is complete at once
 and each winner moves into the next round.
 
 Umpires score at `/score`. Emails in `ADMIN_EMAILS` or `UMPIRE_EMAILS` can open it,
-and umpires cannot open `/admin`. The scoring screen follows the LiveScore umpire
+and umpires cannot open `/admin`. An umpire without a listed email gets a personal
+scoring link from `/admin/umpires`: the admin adds their name, then copies the
+link or sends it on WhatsApp. The link opens a page with a "Start scoring" button,
+which signs that phone in as the umpire's own account; opening the link alone
+changes nothing, so a chat preview cannot sign anyone in. A link scores only the
+matches the published order of play assigns to its umpire, and its scoring list
+shows only those. Anyone with the link can score them until an admin removes it,
+which stops it at once, including on phones already signed in. Links stop working the day after the tournament ends. Link
+umpires appear in the order of play's umpire list, by name. The scoring screen follows the LiveScore umpire
 artboard. It records points, faults, double faults and lets. The umpire confirms
 the point that ends the match before it saves.
 
@@ -273,10 +282,11 @@ Statistics come from the events the umpire records: who won each point,
 faults, double faults and lets. `src/lib/match-stats.ts` replays them and counts
 points won, first serves in, points won on first and second serve, double
 faults, break points won, service games held, tiebreak points won and the
-longest run of points. “Record point details” optionally adds an ace, winning shot,
-or opponent error when awarding a point. Skip keeps ordinary scoring available;
-Cancel does not award the point. Only the server can record an ace. Errors count
-against the losing side; aces are separate from winning shots. Undo removes both
+longest run of points. “Also record how each point was won” optionally asks, after
+each point, for "Ace by …", "Winner by …" or "Mistake by …", naming the player.
+"Don't record how" awards the point alone; Cancel does not award it. Only the
+server can record an ace. A mistake counts against the side that made it; aces
+are separate from winners. Undo removes both
 the point and its detail, including before final-result confirmation.
 
 Recorded-detail totals and coverage appear only after details are entered, so
