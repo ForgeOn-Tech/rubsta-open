@@ -324,6 +324,86 @@ export function retireMatch(database: Database, matchId: string, retiringSide: S
   });
 }
 
+/**
+ * Records a walkover: the absent side never played, so the other side wins and advances.
+ * Only for a match not yet started between two known entries; a match already under way
+ * ends by retirement on the scoring screen instead.
+ */
+export function walkoverMatch(database: Database, matchId: string, absentSide: Side): Match {
+  return database.transaction((tx) => {
+    const row = loadMatch(tx, matchId);
+    if (row.status !== "scheduled") {
+      throw new ScoreRejectedError(
+        `Match ${row.matchNumber} has already started. The umpire records a retirement on the scoring screen.`,
+      );
+    }
+    if (row.topSlot.kind !== "entry" || row.bottomSlot.kind !== "entry") {
+      throw new ScoreRejectedError(`Match ${row.matchNumber} is waiting on an earlier result.`);
+    }
+    return retireMatch(tx, matchId, absentSide);
+  });
+}
+
+/** True for a match won by walkover: complete between two entries, with no point played. */
+export function isWalkover(match: Pick<Match, "status" | "events" | "firstServer" | "topSlot" | "bottomSlot">): boolean {
+  return (
+    match.status === "completed" &&
+    match.events.length === 0 &&
+    match.firstServer === null &&
+    match.topSlot.kind === "entry" &&
+    match.bottomSlot.kind === "entry"
+  );
+}
+
+/**
+ * Undoes a walkover recorded by mistake: the match goes back to scheduled, and its winner
+ * leaves the next match. Refused once that next match has started.
+ */
+export function undoWalkover(database: Database, matchId: string): Match {
+  return database.transaction((tx) => {
+    const row = loadMatch(tx, matchId);
+    if (!isWalkover(row) || row.winnerEntryId === null) {
+      throw new ScoreRejectedError(`Match ${row.matchNumber} was not won by walkover.`);
+    }
+    const winnerEntryId = row.winnerEntryId;
+    const now = Date.now();
+
+    if (!isLastRound(tx, row)) {
+      const holdsWinner = (slot: MatchSlot): boolean => slot.kind === "entry" && slot.entryId === winnerEntryId;
+      const next = tx
+        .select()
+        .from(matches)
+        .where(and(eq(matches.drawId, row.drawId), eq(matches.roundIndex, row.roundIndex + 1)))
+        .all()
+        .find((candidate) => holdsWinner(candidate.topSlot) || holdsWinner(candidate.bottomSlot));
+      if (!next) throw new Error(`No match after match ${row.matchNumber} holds its winner.`);
+      if (next.status !== "scheduled") {
+        throw new ScoreRejectedError(
+          `Match ${next.matchNumber} has already started, so the walkover in match ${row.matchNumber} stays.`,
+        );
+      }
+      const waiting: MatchSlot = { kind: "winner", matchNumber: row.matchNumber };
+      tx.update(matches)
+        .set(holdsWinner(next.topSlot) ? { topSlot: waiting, updatedAt: now } : { bottomSlot: waiting, updatedAt: now })
+        .where(eq(matches.id, next.id))
+        .run();
+    }
+
+    tx.update(matches)
+      .set({
+        status: "scheduled",
+        winnerEntryId: null,
+        startedAt: null,
+        completedAt: null,
+        version: row.version + 1,
+        updatedAt: now,
+      })
+      .where(eq(matches.id, matchId))
+      .run();
+    return loadMatch(tx, matchId);
+  });
+}
+
 /** Removes every match of a draw (when it moves back to draft). */
 export function deleteMatchesForDraw(database: Database, drawId: string): void {
   database.delete(matches).where(eq(matches.drawId, drawId)).run();

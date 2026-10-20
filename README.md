@@ -253,7 +253,9 @@ and reopen the scoring page on every umpire's phone.
 
 ### Order of play
 
-Admins add courts in `/admin/settings`, each with a name and a surface. A court
+Admins add courts in `/admin/settings`. "Number of courts" sets them up in one
+step: 4 makes Courts 1 to 4, and names, surfaces and stream links can follow. It
+only adds courts. Each court can have a name and a surface. A court
 keeps its number for the whole tournament, because matches and umpires' phones
 record scores against that number. A court on any order of play cannot be
 deleted.
@@ -265,6 +267,13 @@ session is court time that is not a match, such as a Challenge Kit session. It
 has a start time and an optional end time. Each match can have an umpire from
 `UMPIRE_EMAILS` or `ADMIN_EMAILS`. A match has one place across all days, and a
 bye needs none. Times are venue times in India.
+
+"Walkover…" on a match card records a walkover when a player does not turn up:
+the admin picks who did not play, and the other side wins and moves on at once.
+It is for matches not yet started; a match under way ends by retirement on the
+scoring screen.
+A walkover given by mistake can be undone with "Undo walkover…" on the same card,
+until the winner's next match starts.
 
 Umpires see only what an admin published. Publishing copies the day, so later
 edits wait for the next publish, and the page shows "Unpublished changes" until

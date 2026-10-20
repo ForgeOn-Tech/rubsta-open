@@ -5,17 +5,20 @@ import {
   addMatchToScheduleAction,
   changeScheduleItemAction,
   publishDayAction,
+  undoWalkoverAction,
+  walkoverAction,
 } from "./actions";
 import { AddToSchedule, type MatchChoice } from "./add-to-schedule";
 import { PublishDayButton } from "./publish-day-button";
 import { ScheduleItemEditor } from "./schedule-item-editor";
+import { UndoWalkoverButton, WalkoverButton } from "./walkover-button";
 import { listScorerEmails, requireAdmin } from "@/auth/require";
 import { AdminNotice } from "@/components/admin-notice";
 import { AdminPageHeader } from "@/components/admin-page-header";
 import { ScheduleCard } from "@/components/schedule-card";
 import { getDb } from "@/db/client";
 import { listCourts } from "@/db/courts";
-import { listScoringMatches, type ScoringMatchRow } from "@/db/matches";
+import { isWalkover, listScoringMatches, type ScoringMatchRow } from "@/db/matches";
 import { getCurrentTournament } from "@/db/queries";
 import {
   getPublishedDay,
@@ -222,6 +225,21 @@ export default async function AdminOrderOfPlayPage({
                                 entry.umpireEmail === null ? null : (names.get(entry.umpireEmail) ?? entry.umpireEmail)
                               }
                             >
+                              {row !== null &&
+                              row.match.status === "scheduled" &&
+                              row.match.topSlot.kind === "entry" &&
+                              row.match.bottomSlot.kind === "entry" ? (
+                                <WalkoverButton
+                                  matchId={row.match.id}
+                                  names={{
+                                    top: sideLabel(row.top, row.match.topSlot).name,
+                                    bottom: sideLabel(row.bottom, row.match.bottomSlot).name,
+                                  }}
+                                  action={walkoverAction}
+                                />
+                              ) : row !== null && isWalkover(row.match) ? (
+                                <UndoWalkoverButton matchId={row.match.id} action={undoWalkoverAction} />
+                              ) : null}
                               <ScheduleItemEditor
                                 entry={entry}
                                 name={itemName(entry, row?.match.matchNumber ?? null)}

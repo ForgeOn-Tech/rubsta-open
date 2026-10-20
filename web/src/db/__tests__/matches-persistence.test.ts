@@ -18,7 +18,9 @@ import {
   resetMatch,
   retireMatch,
   saveMatchScore,
+  undoWalkover,
   unpublishDraw,
+  walkoverMatch,
 } from "@/db/matches";
 import * as schema from "@/db/schema";
 import { SEED_TOURNAMENT } from "@/db/seed";
@@ -428,6 +430,80 @@ describe("resetMatch", () => {
     const byeMatch = matchByNumber(matches, 1);
 
     expect(() => resetMatch(database, byeMatch.id)).toThrow(/in progress/);
+  });
+});
+
+describe("walkoverMatch", () => {
+  it("gives the match to the side that turned up and moves them into the final", () => {
+    const database = setup();
+    const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
+    const semi = matchByNumber(matches, 2);
+    const final = matchByNumber(matches, 3);
+
+    const row = walkoverMatch(database, semi.id, "top");
+
+    expect(row).toMatchObject({ status: "completed", winnerEntryId: "c", events: [], firstServer: null });
+    expect(loadRow(database, final.id).bottomSlot).toEqual({ kind: "entry", entryId: "c" });
+  });
+
+  it("refuses a match already under way, which ends by retirement instead", () => {
+    const database = setup();
+    const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
+    const semi = matchByNumber(matches, 2);
+    saveMatchScore(database, semi.id, 0, record([]));
+
+    expect(() => walkoverMatch(database, semi.id, "top")).toThrow(/already started/);
+  });
+
+  it("refuses a match still waiting on an earlier result", () => {
+    const database = setup();
+    const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
+
+    expect(() => walkoverMatch(database, matchByNumber(matches, 3).id, "top")).toThrow(/waiting on an earlier result/);
+  });
+});
+
+describe("undoWalkover", () => {
+  it("puts the match back to play and takes its winner out of the final", () => {
+    // Arrange
+    const database = setup();
+    const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
+    const semi = matchByNumber(matches, 2);
+    const final = matchByNumber(matches, 3);
+    walkoverMatch(database, semi.id, "top");
+
+    // Act
+    const row = undoWalkover(database, semi.id);
+
+    // Assert
+    expect(row).toMatchObject({ status: "scheduled", winnerEntryId: null, startedAt: null, completedAt: null });
+    expect(loadRow(database, final.id).bottomSlot).toEqual({ kind: "winner", matchNumber: 2 });
+    expect(walkoverMatch(database, semi.id, "bottom").winnerEntryId).toBe("b");
+  });
+
+  it("keeps the walkover once the next match has started", () => {
+    // Arrange
+    const database = setup();
+    const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
+    const semi = matchByNumber(matches, 2);
+    walkoverMatch(database, semi.id, "top");
+    saveMatchScore(database, matchByNumber(matches, 3).id, 0, record([]));
+
+    // Act and assert
+    expect(() => undoWalkover(database, semi.id)).toThrow(/match 3 has already started/i);
+  });
+
+  it("refuses a match decided by play or by a bye", () => {
+    // Arrange
+    const database = setup();
+    const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
+    const semi = matchByNumber(matches, 2);
+    saveMatchScore(database, semi.id, 0, record([]));
+    retireMatch(database, semi.id, "bottom");
+
+    // Act and assert
+    expect(() => undoWalkover(database, semi.id)).toThrow(/not won by walkover/);
+    expect(() => undoWalkover(database, matchByNumber(matches, 1).id)).toThrow(/not won by walkover/);
   });
 });
 
