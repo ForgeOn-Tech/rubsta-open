@@ -18,7 +18,8 @@ import type { UmpireOption } from "./schedule-fields";
 import { clockOf } from "@/lib/auto-schedule";
 import { INITIAL_ACTION_STATE, type FormAction } from "@/lib/form-state";
 import type { CourtOption, ScheduleEntry } from "@/lib/schedule";
-import { SLOT_MINUTES, dropTime, slotStarts, type GridRange } from "@/lib/schedule-grid";
+import { CATEGORIES, CATEGORY_LABELS, type Category } from "@/db/schema";
+import { CATEGORY_COLORS, SLOT_MINUTES, dropTime, slotStarts, type GridRange } from "@/lib/schedule-grid";
 
 /** One match or session on the grid, or a match in the tray with no place yet. */
 export interface GridCard {
@@ -28,6 +29,8 @@ export interface GridCard {
   /** The item as the editor needs it; null for a card in the tray. */
   entry: ScheduleEntry | null;
   matchId: string | null;
+  /** The match's event, which colours the card; null for a session. */
+  category: Category | null;
   /** e.g. "Open singles · Group A · M3", or a session's title. */
   title: string;
   /** e.g. "A Rao v B Shah"; null for a session. */
@@ -118,7 +121,9 @@ function DraggableCard({
   const clash = card.warnings.length > 0;
   const style = {
     transform: transform === null ? undefined : `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-    borderLeftColor: clash ? "var(--color-bad)" : card.locked ? "var(--color-dim)" : "var(--color-accent)",
+    borderLeftColor: card.category === null ? "var(--color-dim)" : CATEGORY_COLORS[card.category],
+    outline: clash ? "2px solid var(--color-bad)" : undefined,
+    outlineOffset: clash ? -2 : undefined,
     ...(placed && card.start !== null
       ? { position: "absolute" as const, top: px(card.start - range.from), height: Math.max(MIN_CARD_PX, px(card.minutes)), left: 4, right: 4 }
       : { minHeight: MIN_CARD_PX }),
@@ -130,8 +135,10 @@ function DraggableCard({
       {...listeners}
       onKeyDown={onKeyDown}
       onClick={editable ? () => onOpen(card) : undefined}
+      // A short card cuts its warnings off; hovering shows them in full.
+      title={clash ? card.warnings.join("\n") : undefined}
       aria-label={`${card.title}${card.players === null ? "" : `, ${card.players}`}, ${where}${card.locked ? ", cannot move" : ""}`}
-      className={`card shrink-0 overflow-hidden border-l-[3px] px-2 py-1 ${card.locked ? "cursor-default opacity-70" : "cursor-grab touch-manipulation"} ${
+      className={`card shrink-0 overflow-hidden border-l-4 px-2 py-1 ${card.locked ? "cursor-default opacity-70" : "cursor-grab touch-manipulation"} ${
         isDragging ? "z-20 shadow-lg" : "z-10"
       }`}
       style={style}
@@ -339,6 +346,7 @@ export function ScheduleGrid({
   const placedOn = (courtNumber: number) => shown.filter((card) => card.courtNumber === courtNumber && card.start !== null);
   const tray = shown.filter((card) => card.courtNumber === null || card.start === null);
   const hours = slotStarts(range).filter((start) => start % 60 === 0);
+  const events = CATEGORIES.filter((category) => shown.some((card) => card.category === category));
 
   return (
     // A fixed id keeps dnd-kit's screen-reader ids the same on the server and in the browser.
@@ -357,6 +365,16 @@ export function ScheduleGrid({
         <p className="card p-3 text-[12.5px] text-bad" role="alert">
           {error}
         </p>
+      )}
+      {events.length === 0 ? null : (
+        <ul aria-label="Events" className="flex flex-wrap gap-x-4 gap-y-1.5">
+          {events.map((category) => (
+            <li key={category} className="flex items-center gap-1.5 text-[12px] text-muted">
+              <span aria-hidden className="h-3 w-3 rounded-sm" style={{ background: CATEGORY_COLORS[category] }} />
+              {CATEGORY_LABELS[category]}
+            </li>
+          ))}
+        </ul>
       )}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
         <Tray cards={tray} range={range} onOpen={openEditor} />

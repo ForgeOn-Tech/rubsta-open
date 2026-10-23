@@ -1,5 +1,22 @@
+import type { Category } from "@/db/schema";
+
 /** The order-of-play grid: courts across, time down, in steps of SLOT_MINUTES. */
 export const SLOT_MINUTES = 15;
+
+/**
+ * Each event's colour on the grid, fixed so an event keeps its colour whatever else is on the
+ * day. Checked on the card surface #faf8f1 for colour-blind separation. Red is left out, as it
+ * means a clash. Three sit under 3:1 against the card, so every card also names its event.
+ */
+export const CATEGORY_COLORS: Record<Category, string> = {
+  OS: "#2a78d6",
+  W30: "#eb6834",
+  U15: "#1baf7a",
+  OD: "#eda100",
+  S40: "#e87ba4",
+  D40: "#008300",
+};
+
 const MINUTES_PER_HOUR = 60;
 const LAST_MINUTE_OF_DAY = 24 * MINUTES_PER_HOUR;
 /** An empty day shows 08:00 to 20:00. */
