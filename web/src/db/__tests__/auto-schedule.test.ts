@@ -5,7 +5,7 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { describe, expect, it } from "vitest";
 
-import { applyFill, listFillRounds, listTimedItems, moveItemToSlot, placeMatchAtSlot, previewFill, unscheduleItem } from "@/db/auto-schedule";
+import { applyFill, dependencyWarnings, listFillRounds, listTimedItems, moveItemToSlot, placeMatchAtSlot, previewFill, unscheduleItem } from "@/db/auto-schedule";
 import { addCourt } from "@/db/courts";
 import { getDrawWithSlots, saveGeneratedGroups } from "@/db/draws";
 import { publishDraw } from "@/db/matches";
@@ -270,5 +270,42 @@ describe("moving a match on the grid", () => {
     const { database, items } = placed();
 
     expect(() => moveItemToSlot(database, items[0].id, target, DEFAULT_MATCH_LENGTHS)).toThrow(new ScheduleRejectedError(message));
+  });
+});
+
+describe("dependencyWarnings", () => {
+  const warningsFor = (database: ReturnType<typeof setup>) =>
+    dependencyWarnings(database, TOURNAMENT_ID, DAY, listTimedItems(database, TOURNAMENT_ID, DAY, DEFAULT_MATCH_LENGTHS), 30);
+  const quarter = (database: ReturnType<typeof setup>) =>
+    database.select().from(schema.matches).where(eq(schema.matches.roundName, "Quarter-finals")).all().sort((a, b) => a.matchNumber - b.matchNumber)[0];
+
+  it("warns about a knockout match whose groups have matches with no place", () => {
+    const database = setup();
+    const first = quarter(database);
+    addMatchItem(database, TOURNAMENT_ID, { day: DAY, courtNumber: 1, matchId: first.id, timing: "at", time: "16:00", umpireEmail: null });
+
+    expect(warningsFor(database).get(first.id)).toEqual([
+      "Waits on Open singles Group A, which has a match with no place yet",
+      "Waits on Open singles Group B, which has a match with no place yet",
+    ]);
+  });
+
+  it("warns when the groups should still be playing, and is quiet once they are over with rest", () => {
+    // Arrange: every group match on the two courts from 08:00.
+    const database = setup();
+    applyFill(database, TOURNAMENT_ID, request(GROUPS));
+    const first = quarter(database);
+    const groupsEnd = Math.max(...listTimedItems(database, TOURNAMENT_ID, DAY, DEFAULT_MATCH_LENGTHS).map((row) => row.end));
+
+    // Act: too early, then late enough.
+    placeMatchAtSlot(database, TOURNAMENT_ID, { day: DAY, matchId: first.id, courtNumber: 1, time: "09:00" }, DEFAULT_MATCH_LENGTHS);
+    const early = warningsFor(database).get(first.id) ?? [];
+    const item = listScheduleItems(database, TOURNAMENT_ID, DAY).find((row) => row.matchId === first.id)!;
+    moveItemToSlot(database, item.id, { courtNumber: 2, time: clockOf(groupsEnd + 60) }, DEFAULT_MATCH_LENGTHS);
+
+    // Assert
+    expect(early).toHaveLength(2);
+    expect(early[0]).toMatch(/^Waits on Open singles Group A, which should end \d\d:\d\d$/);
+    expect(warningsFor(database).get(first.id)).toBeUndefined();
   });
 });

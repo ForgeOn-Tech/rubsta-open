@@ -21,7 +21,8 @@ import {
   type PlanMatch,
 } from "@/lib/auto-schedule";
 import { formatFor } from "@/lib/match-formats";
-import { isScheduleTime } from "@/lib/schedule";
+import { groupRoundName } from "@/lib/groups";
+import { formatScheduleDay, isScheduleTime } from "@/lib/schedule";
 import { sideLabel } from "@/lib/scoring-display";
 
 /** A round with matches still to place, offered on the fill form. */
@@ -438,4 +439,48 @@ export function unscheduleItem(database: Database, itemId: string): void {
     movableItem(tx, itemId);
     removeItem(tx, itemId);
   });
+}
+
+/** How a match names the earlier matches a slot waits on, e.g. "Open singles M27" or "Open singles Group A". */
+function feederName(row: ScoringMatchRow, slot: MatchSlot): string {
+  if (slot.kind === "group") return `${CATEGORY_LABELS[row.category]} ${groupRoundName(slot.group)}`;
+  if (slot.kind === "winner") return `${CATEGORY_LABELS[row.category]} M${slot.matchNumber}`;
+  throw new Error(`A ${slot.kind} slot waits on no match.`);
+}
+
+/**
+ * For each placed match on the day, the earlier matches it waits on that will not be over, with
+ * rest, before it starts: still without a place, on a later day, or ending too late that day.
+ * e.g. "Waits on Open singles Group A, which should end 13:30". Keyed by match id.
+ */
+export function dependencyWarnings(
+  database: Database,
+  tournamentId: string,
+  day: string,
+  timed: readonly TimedItem[],
+  restMinutes: number,
+): Map<string, string[]> {
+  const rows = listScoringMatches(database, tournamentId);
+  const graph = graphOf(rows, new Map());
+  const days = matchDays(database, tournamentId);
+  const endOf = new Map(timed.flatMap(({ item, end }) => (item.matchId === null ? [] : [[item.matchId, end] as const])));
+  return new Map(
+    timed.flatMap(({ item, start }) => {
+      const row = item.matchId === null ? undefined : graph.rowsById.get(item.matchId);
+      if (row === undefined || row.match.status !== "scheduled") return [];
+      const warnings = [row.match.topSlot, row.match.bottomSlot].flatMap((slot) => {
+        if (slot.kind !== "group" && slot.kind !== "winner") return [];
+        const open = graph.feedersOf(row, slot).filter((feeder) => feeder.match.status !== "completed");
+        if (open.length === 0) return [];
+        const name = feederName(row, slot);
+        if (open.some((feeder) => !days.has(feeder.match.id))) return [`Waits on ${name}, which has a match with no place yet`];
+        const later = open.find((feeder) => (days.get(feeder.match.id) as string) > day);
+        if (later !== undefined) return [`Waits on ${name}, which plays on ${formatScheduleDay(days.get(later.match.id) as string)}`];
+        const ends = open.flatMap((feeder) => (days.get(feeder.match.id) === day ? [endOf.get(feeder.match.id) ?? start] : []));
+        const lastEnd = Math.max(...ends);
+        return ends.length > 0 && start < lastEnd + restMinutes ? [`Waits on ${name}, which should end ${clockOf(lastEnd)}`] : [];
+      });
+      return warnings.length === 0 ? [] : [[row.match.id, warnings] as const];
+    }),
+  );
 }

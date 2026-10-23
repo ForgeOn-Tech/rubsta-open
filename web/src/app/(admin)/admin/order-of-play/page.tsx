@@ -19,7 +19,7 @@ import { listScorerEmails, requireAdmin } from "@/auth/require";
 import { AdminNotice } from "@/components/admin-notice";
 import { AdminPageHeader } from "@/components/admin-page-header";
 import { ScheduleCard } from "@/components/schedule-card";
-import { listFillRounds, listTimedItems, type TimedItem } from "@/db/auto-schedule";
+import { dependencyWarnings, listFillRounds, listTimedItems, type TimedItem } from "@/db/auto-schedule";
 import { getDb } from "@/db/client";
 import { listCourts } from "@/db/courts";
 import { isWalkover, listScoringMatches, type ScoringMatchRow } from "@/db/matches";
@@ -221,6 +221,13 @@ export default async function AdminOrderOfPlayPage({
     entryPlayers,
     settings.restMinutes,
   );
+  const waits = dependencyWarnings(database, tournament.id, day, timed, settings.restMinutes);
+  const gridWarnings = new Map(
+    [...new Set([...gridClashes.keys(), ...waits.keys()])].map((matchId) => [
+      matchId,
+      [...(waits.get(matchId) ?? []), ...(gridClashes.get(matchId) ?? [])],
+    ]),
+  );
   const scheduledIds = listScheduledMatchIds(database, tournament.id);
   const unplaced = rows
     .filter((row) => scoringGroupOf(row) !== null && row.match.status !== "completed" && !scheduledIds.has(row.match.id))
@@ -329,7 +336,7 @@ export default async function AdminOrderOfPlayPage({
             key={`grid-${day}`}
             day={day}
             courts={courtOptions}
-            cards={gridCards({ timed, unplaced, rowOf, warnings: gridClashes, lengths: settings.lengths })}
+            cards={gridCards({ timed, unplaced, rowOf, warnings: gridWarnings, lengths: settings.lengths })}
             range={gridRange(timed)}
             action={gridDropAction}
           />
