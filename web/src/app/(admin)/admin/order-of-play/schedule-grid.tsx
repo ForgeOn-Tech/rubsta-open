@@ -11,11 +11,13 @@ import {
   useSensors,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { startTransition, useOptimistic, useState } from "react";
+import { startTransition, useActionState, useEffect, useOptimistic, useRef, useState, type KeyboardEvent } from "react";
 
+import { ScheduleItemForms } from "./schedule-item-editor";
+import type { UmpireOption } from "./schedule-fields";
 import { clockOf } from "@/lib/auto-schedule";
 import { INITIAL_ACTION_STATE, type FormAction } from "@/lib/form-state";
-import type { CourtOption } from "@/lib/schedule";
+import type { CourtOption, ScheduleEntry } from "@/lib/schedule";
 import { SLOT_MINUTES, dropTime, slotStarts, type GridRange } from "@/lib/schedule-grid";
 
 /** One match or session on the grid, or a match in the tray with no place yet. */
@@ -23,6 +25,8 @@ export interface GridCard {
   /** The schedule item's id, or the match's id for a card in the tray. */
   key: string;
   itemId: string | null;
+  /** The item as the editor needs it; null for a card in the tray. */
+  entry: ScheduleEntry | null;
   matchId: string | null;
   /** e.g. "Open singles · Group A · M3", or a session's title. */
   title: string;
@@ -87,8 +91,28 @@ function CardBody({ card }: { card: GridCard }) {
   );
 }
 
-function DraggableCard({ card, placed, range }: { card: GridCard; placed: boolean; range: GridRange }) {
+function DraggableCard({
+  card,
+  placed,
+  range,
+  onOpen,
+}: {
+  card: GridCard;
+  placed: boolean;
+  range: GridRange;
+  onOpen: (card: GridCard) => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: card.key, data: card, disabled: card.locked });
+  const editable = card.entry !== null;
+  // Enter opens the editor; Space still picks the card up to move it with the arrow keys.
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Enter" && editable) {
+      event.preventDefault();
+      onOpen(card);
+      return;
+    }
+    listeners?.onKeyDown?.(event);
+  };
   const span = spanLabel(card);
   const where = card.courtNumber === null || span === null ? "not placed" : `Court ${card.courtNumber}, ${span}`;
   const clash = card.warnings.length > 0;
@@ -104,6 +128,8 @@ function DraggableCard({ card, placed, range }: { card: GridCard; placed: boolea
       ref={setNodeRef}
       {...attributes}
       {...listeners}
+      onKeyDown={onKeyDown}
+      onClick={editable ? () => onOpen(card) : undefined}
       aria-label={`${card.title}${card.players === null ? "" : `, ${card.players}`}, ${where}${card.locked ? ", cannot move" : ""}`}
       className={`card shrink-0 overflow-hidden border-l-[3px] px-2 py-1 ${card.locked ? "cursor-default opacity-70" : "cursor-grab touch-manipulation"} ${
         isDragging ? "z-20 shadow-lg" : "z-10"
@@ -115,7 +141,17 @@ function DraggableCard({ card, placed, range }: { card: GridCard; placed: boolea
   );
 }
 
-function CourtColumn({ court, cards, range }: { court: CourtOption; cards: readonly GridCard[]; range: GridRange }) {
+function CourtColumn({
+  court,
+  cards,
+  range,
+  onOpen,
+}: {
+  court: CourtOption;
+  cards: readonly GridCard[];
+  range: GridRange;
+  onOpen: (card: GridCard) => void;
+}) {
   const { setNodeRef, isOver } = useDroppable({ id: `${COURT_PREFIX}${court.number}` });
   return (
     <div
@@ -127,13 +163,13 @@ function CourtColumn({ court, cards, range }: { court: CourtOption; cards: reado
       }}
     >
       {cards.map((card) => (
-        <DraggableCard key={card.key} card={card} placed range={range} />
+        <DraggableCard key={card.key} card={card} placed range={range} onOpen={onOpen} />
       ))}
     </div>
   );
 }
 
-function Tray({ cards, range }: { cards: readonly GridCard[]; range: GridRange }) {
+function Tray({ cards, range, onOpen }: { cards: readonly GridCard[]; range: GridRange; onOpen: (card: GridCard) => void }) {
   const { setNodeRef, isOver } = useDroppable({ id: TRAY_ID });
   return (
     <section
@@ -148,9 +184,73 @@ function Tray({ cards, range }: { cards: readonly GridCard[]; range: GridRange }
       </h2>
       <p className="text-[11.5px] text-muted">Drag a match onto a court. Drag one back here to take it off the day.</p>
       {cards.map((card) => (
-        <DraggableCard key={card.key} card={card} placed={false} range={range} />
+        <DraggableCard key={card.key} card={card} placed={false} range={range} onOpen={onOpen} />
       ))}
     </section>
+  );
+}
+
+/** A placed card's editor in a dialog: its time, umpire and court, or taking it off the day. */
+function CardEditor({
+  card,
+  courts,
+  umpires,
+  action,
+  onClose,
+}: {
+  card: GridCard;
+  courts: readonly CourtOption[];
+  umpires: readonly UmpireOption[];
+  action: FormAction;
+  onClose: () => void;
+}) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const [removed, removeAction, removing] = useActionState(action, INITIAL_ACTION_STATE);
+  useEffect(() => {
+    dialog.current?.showModal();
+  }, []);
+  useEffect(() => {
+    if (removed.savedAt !== null) onClose();
+  }, [removed.savedAt, onClose]);
+  if (card.entry === null) throw new Error(`Card ${card.key} has no place to edit.`);
+  const entry = card.entry;
+
+  return (
+    <dialog
+      ref={dialog}
+      onClose={onClose}
+      aria-labelledby="card-editor-heading"
+      className="card m-auto w-[min(26rem,calc(100vw-2rem))] p-4 backdrop:bg-black/40"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 id="card-editor-heading" className="text-[14px] font-semibold">
+            {card.title}
+          </h2>
+          {card.players === null ? null : <p className="text-[12px] text-muted">{card.players}</p>}
+          {card.start === null ? null : (
+            <p className="mono mt-1 text-[11px] text-dim">
+              Court {entry.courtNumber} · expected {clockOf(card.start)}–{clockOf(card.start + card.minutes)}
+            </p>
+          )}
+        </div>
+        <button type="button" className="btn btn-outline h-7 px-2.5 text-[11px]" onClick={() => dialog.current?.close()}>
+          Close
+        </button>
+      </div>
+      <ScheduleItemForms entry={entry} courts={courts} umpires={umpires} action={action} />
+      <form action={removeAction} className="mt-3 border-t border-line pt-3">
+        <input type="hidden" name="itemId" value={entry.id} />
+        <button type="submit" name="intent" value="remove" className="btn btn-outline h-8 text-[12px]" disabled={removing}>
+          Take off the day
+        </button>
+        {removed.error ? (
+          <p className="mt-2 text-[12px] text-bad" role="alert">
+            {removed.error}
+          </p>
+        ) : null}
+      </form>
+    </dialog>
   );
 }
 
@@ -164,24 +264,44 @@ export function ScheduleGrid({
   courts,
   cards,
   range,
+  umpires,
   action,
+  editAction,
 }: {
   day: string;
   courts: readonly CourtOption[];
   cards: readonly GridCard[];
   range: GridRange;
+  umpires: readonly UmpireOption[];
+  /** Drops: moving, placing and taking off. */
   action: FormAction;
+  /** The editor's changes, as in the list view. */
+  editAction: FormAction;
 }) {
   const [shown, showDrop] = useOptimistic(cards as GridCard[], moved);
   const [error, setError] = useState<string | null>(null);
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  // The card as it is now, so the editor shows a saved change.
+  const editing = editingKey === null ? null : (shown.find((card) => card.key === editingKey && card.entry !== null) ?? null);
+  // A drag ends with a click on the card just dropped; that click must not open its editor.
+  const dragging = useRef(false);
+  const closeEditor = () => setEditingKey(null);
+  const openEditor = (card: GridCard) => {
+    if (!dragging.current) setEditingKey(card.key);
+  };
   const sensors = useSensors(
     // Mouse and touch apart: a finger must hold a card to drag it, so a swipe still scrolls.
     useSensor(MouseSensor, { activationConstraint: { distance: DRAG_DISTANCE_PX } }),
     useSensor(TouchSensor, { activationConstraint: { delay: TOUCH_DELAY_MS, tolerance: TOUCH_TOLERANCE_PX } }),
-    useSensor(KeyboardSensor),
+    // Space picks a card up; Enter is left to open its editor.
+    useSensor(KeyboardSensor, { keyboardCodes: { start: ["Space"], cancel: ["Escape"], end: ["Space"] } }),
   );
 
   function onDragEnd(event: DragEndEvent) {
+    // The browser sends that click straight after the drop, before this timeout runs.
+    setTimeout(() => {
+      dragging.current = false;
+    }, 0);
     const card = event.active.data.current as GridCard | undefined;
     const over = event.over;
     if (card === undefined || over === null) return;
@@ -222,14 +342,24 @@ export function ScheduleGrid({
 
   return (
     // A fixed id keeps dnd-kit's screen-reader ids the same on the server and in the browser.
-    <DndContext id={`schedule-grid-${day}`} sensors={sensors} onDragEnd={onDragEnd}>
+    <DndContext
+      id={`schedule-grid-${day}`}
+      sensors={sensors}
+      onDragStart={() => {
+        dragging.current = true;
+      }}
+      onDragCancel={() => {
+        dragging.current = false;
+      }}
+      onDragEnd={onDragEnd}
+    >
       {error === null ? null : (
         <p className="card p-3 text-[12.5px] text-bad" role="alert">
           {error}
         </p>
       )}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-        <Tray cards={tray} range={range} />
+        <Tray cards={tray} range={range} onOpen={openEditor} />
         <div className="min-w-0 flex-1 overflow-x-auto">
           <div className="grid" style={{ gridTemplateColumns: `3.25rem repeat(${courts.length}, minmax(10.5rem, 1fr))` }}>
             <div />
@@ -246,11 +376,14 @@ export function ScheduleGrid({
               ))}
             </div>
             {courts.map((court) => (
-              <CourtColumn key={court.number} court={court} cards={placedOn(court.number)} range={range} />
+              <CourtColumn key={court.number} court={court} cards={placedOn(court.number)} range={range} onOpen={openEditor} />
             ))}
           </div>
         </div>
       </div>
+      {editing === null ? null : (
+        <CardEditor key={editing.key} card={editing} courts={courts} umpires={umpires} action={editAction} onClose={closeEditor} />
+      )}
     </DndContext>
   );
 }

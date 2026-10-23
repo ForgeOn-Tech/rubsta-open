@@ -114,6 +114,7 @@ function gridCards(input: {
     return {
       key: item.id,
       itemId: item.id,
+      entry: scheduleEntryOf(item),
       matchId: item.matchId,
       title: row === null ? (item.title ?? "Session") : gridTitle(row),
       players: row === null ? null : gridPlayers(row),
@@ -129,6 +130,7 @@ function gridCards(input: {
     (row): GridCard => ({
       key: row.match.id,
       itemId: null,
+      entry: null,
       matchId: row.match.id,
       title: gridTitle(row),
       players: gridPlayers(row),
@@ -338,7 +340,9 @@ export default async function AdminOrderOfPlayPage({
             courts={courtOptions}
             cards={gridCards({ timed, unplaced, rowOf, warnings: gridWarnings, lengths: settings.lengths })}
             range={gridRange(timed)}
+            umpires={umpires}
             action={gridDropAction}
+            editAction={changeScheduleItemAction}
           />
         )}
 
