@@ -189,6 +189,10 @@ test.describe.serial("registration", () => {
     await page.getByRole("navigation", { name: "Admin" }).getByRole("link", { name: "Order of play" }).click();
     await expect(page).toHaveURL(/\/admin\/order-of-play$/);
     await expect(page.getByText(/Rubsta Open 2026 · \w+ 24 Oct/)).toBeVisible();
+    // The grid opens first, with every match still to place in its tray; the list has the forms.
+    await expect(page.getByRole("heading", { name: /Not placed/ })).toBeVisible();
+    await page.getByRole("navigation", { name: "View" }).getByRole("link", { name: "List" }).click();
+    await expect(page).toHaveURL(/\/admin\/order-of-play\?day=2099-10-24&view=list$/);
 
     const addMatch = page.getByRole("region", { name: /Add a match/ });
     await addMatch.getByLabel("Match").selectOption({ index: 1 });
