@@ -46,7 +46,7 @@ const DAY_LABEL = new Intl.DateTimeFormat("en-GB", {
 export const SCHEDULE_TIMING_LABELS: Record<ScheduleTiming, string> = {
   at: "Starts at",
   notBefore: "Not before",
-  followOn: "After the item above",
+  followOn: "After the match above",
 };
 
 export const SCHEDULE_STATUS_LABELS: Record<MatchStatus, string> = {
@@ -194,7 +194,9 @@ export function timingLabel(
   if (entry.timing === "followOn") return previous === null ? "Time to follow" : `After ${previous}`;
   if (entry.time === null) throw new Error(`A "${entry.timing}" schedule item needs a time.`);
   if (entry.kind === "block" && entry.endTime !== null) return `${entry.time}–${entry.endTime}`;
-  return entry.timing === "notBefore" ? `Not before ${entry.time}` : entry.time;
+  if (entry.timing !== "notBefore") return entry.time;
+  // Players need to know the time can move: it waits on the match above.
+  return previous === null ? `Not before ${entry.time}` : `Not before ${entry.time} · May start later if ${previous} runs long`;
 }
 
 /** The earliest time on a day's order of play, or null when nothing has a time. */

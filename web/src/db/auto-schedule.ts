@@ -161,8 +161,6 @@ function placingOrder(rows: readonly ScoringMatchRow[]): ScoringMatchRow[] {
 interface Plan {
   placed: { row: ScoringMatchRow; courtNumber: number; start: number; end: number }[];
   unplaced: { row: ScoringMatchRow; reason: string }[];
-  /** When each selected court's existing items end; null for an empty court. */
-  courtEnds: Map<number, number | null>;
 }
 
 function minutesFor(row: ScoringMatchRow, lengths: MatchLengths): number {
@@ -260,7 +258,6 @@ function buildPlan(database: Database, tournamentId: string, request: FillReques
             : "It waits on a match that could not be placed.",
       })),
     ],
-    courtEnds,
   };
 }
 
@@ -292,10 +289,9 @@ export function applyFill(database: Database, tournamentId: string, request: Fil
       .where(eq(tournaments.id, tournamentId))
       .run();
     for (const courtNumber of request.courts) {
-      let previousEnd = plan.courtEnds.get(courtNumber) ?? null;
       const onCourt = plan.placed.filter((item) => item.courtNumber === courtNumber).sort((a, b) => a.start - b.start);
       for (const item of onCourt) {
-        const timing = timingFor(item.start, previousEnd);
+        const timing = timingFor(item.start);
         addMatchItem(tx, tournamentId, {
           day: request.day,
           courtNumber,
@@ -304,7 +300,6 @@ export function applyFill(database: Database, tournamentId: string, request: Fil
           time: timing.time,
           umpireEmail: null,
         });
-        previousEnd = item.end;
       }
     }
     return plan.placed.length;
@@ -373,10 +368,11 @@ function movableItem(database: Database, itemId: string): ScheduleItem {
 
 /**
  * Moves a match to a court and a time on the same day. It goes in the court's list before the
- * first item expected to start at that time or later, and waits for that time; items below it
- * that follow on move later with it. A fixed time just below becomes "not before", so the two
- * cannot overlap. On the court it leaves, items that follow on move up into the gap, and a new
- * first item keeps the moved match's start. A match under way or finished stays where it is.
+ * first item expected to start at that time or later, and starts at that time. A match below
+ * at a fixed time that it would run into moves to when the court is free, and so on down the
+ * court, so nothing overlaps and every player still has a time. Matches that wait on the one
+ * above move with it. On the court it leaves, a new first match that waited on the moved one
+ * takes its start. A match under way or finished stays where it is.
  */
 export function moveItemToSlot(
   database: Database,
@@ -400,14 +396,11 @@ export function moveItemToSlot(
       minutesOf(target.time),
     );
     tx.update(scheduleItems)
-      .set({ courtNumber: target.courtNumber, timing: "notBefore", time: target.time, updatedAt: now })
+      .set({ courtNumber: target.courtNumber, timing: "at", time: target.time, updatedAt: now })
       .where(eq(scheduleItems.id, itemId))
       .run();
-    const below = others[index];
-    if (below !== undefined && below.timing === "at") {
-      tx.update(scheduleItems).set({ timing: "notBefore", updatedAt: now }).where(eq(scheduleItems.id, below.id)).run();
-    }
     renumber(tx, [...others.slice(0, index), item, ...others.slice(index)].map((row) => row.id));
+    pushLaterWhereOverlapping(tx, { tournamentId: item.tournamentId, day: item.day, courtNumber: target.courtNumber, from: index + 1, now }, lengths);
 
     if (item.courtNumber !== target.courtNumber) renumber(tx, source.filter((row) => row.id !== itemId).map((row) => row.id));
     const [first] = courtItems(tx, item.tournamentId, item.day, item.courtNumber);
@@ -416,6 +409,31 @@ export function moveItemToSlot(
       tx.update(scheduleItems).set({ timing: "at", time: clockOf(oldStart), updatedAt: now }).where(eq(scheduleItems.id, first.id)).run();
     }
   });
+}
+
+/**
+ * Walks down a court from position `from`: a match at a fixed time that would start before the
+ * items above it are over moves to when they are. Stops at the first fixed time that is clear.
+ */
+function pushLaterWhereOverlapping(
+  database: Database,
+  court: { tournamentId: string; day: string; courtNumber: number; from: number; now: number },
+  lengths: MatchLengths,
+): void {
+  for (let index = court.from; ; index++) {
+    const onCourt = courtItems(database, court.tournamentId, court.day, court.courtNumber);
+    const row = onCourt[index];
+    if (row === undefined) return;
+    if (row.timing !== "at" || row.kind !== "match") continue;
+    const spans = spansOf(database, onCourt, lengths);
+    const courtFree = Math.max(...spans.slice(0, index).map((span) => span.end));
+    if (spans[index].start >= courtFree) return;
+    database
+      .update(scheduleItems)
+      .set({ time: clockOf(courtFree), updatedAt: court.now })
+      .where(eq(scheduleItems.id, row.id))
+      .run();
+  }
 }
 
 /** Puts a match with no place yet on a court at a time, where moving it there would. */
@@ -428,7 +446,7 @@ export function placeMatchAtSlot(
   if (!isScheduleTime(placement.time)) throw new ScheduleRejectedError("Choose a time such as 10:15.");
   const { day, matchId, courtNumber, time } = placement;
   database.transaction((tx) => {
-    const item = addMatchItem(tx, tournamentId, { day, courtNumber, matchId, timing: "notBefore", time, umpireEmail: null });
+    const item = addMatchItem(tx, tournamentId, { day, courtNumber, matchId, timing: "at", time, umpireEmail: null });
     moveItemToSlot(tx, item.id, { courtNumber, time }, lengths);
   });
 }

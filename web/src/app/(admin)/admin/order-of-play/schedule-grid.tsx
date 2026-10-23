@@ -42,6 +42,8 @@ export interface GridCard {
   locked: boolean;
   /** e.g. "Live" or "Done" for a locked match. */
   badge: string | null;
+  /** "Not before" or "After the match above" when the start can move; null at a fixed time. */
+  timingNote: string | null;
   /** Clashes with the player's other matches today. */
   warnings: string[];
 }
@@ -76,7 +78,10 @@ function CardBody({ card }: { card: GridCard }) {
   return (
     <>
       <div className="flex items-baseline justify-between gap-2">
-        <span className="mono text-[10.5px] text-muted">{span ?? `${card.minutes} min`}</span>
+        <span className="mono truncate text-[10.5px] text-muted">
+          {span ?? `${card.minutes} min`}
+          {card.timingNote === null ? null : <span className="text-warn"> · {card.timingNote}</span>}
+        </span>
         {card.badge === null ? null : <span className="caps text-[9.5px]">{card.badge}</span>}
       </div>
       <div className="truncate text-[11.5px] font-semibold leading-tight">{card.title}</div>

@@ -133,10 +133,11 @@ describe("timingLabel", () => {
     expect(timingLabel(entry({}), null)).toBe("11:00");
   });
 
-  it("marks a not-before time", () => {
+  it("marks a not-before time, and tells players it waits on the match above", () => {
     expect(timingLabel(entry({ timing: "notBefore", time: "15:30" }), "M21")).toBe(
-      "Not before 15:30",
+      "Not before 15:30 · May start later if M21 runs long",
     );
+    expect(timingLabel(entry({ timing: "notBefore", time: "15:30" }), null)).toBe("Not before 15:30");
   });
 
   it("names the item a following match waits for", () => {
