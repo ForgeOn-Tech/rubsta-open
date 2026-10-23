@@ -124,6 +124,43 @@ describe("planDay", () => {
     ]);
   });
 
+  it("fills the morning before an event that starts later takes a court", () => {
+    // Arrange: one 14:00 match listed among eight morning matches on 4 courts.
+    const morning = Array.from({ length: 8 }, (_unused, index) => match(`os${index}`, [`p${index}a`, `p${index}b`], 45, []));
+    const afternoon: PlanMatch = { ...match("w30", ["w1", "w2"], 45, []), readyAt: minutesOf("14:00") };
+
+    // Act
+    const plan = planDay({
+      courts: courts(4),
+      matches: [...morning.slice(0, 2), afternoon, ...morning.slice(2)],
+      restMinutes: REST,
+      busyUntil: new Map(),
+      latestStart: null,
+    });
+
+    // Assert
+    const startOf = (id: string) => clockOf(plan.placed.find((item) => item.matchId === id)!.start);
+    expect(morning.map((item) => startOf(item.id))).toEqual(["08:00", "08:00", "08:00", "08:00", "08:45", "08:45", "08:45", "08:45"]);
+    expect(startOf("w30")).toBe("14:00");
+  });
+
+  it("places whichever match can start first, keeping the given order on a tie", () => {
+    const late: PlanMatch = { ...match("late", ["a", "b"], 45, []), readyAt: minutesOf("10:00") };
+    const plan = planDay({
+      courts: courts(1),
+      matches: [late, match("early1", ["c", "d"], 45, []), match("early2", ["e", "f"], 45, [])],
+      restMinutes: REST,
+      busyUntil: new Map(),
+      latestStart: null,
+    });
+
+    expect(plan.placed.map((item) => [item.matchId, clockOf(item.start)])).toEqual([
+      ["early1", "08:00"],
+      ["early2", "08:45"],
+      ["late", "10:00"],
+    ]);
+  });
+
   it("needs a court", () => {
     expect(() => planDay({ courts: [], matches: [], restMinutes: REST, busyUntil: new Map(), latestStart: null })).toThrow(/at least one court/);
   });
@@ -183,6 +220,7 @@ describe("validateFillRequest", () => {
     eightGames: "60",
     bestOfThree: "90",
     rounds: ["OS|Group A"],
+    eventStarts: { OS: "", W30: "" },
   };
   const DAYS = ["2026-10-24", "2026-10-25"];
 
@@ -201,7 +239,15 @@ describe("validateFillRequest", () => {
         restMinutes: 30,
         lengths: { oneSet: 45, eightGames: 60, bestOfThree: 90 },
         rounds: ["OS|Group A"],
+        eventStarts: {},
       },
+    });
+  });
+
+  it("reads an event's own start, and leaves a blank one to the fill", () => {
+    expect(validateFillRequest({ ...RAW, eventStarts: { OS: "", W30: "14:00" } }, DAYS, [1, 2, 3])).toMatchObject({
+      ok: true,
+      request: { eventStarts: { W30: "14:00" } },
     });
   });
 
@@ -213,6 +259,16 @@ describe("validateFillRequest", () => {
     ["a negative rest", { restMinutes: "-5" }, "Rest must be a whole number of minutes from 0 to 240."],
     ["a match that is too short", { oneSet: "5" }, "Match lengths must be whole minutes from 10 to 300."],
     ["no rounds", { rounds: [] }, "Choose at least one round to place."],
+    [
+      "an event start before the first match",
+      { eventStarts: { W30: "08:00" } },
+      "Enter the Women's 30+ start as a time at or after the first match, or leave it blank.",
+    ],
+    [
+      "an event start that is not a time",
+      { eventStarts: { W30: "2pm" } },
+      "Enter the Women's 30+ start as a time at or after the first match, or leave it blank.",
+    ],
     ["a last start before the first match", { finishBy: "08:00" }, "The last start must be a time after the first match, or blank."],
     ["a bad last start", { finishBy: "9pm" }, "The last start must be a time after the first match, or blank."],
   ])("refuses %s", (_case, change, error) => {

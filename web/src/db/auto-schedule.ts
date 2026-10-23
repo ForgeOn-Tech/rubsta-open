@@ -4,7 +4,7 @@ import type { Database } from "./draws";
 import { listScoringMatches, type ScoringMatchRow } from "./matches";
 import { listEntryPlayers, type EntryPlayer } from "./partners";
 import { addMatchItem } from "./schedule";
-import { CATEGORIES, CATEGORY_LABELS, scheduleItems, type MatchSlot, type ScheduleItem } from "./schema";
+import { CATEGORIES, CATEGORY_LABELS, scheduleItems, type Category, type MatchSlot, type ScheduleItem } from "./schema";
 import {
   courtEnd,
   clockOf,
@@ -22,6 +22,9 @@ import { sideLabel } from "@/lib/scoring-display";
 /** A round with matches still to place, offered on the fill form. */
 export interface FillRound {
   key: string;
+  category: Category;
+  /** The event, e.g. "Open singles". */
+  eventLabel: string;
   label: string;
   matchCount: number;
   /** The round's stage in its event; an event's groups share one. */
@@ -68,6 +71,8 @@ export function listFillRounds(database: Database, tournamentId: string): FillRo
       const [first] = inRound;
       return {
         key,
+        category: first.category,
+        eventLabel: CATEGORY_LABELS[first.category],
         label: `${CATEGORY_LABELS[first.category]} · ${first.match.roundName}`,
         matchCount: inRound.length,
         roundIndex: first.match.roundIndex,
@@ -75,7 +80,7 @@ export function listFillRounds(database: Database, tournamentId: string): FillRo
       };
     })
     .sort((a, b) => a.sort[0] - b.sort[0] || a.sort[1] - b.sort[1] || a.sort[2] - b.sort[2])
-    .map(({ key, label, matchCount, roundIndex }) => ({ key, label, matchCount, roundIndex }));
+    .map(({ key, category, eventLabel, label, matchCount, roundIndex }) => ({ key, category, eventLabel, label, matchCount, roundIndex }));
 }
 
 /** The day each match on the order of play is placed on. */
@@ -202,7 +207,8 @@ function buildPlan(database: Database, tournamentId: string, request: FillReques
   const planMatches: PlanMatch[] = [];
   for (const row of chosen) {
     const feeders = [row.match.topSlot, row.match.bottomSlot].flatMap((slot) => graph.feedersOf(row, slot));
-    let readyAt = dayStart;
+    const eventStart = request.eventStarts[row.category];
+    let readyAt = eventStart === undefined ? dayStart : Math.max(dayStart, minutesOf(eventStart));
     const after: string[] = [];
     let reason: string | null = null;
     for (const feeder of feeders) {

@@ -20,7 +20,7 @@ import {
   updateBlockItem,
   updateMatchItem,
 } from "@/db/schedule";
-import type { Tournament } from "@/db/schema";
+import { CATEGORIES, type Tournament } from "@/db/schema";
 import { validateFillRequest, type FillValidation } from "@/lib/auto-schedule";
 import type { ActionState } from "@/lib/form-state";
 import { SIDES } from "@/lib/match";
@@ -226,6 +226,7 @@ function fillRequestFrom(formData: FormData, tournament: Tournament): FillValida
       eightGames: text("eightGames"),
       bestOfThree: text("bestOfThree"),
       rounds: formData.getAll("rounds").map(String),
+      eventStarts: Object.fromEntries(CATEGORIES.map((category) => [category, text(`eventStart-${category}`)])),
     },
     scheduleDayChoices(tournamentDays(tournament.startsOn, tournament.endsOn), listScheduleDaysInUse(getDb(), tournament.id)),
     listCourts(getDb(), tournament.id).map((court) => court.number),

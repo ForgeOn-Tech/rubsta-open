@@ -40,7 +40,7 @@ function setup() {
 }
 
 function request(rounds: string[]): FillRequest {
-  return { day: DAY, courts: [1, 2], startTime: "08:00", finishBy: null, restMinutes: 30, lengths: DEFAULT_MATCH_LENGTHS, rounds };
+  return { day: DAY, courts: [1, 2], startTime: "08:00", finishBy: null, restMinutes: 30, lengths: DEFAULT_MATCH_LENGTHS, rounds, eventStarts: {} };
 }
 
 const GROUPS = ["OS|Group A", "OS|Group B", "OS|Group C", "OS|Group D"];
@@ -105,6 +105,13 @@ describe("filling a day", () => {
     // A quarter-final waits for both groups that feed it; with groups interleaved, that is near the end.
     expect(firstQuarter).toBeGreaterThan(minutesOf("08:00"));
     expect(firstQuarter).toBeLessThanOrEqual(lastGroupEnd + 30);
+  });
+
+  it("starts an event no earlier than its own start time", () => {
+    const preview = previewFill(setup(), TOURNAMENT_ID, { ...request(GROUPS), eventStarts: { OS: "10:30" } });
+
+    expect(preview.placed).toHaveLength(24);
+    expect(Math.min(...preview.placed.map((row) => minutesOf(row.start)))).toBe(minutesOf("10:30"));
   });
 
   it("lists the matches that would start after the last start as not placed", () => {

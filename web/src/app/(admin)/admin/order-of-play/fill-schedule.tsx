@@ -12,6 +12,12 @@ type FillAction = (previous: FillState, formData: FormData) => Promise<FillState
 const EMPTY: FillState = { error: null, preview: null, added: null };
 const SMALL_INPUT = "field mono w-24";
 
+/** The events among the chosen rounds, once each, in the rounds' order. */
+function chosenEvents(rounds: readonly FillRound[], chosen: ReadonlySet<string>): Pick<FillRound, "category" | "eventLabel">[] {
+  const picked = rounds.filter((round) => chosen.has(round.key));
+  return picked.filter((round, index) => picked.findIndex((other) => other.category === round.category) === index);
+}
+
 /** Each event's earliest stage still to place, ticked to begin with: every group, or the first round. */
 function firstRounds(rounds: readonly FillRound[]): Set<string> {
   const eventOf = (round: FillRound) => round.key.split("|")[0];
@@ -42,6 +48,7 @@ export function FillSchedule({
   const [state, formAction, pending] = useActionState(action, EMPTY);
   const [chosen, setChosen] = useState<Set<string>>(() => firstRounds(rounds));
   const shown = state.preview;
+  const events = chosenEvents(rounds, chosen);
 
   // Submitted by hand so React does not reset the fields after each action: the plan that is
   // added must come from the same choices as the preview on screen.
@@ -94,6 +101,26 @@ export function FillSchedule({
             </div>
           )}
         </fieldset>
+
+        {events.length === 0 ? null : (
+          <fieldset>
+            <legend className="caps">Event start times</legend>
+            <p className="mt-1 text-[12px] text-muted">
+              Leave an event blank to start it with the first match. An event with its own time starts no earlier,
+              and the courts take earlier matches until then.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-4">
+              {events.map((event) => (
+                <div key={event.category}>
+                  <label className="text-[12px]" htmlFor={`fill-event-${event.category}`}>
+                    {event.eventLabel}
+                  </label>
+                  <input id={`fill-event-${event.category}`} name={`eventStart-${event.category}`} type="time" className="field mono" />
+                </div>
+              ))}
+            </div>
+          </fieldset>
+        )}
 
         <fieldset>
           <legend className="caps">Courts</legend>
