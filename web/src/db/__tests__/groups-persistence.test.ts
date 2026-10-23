@@ -148,6 +148,32 @@ describe("a group draw", () => {
     expect(database.select().from(schema.groupPlaces).all().map((row) => row.decidedBy)).toEqual(["standings", "standings"]);
   });
 
+  it("plays Women's 30+ as one group of three whose top two meet in the final", () => {
+    // Arrange
+    const { database, draw } = setup("W30", 3);
+    const groupA = groupMatches(database, draw.id, 1);
+    const members = listGroups(database, draw)[0].members;
+    const rank = (entryId: string) => members.indexOf(entryId);
+
+    // Act: the earlier member in the draw wins every match.
+    for (const match of groupA) {
+      const [top, bottom] = [entryOf(match.topSlot)!, entryOf(match.bottomSlot)!];
+      play(database, match, rank(top) < rank(bottom) ? top : bottom, 2);
+    }
+
+    // Assert
+    expect(groupA).toHaveLength(3);
+    const knockout = matchesOf(database, draw.id).filter((match) => match.groupNumber === null);
+    expect(knockout).toHaveLength(1);
+    expect(knockout[0]).toMatchObject({
+      matchNumber: 4,
+      roundName: "Final",
+      topSlot: { kind: "entry", entryId: members[0] },
+      bottomSlot: { kind: "entry", entryId: members[1] },
+    });
+    expect(formatFor("W30", knockout[0].roundName)).toEqual(BEST_OF_THREE);
+  });
+
   it("counts a walkover and a retirement in the group and still fills the places", () => {
     const { database, draw } = setup("S40", 12);
     const groupA = groupMatches(database, draw.id, 1);
