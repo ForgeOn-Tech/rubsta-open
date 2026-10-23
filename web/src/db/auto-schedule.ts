@@ -3,7 +3,7 @@ import { eq, inArray } from "drizzle-orm";
 import type { Database } from "./draws";
 import { listScoringMatches, type ScoringMatchRow } from "./matches";
 import { listEntryPlayers, type EntryPlayer } from "./partners";
-import { ScheduleRejectedError, addMatchItem, courtItems, getScheduleItem, renumber, requireCourt } from "./schedule";
+import { ScheduleRejectedError, addMatchItem, courtItems, getScheduleItem, removeItem, renumber, requireCourt } from "./schedule";
 import { CATEGORIES, CATEGORY_LABELS, draws, matches, scheduleItems, tournaments, type Category, type MatchSlot, type ScheduleItem } from "./schema";
 import {
   DEFAULT_START_TIME,
@@ -358,6 +358,18 @@ export function listTimedItems(database: Database, tournamentId: string, day: st
   });
 }
 
+/** A match item that may still move: refused for a session, or a match under way or finished. */
+function movableItem(database: Database, itemId: string): ScheduleItem {
+  const item = getScheduleItem(database, itemId);
+  if (item.kind !== "match" || item.matchId === null) throw new ScheduleRejectedError("Only matches move on the grid.");
+  const match = database.select().from(matches).where(eq(matches.id, item.matchId)).get();
+  if (!match) throw new Error(`Schedule item ${itemId} points at match ${item.matchId}, which does not exist.`);
+  if (match.status !== "scheduled") {
+    throw new ScheduleRejectedError(`M${match.matchNumber} has started, so it stays on Court ${item.courtNumber}.`);
+  }
+  return item;
+}
+
 /**
  * Moves a match to a court and a time on the same day. It goes in the court's list before the
  * first item expected to start at that time or later, and waits for that time; items below it
@@ -373,13 +385,7 @@ export function moveItemToSlot(
 ): void {
   if (!isScheduleTime(target.time)) throw new ScheduleRejectedError("Choose a time such as 10:15.");
   database.transaction((tx) => {
-    const item = getScheduleItem(tx, itemId);
-    if (item.kind !== "match" || item.matchId === null) throw new ScheduleRejectedError("Only matches move on the grid.");
-    const match = tx.select().from(matches).where(eq(matches.id, item.matchId)).get();
-    if (!match) throw new Error(`Schedule item ${itemId} points at match ${item.matchId}, which does not exist.`);
-    if (match.status !== "scheduled") {
-      throw new ScheduleRejectedError(`M${match.matchNumber} has started, so it stays on Court ${item.courtNumber}.`);
-    }
+    const item = movableItem(tx, itemId);
     requireCourt(tx, item.tournamentId, target.courtNumber);
     const now = Date.now();
 
@@ -408,5 +414,28 @@ export function moveItemToSlot(
       // Nothing above it any more, so it takes the start the moved match had.
       tx.update(scheduleItems).set({ timing: "at", time: clockOf(oldStart), updatedAt: now }).where(eq(scheduleItems.id, first.id)).run();
     }
+  });
+}
+
+/** Puts a match with no place yet on a court at a time, where moving it there would. */
+export function placeMatchAtSlot(
+  database: Database,
+  tournamentId: string,
+  placement: { day: string; matchId: string; courtNumber: number; time: string },
+  lengths: MatchLengths,
+): void {
+  if (!isScheduleTime(placement.time)) throw new ScheduleRejectedError("Choose a time such as 10:15.");
+  const { day, matchId, courtNumber, time } = placement;
+  database.transaction((tx) => {
+    const item = addMatchItem(tx, tournamentId, { day, courtNumber, matchId, timing: "notBefore", time, umpireEmail: null });
+    moveItemToSlot(tx, item.id, { courtNumber, time }, lengths);
+  });
+}
+
+/** Takes a match that has not started off the order of play, back to the grid's tray. */
+export function unscheduleItem(database: Database, itemId: string): void {
+  database.transaction((tx) => {
+    movableItem(tx, itemId);
+    removeItem(tx, itemId);
   });
 }

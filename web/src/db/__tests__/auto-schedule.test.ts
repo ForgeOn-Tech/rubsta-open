@@ -5,7 +5,7 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { describe, expect, it } from "vitest";
 
-import { applyFill, listFillRounds, listTimedItems, moveItemToSlot, previewFill } from "@/db/auto-schedule";
+import { applyFill, listFillRounds, listTimedItems, moveItemToSlot, placeMatchAtSlot, previewFill, unscheduleItem } from "@/db/auto-schedule";
 import { addCourt } from "@/db/courts";
 import { getDrawWithSlots, saveGeneratedGroups } from "@/db/draws";
 import { publishDraw } from "@/db/matches";
@@ -222,6 +222,27 @@ describe("moving a match on the grid", () => {
     ]);
   });
 
+  it("places a match from the tray at a court and time, ahead of what starts later", () => {
+    const { database, byNumber } = placed();
+
+    placeMatchAtSlot(database, TOURNAMENT_ID, { day: DAY, matchId: byNumber(5).id, courtNumber: 2, time: "08:30" }, DEFAULT_MATCH_LENGTHS);
+
+    expect(grid(database, 2)).toEqual([
+      ["08:30", "notBefore", 1, byNumber(5).id],
+      ["09:15", "notBefore", 2, byNumber(3).id],
+      ["10:00", "followOn", 3, byNumber(4).id],
+    ]);
+  });
+
+  it("refuses to place a match that already has a place", () => {
+    const { database, byNumber } = placed();
+
+    expect(() =>
+      placeMatchAtSlot(database, TOURNAMENT_ID, { day: DAY, matchId: byNumber(1).id, courtNumber: 2, time: "08:30" }, DEFAULT_MATCH_LENGTHS),
+    ).toThrow(ScheduleRejectedError);
+    expect(grid(database, 2)).toHaveLength(2);
+  });
+
   it("leaves a match under way where it is", () => {
     const { database, byNumber, items } = placed();
     database.update(schema.matches).set({ status: "in_progress" }).where(eq(schema.matches.id, byNumber(1).id)).run();
@@ -230,6 +251,16 @@ describe("moving a match on the grid", () => {
       new ScheduleRejectedError("M1 has started, so it stays on Court 1."),
     );
     expect(grid(database, 1).map((row) => row[3])).toEqual([byNumber(1).id, byNumber(2).id]);
+  });
+
+  it("takes a match back to the tray, but not one under way", () => {
+    const { database, byNumber, items } = placed();
+    database.update(schema.matches).set({ status: "in_progress" }).where(eq(schema.matches.id, byNumber(3).id)).run();
+
+    unscheduleItem(database, items[1].id);
+
+    expect(grid(database, 1).map((row) => row[3])).toEqual([byNumber(1).id]);
+    expect(() => unscheduleItem(database, items[2].id)).toThrow(new ScheduleRejectedError("M3 has started, so it stays on Court 2."));
   });
 
   it.each([

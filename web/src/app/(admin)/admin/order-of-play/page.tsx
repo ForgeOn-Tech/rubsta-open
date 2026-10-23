@@ -4,6 +4,7 @@ import {
   addMatchToScheduleAction,
   changeScheduleItemAction,
   fillScheduleAction,
+  gridDropAction,
   publishDayAction,
   undoWalkoverAction,
   walkoverAction,
@@ -11,14 +12,14 @@ import {
 import { AddToSchedule, type MatchChoice } from "./add-to-schedule";
 import { FillSchedule } from "./fill-schedule";
 import { PublishDayButton } from "./publish-day-button";
+import { ScheduleGrid, type GridCard } from "./schedule-grid";
 import { ScheduleItemEditor } from "./schedule-item-editor";
 import { UndoWalkoverButton, WalkoverButton } from "./walkover-button";
 import { listScorerEmails, requireAdmin } from "@/auth/require";
 import { AdminNotice } from "@/components/admin-notice";
 import { AdminPageHeader } from "@/components/admin-page-header";
 import { ScheduleCard } from "@/components/schedule-card";
-import { listFillRounds } from "@/db/auto-schedule";
-import { scheduleSettingsOf } from "@/lib/auto-schedule";
+import { listFillRounds, listTimedItems, type TimedItem } from "@/db/auto-schedule";
 import { getDb } from "@/db/client";
 import { listCourts } from "@/db/courts";
 import { isWalkover, listScoringMatches, type ScoringMatchRow } from "@/db/matches";
@@ -32,7 +33,9 @@ import {
   listScheduledMatchIds,
 } from "@/db/schedule";
 import { CATEGORIES, CATEGORY_LABELS } from "@/db/schema";
+import { expectedMinutes, scheduleSettingsOf, type MatchLengths } from "@/lib/auto-schedule";
 import { countLabel } from "@/lib/format";
+import { formatFor } from "@/lib/match-formats";
 import {
   ADMIN_ORDER_OF_PLAY_PATH,
   courtColumns,
@@ -53,6 +56,7 @@ import {
   venueDay,
 } from "@/lib/schedule";
 import { sameDayWarnings } from "@/lib/schedule-clashes";
+import { gridRange } from "@/lib/schedule-grid";
 import { scoringGroupOf, sideLabel } from "@/lib/scoring-display";
 
 export const dynamic = "force-dynamic";
@@ -80,11 +84,70 @@ function matchChoices(rows: readonly ScoringMatchRow[], scheduled: ReadonlySet<s
     .map((row) => ({ id: row.match.id, group: CATEGORY_LABELS[row.category], label: matchChoiceLabel(row) }));
 }
 
-/** Organiser order of play from design/screens/OrderOfPlay.dc.html: one column per court. */
+const VIEWS = ["grid", "list"] as const;
+type View = (typeof VIEWS)[number];
+const VIEW_LABELS: Record<View, string> = { grid: "Grid", list: "List" };
+
+function gridTitle(row: ScoringMatchRow): string {
+  return `${CATEGORY_LABELS[row.category]} · ${row.match.roundName} · M${row.match.matchNumber}`;
+}
+
+function gridPlayers(row: ScoringMatchRow): string {
+  return `${sideLabel(row.top, row.match.topSlot).name} v ${sideLabel(row.bottom, row.match.bottomSlot).name}`;
+}
+
+function badgeOf(row: ScoringMatchRow): string | null {
+  if (row.match.status === "in_progress") return "Live";
+  return row.match.status === "completed" ? "Done" : null;
+}
+
+/** The day's placed items and the tray's unplaced matches as grid cards. */
+function gridCards(input: {
+  timed: readonly TimedItem[];
+  unplaced: readonly ScoringMatchRow[];
+  rowOf: (matchId: string | null) => ScoringMatchRow | null;
+  warnings: ReadonlyMap<string, readonly string[]>;
+  lengths: MatchLengths;
+}): GridCard[] {
+  const placed = input.timed.map(({ item, start, end }): GridCard => {
+    const row = input.rowOf(item.matchId);
+    return {
+      key: item.id,
+      itemId: item.id,
+      matchId: item.matchId,
+      title: row === null ? (item.title ?? "Session") : gridTitle(row),
+      players: row === null ? null : gridPlayers(row),
+      courtNumber: item.courtNumber,
+      start,
+      minutes: Math.max(end - start, 1),
+      locked: row === null || row.match.status !== "scheduled",
+      badge: row === null ? "Session" : badgeOf(row),
+      warnings: row === null ? [] : [...(input.warnings.get(row.match.id) ?? [])],
+    };
+  });
+  const tray = input.unplaced.map(
+    (row): GridCard => ({
+      key: row.match.id,
+      itemId: null,
+      matchId: row.match.id,
+      title: gridTitle(row),
+      players: gridPlayers(row),
+      courtNumber: null,
+      start: null,
+      minutes: expectedMinutes(row.match.format ?? formatFor(row.category, row.match.roundName), input.lengths),
+      locked: false,
+      badge: null,
+      warnings: [],
+    }),
+  );
+  return [...placed, ...tray];
+}
+
+/** Organiser order of play from design/screens/OrderOfPlay.dc.html: a court × time grid, or one list per court. */
 export default async function AdminOrderOfPlayPage({
   searchParams,
 }: {
-  searchParams: Promise<{ day?: string | string[] }>;
+  searchParams: Promise<{ day?: string | string[]; view?: string | string[] }>;
 }) {
   await requireAdmin();
   const tournament = getCurrentTournament();
@@ -95,7 +158,9 @@ export default async function AdminOrderOfPlayPage({
     tournamentDays(tournament.startsOn, tournament.endsOn),
     listScheduleDaysInUse(database, tournament.id),
   );
-  const requested = (await searchParams).day;
+  const params = await searchParams;
+  const requested = params.day;
+  const view: View = VIEWS.find((option) => option === params.view) ?? "grid";
   const day =
     typeof requested === "string" && days.includes(requested)
       ? requested
@@ -145,6 +210,17 @@ export default async function AdminOrderOfPlayPage({
     const row = rowOf(entry.matchId);
     return row === null ? [] : [row];
   });
+  const settings = scheduleSettingsOf(tournament);
+  const timed = listTimedItems(database, tournament.id, day, settings.lengths);
+  const scheduledIds = listScheduledMatchIds(database, tournament.id);
+  const unplaced = rows
+    .filter((row) => scoringGroupOf(row) !== null && row.match.status !== "completed" && !scheduledIds.has(row.match.id))
+    .sort(
+      (a, b) =>
+        CATEGORIES.indexOf(a.category) - CATEGORIES.indexOf(b.category) ||
+        a.match.roundIndex - b.match.roundIndex ||
+        a.match.matchNumber - b.match.matchNumber,
+    );
   const start = playFrom(entries);
   const dayLabel = formatScheduleDay(day);
   const stats = [
@@ -159,13 +235,31 @@ export default async function AdminOrderOfPlayPage({
   return (
     <>
       <AdminPageHeader eyebrow={`${tournament.name} · ${dayLabel}`} title="Order of play" stats={stats}>
+        <nav aria-label="View" className="flex flex-wrap border border-line">
+          {VIEWS.map((option) => {
+            const current = option === view;
+            return (
+              <Link
+                key={option}
+                href={`${ADMIN_ORDER_OF_PLAY_PATH}?day=${day}&view=${option}`}
+                aria-current={current ? "page" : undefined}
+                className={`flex h-8 items-center border-line px-3.5 text-[12px] [&:not(:first-child)]:border-l ${
+                  current ? "bg-surface-2 font-semibold" : ""
+                }`}
+                style={{ color: current ? "var(--color-ink)" : "var(--color-muted)" }}
+              >
+                {VIEW_LABELS[option]}
+              </Link>
+            );
+          })}
+        </nav>
         <nav aria-label="Days" className="flex flex-wrap border border-line">
           {days.map((option) => {
             const current = option === day;
             return (
               <Link
                 key={option}
-                href={`${ADMIN_ORDER_OF_PLAY_PATH}?day=${option}`}
+                href={`${ADMIN_ORDER_OF_PLAY_PATH}?day=${option}&view=${view}`}
                 aria-current={current ? "page" : undefined}
                 className={`flex h-8 items-center border-line px-3.5 text-[12px] [&:not(:first-child)]:border-l ${
                   current ? "bg-surface-2 font-semibold" : ""
@@ -198,13 +292,13 @@ export default async function AdminOrderOfPlayPage({
           <p className="card p-4 text-[13px] text-muted" role="status">
             Add courts in <Link href="/admin/settings">Settings</Link> to build the order of play.
           </p>
-        ) : (
+        ) : view === "grid" ? null : (
           <AddToSchedule
             day={day}
             dayLabel={dayLabel}
             courts={courtOptions}
             umpires={umpires}
-            matches={matchChoices(rows, listScheduledMatchIds(database, tournament.id))}
+            matches={matchChoices(rows, scheduledIds)}
             addMatchAction={addMatchToScheduleAction}
           />
         )}
@@ -216,12 +310,23 @@ export default async function AdminOrderOfPlayPage({
             dayLabel={dayLabel}
             courts={courtOptions}
             rounds={listFillRounds(database, tournament.id)}
-            settings={scheduleSettingsOf(tournament)}
+            settings={settings}
             action={fillScheduleAction}
           />
         )}
 
-        {columns.length === 0 ? null : (
+        {courts.length === 0 || view !== "grid" ? null : (
+          <ScheduleGrid
+            key={`grid-${day}`}
+            day={day}
+            courts={courtOptions}
+            cards={gridCards({ timed, unplaced, rowOf, warnings, lengths: settings.lengths })}
+            range={gridRange(timed)}
+            action={gridDropAction}
+          />
+        )}
+
+        {columns.length === 0 || view !== "list" ? null : (
           <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(250px,1fr))]">
             {columns.map((column) => {
               const detail = courtDetail(column.court);
