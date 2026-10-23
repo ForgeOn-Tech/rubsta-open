@@ -11,7 +11,6 @@ import { publishDraw, unpublishDraw } from "@/db/matches";
 import {
   ScheduleItemNotFoundError,
   ScheduleRejectedError,
-  addBlockItem,
   addMatchItem,
   getPublishedDay,
   listPublishedDays,
@@ -84,8 +83,14 @@ function placeMatch(database: Db, matchId: string, courtNumber: number) {
   });
 }
 
-function placeBlock(database: Db, courtNumber: number) {
-  return addBlockItem(database, TOURNAMENT_ID, { day: DAY, courtNumber, block: BLOCK });
+/** A session left from before sessions could no longer be added; it can still be edited or removed. */
+function placeBlock(database: Db, courtNumber: number, day: string) {
+  const position = listScheduleItems(database, TOURNAMENT_ID, day).filter((item) => item.courtNumber === courtNumber).length + 1;
+  return database
+    .insert(schema.scheduleItems)
+    .values({ tournamentId: TOURNAMENT_ID, day, courtNumber, position, kind: "block", timing: "at", ...BLOCK })
+    .returning()
+    .get();
 }
 
 function order(database: Db, courtNumber: number): [string, number][] {
@@ -154,7 +159,7 @@ describe("courts", () => {
 
   it("keeps a court that only a published day still uses", () => {
     const { database } = setup();
-    const block = placeBlock(database, 2);
+    const block = placeBlock(database, 2, DAY);
     publishDay(database, TOURNAMENT_ID, DAY);
     removeItem(database, block.id);
 
@@ -235,7 +240,7 @@ describe("changing items", () => {
   it("stores a session with its time range", () => {
     const { database } = setup();
 
-    expect(placeBlock(database, 1)).toMatchObject({ kind: "block", timing: "at", ...BLOCK, matchId: null });
+    expect(placeBlock(database, 1, DAY)).toMatchObject({ kind: "block", timing: "at", ...BLOCK, matchId: null });
   });
 
   it("updates a match's timing and umpire", () => {
@@ -253,7 +258,7 @@ describe("changing items", () => {
 
   it("updates a session", () => {
     const { database } = setup();
-    const item = placeBlock(database, 1);
+    const item = placeBlock(database, 1, DAY);
 
     updateBlockItem(database, item.id, { ...BLOCK, title: "Reaction Challenge", endTime: null });
 
@@ -266,7 +271,7 @@ describe("changing items", () => {
   it("refuses to change an item as the wrong kind", () => {
     const { database, semi } = setup();
     const match = placeMatch(database, semi.id, 1);
-    const block = placeBlock(database, 1);
+    const block = placeBlock(database, 1, DAY);
 
     expect(() => updateBlockItem(database, match.id, BLOCK)).toThrow(/not a session/);
     expect(() =>
@@ -277,7 +282,7 @@ describe("changing items", () => {
   it("swaps an item with its neighbour", () => {
     const { database, semi } = setup();
     const match = placeMatch(database, semi.id, 1);
-    const block = placeBlock(database, 1);
+    const block = placeBlock(database, 1, DAY);
 
     moveItem(database, block.id, "up");
 
@@ -291,7 +296,7 @@ describe("changing items", () => {
     const { database, semi, final } = setup();
     const first = placeMatch(database, semi.id, 1);
     const second = placeMatch(database, final.id, 1);
-    const other = placeBlock(database, 2);
+    const other = placeBlock(database, 2, DAY);
 
     moveItemToCourt(database, first.id, 2);
 
@@ -328,7 +333,7 @@ describe("changing items", () => {
   it("drops a match's place when its draw goes back to draft", () => {
     const { database, drawId, semi } = setup();
     placeMatch(database, semi.id, 1);
-    placeBlock(database, 1);
+    placeBlock(database, 1, DAY);
 
     unpublishDraw(database, drawId);
 
@@ -359,7 +364,7 @@ describe("publishDay", () => {
   it("has nothing new to publish after an item moves and moves back", () => {
     const { database, semi } = setup();
     placeMatch(database, semi.id, 1);
-    const block = placeBlock(database, 1);
+    const block = placeBlock(database, 1, DAY);
     const published = publishDay(database, TOURNAMENT_ID, DAY);
 
     moveItem(database, block.id, "up");
@@ -380,7 +385,7 @@ describe("publishDay", () => {
 
   it("lists days with working items or a published order of play", () => {
     const { database } = setup();
-    addBlockItem(database, TOURNAMENT_ID, { day: NEXT_DAY, courtNumber: 1, block: BLOCK });
+    placeBlock(database, 1, NEXT_DAY);
     publishDay(database, TOURNAMENT_ID, DAY);
 
     expect(listScheduleDaysInUse(database, TOURNAMENT_ID)).toEqual([DAY, NEXT_DAY]);

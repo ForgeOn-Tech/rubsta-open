@@ -10,7 +10,6 @@ import { ScoreRejectedError, undoWalkover, walkoverMatch } from "@/db/matches";
 import { getCurrentTournament } from "@/db/queries";
 import {
   ScheduleRejectedError,
-  addBlockItem,
   addMatchItem,
   getScheduleItem,
   listScheduleDaysInUse,
@@ -119,26 +118,6 @@ export async function addMatchToScheduleAction(
       umpireEmail: umpire.value,
     }),
   );
-}
-
-export async function addBlockToScheduleAction(
-  _prev: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
-  await requireAdmin();
-  const tournament = requireTournament();
-  const day = dayFrom(formData, tournament);
-  const courtNumber = courtNumberFrom(formData);
-  if (courtNumber === null) return failed("Choose a court.");
-  const block = validateBlock({
-    title: field(formData, "title"),
-    note: field(formData, "note"),
-    time: field(formData, "time"),
-    endTime: field(formData, "endTime"),
-  });
-  if (!block.ok) return failed(block.error);
-
-  return attempt(() => addBlockItem(getDb(), tournament.id, { day, courtNumber, block: block.value }));
 }
 
 /** One action for every change to an item; the submit button's intent says which. */

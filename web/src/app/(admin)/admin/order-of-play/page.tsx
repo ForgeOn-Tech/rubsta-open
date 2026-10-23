@@ -1,7 +1,6 @@
 import Link from "next/link";
 
 import {
-  addBlockToScheduleAction,
   addMatchToScheduleAction,
   changeScheduleItemAction,
   fillScheduleAction,
@@ -206,7 +205,6 @@ export default async function AdminOrderOfPlayPage({
             umpires={umpires}
             matches={matchChoices(rows, listScheduledMatchIds(database, tournament.id))}
             addMatchAction={addMatchToScheduleAction}
-            addBlockAction={addBlockToScheduleAction}
           />
         )}
 

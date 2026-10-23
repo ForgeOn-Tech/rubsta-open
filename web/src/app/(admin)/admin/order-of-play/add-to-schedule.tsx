@@ -3,7 +3,6 @@
 import { useActionState, useState } from "react";
 
 import {
-  BlockFields,
   CourtSelect,
   TimingFields,
   UmpireSelect,
@@ -26,10 +25,7 @@ export interface AddToScheduleProps {
   umpires: readonly UmpireOption[];
   matches: readonly MatchChoice[];
   addMatchAction: FormAction;
-  addBlockAction: FormAction;
 }
-
-const EMPTY_BLOCK = { title: "", note: "", time: "", endTime: "" };
 
 export function AddToSchedule({
   day,
@@ -38,20 +34,16 @@ export function AddToSchedule({
   umpires,
   matches,
   addMatchAction,
-  addBlockAction,
 }: AddToScheduleProps) {
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <AddMatchForm
-        day={day}
-        dayLabel={dayLabel}
-        courts={courts}
-        umpires={umpires}
-        matches={matches}
-        action={addMatchAction}
-      />
-      <AddBlockForm day={day} dayLabel={dayLabel} courts={courts} action={addBlockAction} />
-    </div>
+    <AddMatchForm
+      day={day}
+      dayLabel={dayLabel}
+      courts={courts}
+      umpires={umpires}
+      matches={matches}
+      action={addMatchAction}
+    />
   );
 }
 
@@ -146,45 +138,5 @@ function NewMatchFields({
       </div>
       <TimingFields idPrefix="new-item" initialTiming="at" initialTime="" />
     </>
-  );
-}
-
-function AddBlockForm({
-  day,
-  dayLabel,
-  courts,
-  action,
-}: {
-  day: string;
-  dayLabel: string;
-  courts: readonly CourtOption[];
-  action: FormAction;
-}) {
-  const [state, formAction, pending] = useActionState(action, INITIAL_ACTION_STATE);
-
-  return (
-    <section aria-labelledby="add-block-heading" className="card p-4">
-      <h2 id="add-block-heading" className="text-[14px] font-semibold">
-        Add a session to {dayLabel}
-      </h2>
-      <p className="mt-1 text-[12px] text-muted">
-        For court time that is not a match, such as a Challenge Kit session.
-      </p>
-      <form action={formAction} className="mt-3 flex flex-col gap-2">
-        <input type="hidden" name="day" value={day} />
-        <div key={state.savedAt ?? 0} className="flex flex-col gap-2">
-          <CourtSelect id="new-block-court" label="Court" courts={courts} initial={null} />
-          <BlockFields idPrefix="new-block" initial={EMPTY_BLOCK} />
-        </div>
-        {state.error ? (
-          <p className="text-[12px] text-bad" role="alert">
-            {state.error}
-          </p>
-        ) : null}
-        <button type="submit" className="btn btn-primary h-9 w-fit text-[12px]" disabled={pending}>
-          {pending ? "Adding…" : "Add session"}
-        </button>
-      </form>
-    </section>
   );
 }
