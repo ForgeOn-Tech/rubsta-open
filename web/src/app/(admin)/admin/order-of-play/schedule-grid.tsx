@@ -3,7 +3,7 @@
 import {
   DndContext,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
   TouchSensor,
   useDraggable,
   useDroppable,
@@ -44,7 +44,7 @@ const ROW_PX = 20;
 const MIN_CARD_PX = 36;
 const TRAY_ID = "tray";
 const COURT_PREFIX = "court-";
-/** A pointer must move this far before a drag starts, so a click still works. */
+/** A mouse must move this far before a drag starts, so a click still works. */
 const DRAG_DISTANCE_PX = 6;
 /** On touch, hold this long to drag, so a swipe still scrolls. */
 const TOUCH_DELAY_MS = 200;
@@ -105,7 +105,7 @@ function DraggableCard({ card, placed, range }: { card: GridCard; placed: boolea
       {...attributes}
       {...listeners}
       aria-label={`${card.title}${card.players === null ? "" : `, ${card.players}`}, ${where}${card.locked ? ", cannot move" : ""}`}
-      className={`card shrink-0 overflow-hidden border-l-[3px] px-2 py-1 ${card.locked ? "cursor-default opacity-70" : "cursor-grab touch-none"} ${
+      className={`card shrink-0 overflow-hidden border-l-[3px] px-2 py-1 ${card.locked ? "cursor-default opacity-70" : "cursor-grab touch-manipulation"} ${
         isDragging ? "z-20 shadow-lg" : "z-10"
       }`}
       style={style}
@@ -139,7 +139,7 @@ function Tray({ cards, range }: { cards: readonly GridCard[]; range: GridRange }
     <section
       ref={setNodeRef}
       aria-labelledby="tray-heading"
-      className={`card flex w-full flex-col gap-2 p-3 lg:sticky lg:top-4 lg:max-h-[80vh] lg:w-64 lg:shrink-0 lg:overflow-y-auto ${
+      className={`card flex max-h-72 w-full flex-col gap-2 overflow-y-auto p-3 lg:sticky lg:top-4 lg:max-h-[80vh] lg:w-64 lg:shrink-0 ${
         isOver ? "bg-surface-2" : ""
       }`}
     >
@@ -175,7 +175,8 @@ export function ScheduleGrid({
   const [shown, showDrop] = useOptimistic(cards as GridCard[], moved);
   const [error, setError] = useState<string | null>(null);
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: DRAG_DISTANCE_PX } }),
+    // Mouse and touch apart: a finger must hold a card to drag it, so a swipe still scrolls.
+    useSensor(MouseSensor, { activationConstraint: { distance: DRAG_DISTANCE_PX } }),
     useSensor(TouchSensor, { activationConstraint: { delay: TOUCH_DELAY_MS, tolerance: TOUCH_TOLERANCE_PX } }),
     useSensor(KeyboardSensor),
   );
