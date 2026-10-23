@@ -55,12 +55,6 @@ export interface MatchItemChanges {
   umpireEmail: string | null;
 }
 
-export interface BlockPlacement {
-  day: string;
-  courtNumber: number;
-  block: BlockFields;
-}
-
 function requireDay(day: string): void {
   if (!isCalendarDate(day)) throw new Error(`"${day}" is not a YYYY-MM-DD date.`);
 }
@@ -224,34 +218,6 @@ export function addMatchItem(
         timing: placement.timing,
         time: placement.time,
         umpireEmail: placement.umpireEmail,
-      })
-      .returning()
-      .get();
-  });
-}
-
-/** Puts a session that is not a match, such as a challenge, at the bottom of a court's list. */
-export function addBlockItem(
-  database: Database,
-  tournamentId: string,
-  placement: BlockPlacement,
-): ScheduleItem {
-  requireDay(placement.day);
-  return database.transaction((tx) => {
-    requireCourt(tx, tournamentId, placement.courtNumber);
-    return tx
-      .insert(scheduleItems)
-      .values({
-        tournamentId,
-        day: placement.day,
-        courtNumber: placement.courtNumber,
-        position: nextPosition(tx, tournamentId, placement.day, placement.courtNumber),
-        kind: "block",
-        title: placement.block.title,
-        note: placement.block.note,
-        timing: "at",
-        time: placement.block.time,
-        endTime: placement.block.endTime,
       })
       .returning()
       .get();

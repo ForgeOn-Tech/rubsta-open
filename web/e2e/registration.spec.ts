@@ -200,14 +200,6 @@ test.describe.serial("registration", () => {
     await expect(courtOne).toContainText("11:00");
     await expect(courtOne).toContainText("Umpire: Demo Player");
 
-    const addSession = page.getByRole("region", { name: /Add a session/ });
-    await addSession.getByLabel("Court").selectOption("2");
-    await addSession.getByLabel("Title").fill("Serve Speed Challenge");
-    await addSession.getByLabel("Starts").fill("12:00");
-    await addSession.getByLabel("Ends").fill("14:00");
-    await addSession.getByRole("button", { name: "Add session" }).click();
-    await expect(page.getByRole("region", { name: "Court 2", exact: true })).toContainText("12:00–14:00");
-
     await expect(page.getByText("Not published")).toBeVisible();
     await page.getByRole("button", { name: "Publish schedule" }).click();
     await expect(page.getByRole("button", { name: "Published" })).toBeDisabled();
@@ -237,7 +229,6 @@ test.describe.serial("registration", () => {
     await page.getByRole("link", { name: "Order of play" }).click();
     await expect(page).toHaveURL(/\/score\/schedule\/2099-10-24$/);
     await expect(page.getByRole("region", { name: "Court 1" })).toContainText("Umpire: You");
-    await expect(page.getByRole("region", { name: "Court 2" })).toContainText("Serve Speed Challenge");
   });
 
   test("an umpire keeps scoring through a dropped connection", async ({ page, context }, testInfo) => {
@@ -416,7 +407,6 @@ test.describe.serial("registration", () => {
 
     await page.goto("/order-of-play");
     await expect(page.getByRole("region", { name: "Court 1" })).toContainText("Not before 15:30");
-    await expect(page.getByRole("region", { name: "Court 2" })).toContainText("Serve Speed Challenge");
   });
 
   test("anyone reads the draw, the results and the order of play without an account", async ({

@@ -270,10 +270,10 @@ record scores against that number. A court on any order of play cannot be
 deleted.
 
 `/admin/order-of-play` builds one tournament day at a time, with a column for
-each court. A court lists its matches and sessions in playing order. A match
-starts at a time, starts not before a time, or follows the item above it. A
-session is court time that is not a match, such as a Challenge Kit session. It
-has a start time and an optional end time. Each match can have an umpire from
+each court. A court lists its matches in playing order. A match starts at a
+time, starts not before a time, or follows the item above it. Sessions, court
+time that is not a match, can no longer be added; one made earlier still shows
+and can be edited or removed. Each match can have an umpire from
 `UMPIRE_EMAILS` or `ADMIN_EMAILS`. A match has one place across all days, and a
 bye needs none. Times are venue times in India.
 
