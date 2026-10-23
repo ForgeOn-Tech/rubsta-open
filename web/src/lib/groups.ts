@@ -14,9 +14,9 @@ import {
 /**
  * Round-robin groups before a knockout, for the events the organiser plays that way. Each
  * value is how many players the groups send into the knockout: 8 to the quarter-finals,
- * 4 straight to the semi-finals.
+ * 4 straight to the semi-finals, 2 to the final.
  */
-export const GROUP_EVENT_QUALIFIERS: Partial<Record<Category, number>> = { OS: 8, S40: 4 };
+export const GROUP_EVENT_QUALIFIERS: Partial<Record<Category, number>> = { OS: 8, S40: 4, W30: 2 };
 
 const FIRST_GROUP_LETTER = "A".charCodeAt(0);
 const GROUP_ROUND_NAME = /^Group ([A-Z])$/;
@@ -30,7 +30,8 @@ export interface GroupPlan {
 /**
  * How a group event splits its entrants. With more than twice the qualifiers (17–32 in Open
  * singles), every qualifier wins its own group. With up to twice (16), half as many groups
- * each send two. With no more entrants than qualifiers, there are no groups: a plain knockout.
+ * each send two; for Women's 30+ (3–4) that is one group whose top two meet in the final.
+ * With no more entrants than qualifiers, there are no groups: a plain knockout.
  */
 export function groupPlan(category: Category, entrantCount: number): GroupPlan | null {
   const qualifiers = GROUP_EVENT_QUALIFIERS[category];
@@ -57,8 +58,8 @@ export function validateEventSeeds(category: Category, seeds: readonly (number |
 }
 
 /** The most groups one event can have; 16 groups of 2 already fills a 32-player knockout. */
-/** One group has no knockout to feed, so a group event needs two. */
-export const MIN_GROUPS = 2;
+/** One group feeds a knockout only by sending two through, to a final. */
+export const MIN_GROUPS = 1;
 export const MAX_GROUPS = 16;
 export const QUALIFIER_CHOICES = [1, 2] as const;
 
@@ -108,10 +109,11 @@ export function knockoutStartName(plan: GroupPlan): string {
   return roundName((plan.groupCount * plan.qualifiersPerGroup) / 2).toLowerCase();
 }
 
-/** e.g. "8 groups, winners to the quarter-finals" or "4 groups, top 2 to the quarter-finals". */
+/** e.g. "8 groups, winners to the quarter-finals" or "1 group, top 2 to the final". */
 export function groupPlanLabel(plan: GroupPlan): string {
+  const groups = plan.groupCount === 1 ? "1 group" : `${plan.groupCount} groups`;
   const through = plan.qualifiersPerGroup === 1 ? "winners" : `top ${plan.qualifiersPerGroup}`;
-  return `${plan.groupCount} groups, ${through} to the ${knockoutStartName(plan)}`;
+  return `${groups}, ${through} to the ${knockoutStartName(plan)}`;
 }
 
 /** Group 1 is "A". */
@@ -211,7 +213,7 @@ export function roundRobinPairs<Member>(members: readonly Member[]): [Member, Me
  * The knockout's first-round places, top to bottom. Group k's winner takes seed k's line.
  * With two through, each runner-up faces the winner of the neighbouring group (A against B,
  * C against D), so they sit in the other half from their own group's winner and can meet
- * them only in the final.
+ * them only in the final. A lone group's runner-up faces its own winner, in the final.
  */
 export function knockoutSlots(plan: GroupPlan): BracketSlot[] {
   const size = plan.groupCount * plan.qualifiersPerGroup;
@@ -223,7 +225,7 @@ export function knockoutSlots(plan: GroupPlan): BracketSlot[] {
   }
   if (plan.qualifiersPerGroup === 2) {
     for (let group = 1; group <= plan.groupCount; group++) {
-      const neighbour = group % 2 === 1 ? group + 1 : group - 1;
+      const neighbour = plan.groupCount === 1 ? group : group % 2 === 1 ? group + 1 : group - 1;
       const winnerLine = lineOfSeed(neighbour);
       // Lines pair up 0–1, 2–3: the runner-up takes the line facing the neighbour's winner.
       slots[winnerLine % 2 === 0 ? winnerLine + 1 : winnerLine - 1] = { kind: "group", group, place: 2 };

@@ -7,6 +7,7 @@ import {
   groupOfRoundName,
   groupPlaceLabel,
   groupPlan,
+  groupPlanLabel,
   groupQualifiers,
   groupRoundName,
   groupStandings,
@@ -46,7 +47,10 @@ describe("groupPlan", () => {
     ["S40", 8, { groupCount: 2, qualifiersPerGroup: 2 }],
     ["S40", 9, { groupCount: 4, qualifiersPerGroup: 1 }],
     ["S40", 16, { groupCount: 4, qualifiersPerGroup: 1 }],
-    ["W30", 30, null],
+    ["W30", 2, null],
+    ["W30", 3, { groupCount: 1, qualifiersPerGroup: 2 }],
+    ["W30", 4, { groupCount: 1, qualifiersPerGroup: 2 }],
+    ["W30", 5, { groupCount: 2, qualifiersPerGroup: 1 }],
     ["OD", 30, null],
   ] as const)("plays %s with %i entrants as %j", (category, count, plan) => {
     expect(groupPlan(category, count)).toEqual(plan);
@@ -59,7 +63,8 @@ describe("seedLimit", () => {
     expect(seedLimit("OS", 24)).toBe(12);
     expect(seedLimit("OS", 16)).toBe(8);
     expect(seedLimit("S40", 9)).toBe(4);
-    expect(seedLimit("W30", 16)).toBe(4);
+    expect(seedLimit("W30", 3)).toBe(1);
+    expect(seedLimit("U15", 16)).toBe(4);
   });
 });
 
@@ -70,12 +75,16 @@ describe("validateGroupPlan", () => {
     expect(validateGroupPlan(base)).toEqual({ ok: true, plan: { groupCount: 4, qualifiersPerGroup: 2 } });
     expect(validateGroupPlan({ ...base, groupCount: "2", seedCount: 2 })).toEqual({ ok: true, plan: { groupCount: 2, qualifiersPerGroup: 2 } });
     expect(validateGroupPlan({ ...base, groupCount: "8", qualifiersPerGroup: "1" })).toMatchObject({ ok: true });
+    expect(validateGroupPlan({ groupCount: "1", qualifiersPerGroup: "2", entrantCount: 3, seedCount: 1 })).toEqual({
+      ok: true,
+      plan: { groupCount: 1, qualifiersPerGroup: 2 },
+    });
   });
 
   it.each([
-    ["no groups", { groupCount: "0" }, "Groups must be a whole number from 2 to 16."],
-    ["one group, which feeds no knockout", { groupCount: "1", seedCount: 1 }, "Groups must be a whole number from 2 to 16."],
-    ["a fraction", { groupCount: "2.5" }, "Groups must be a whole number from 2 to 16."],
+    ["no groups", { groupCount: "0" }, "Groups must be a whole number from 1 to 16."],
+    ["one group sending one through, which feeds no knockout", { groupCount: "1", qualifiersPerGroup: "1", seedCount: 1 }, "1 groups with 1 through make 1 knockout places; it must be 2, 4, 8 or 16."],
+    ["a fraction", { groupCount: "2.5" }, "Groups must be a whole number from 1 to 16."],
     ["three through", { qualifiersPerGroup: "3" }, "Choose 1 or 2 to go through from each group."],
     ["a knockout of 6", { groupCount: "3" }, "3 groups with 2 through make 6 knockout places; it must be 2, 4, 8 or 16."],
     ["groups of one", { groupCount: "16", qualifiersPerGroup: "1" }, "16 players cannot fill 16 groups of at least 2."],
@@ -159,6 +168,21 @@ describe("knockoutSlots", () => {
         expect(lineOf(group, 1) < half).not.toBe(lineOf(group, 2) < half);
       }
     }
+  });
+
+  it("labels a lone group sending two to the final", () => {
+    expect(groupPlanLabel({ groupCount: 1, qualifiersPerGroup: 2 })).toBe("1 group, top 2 to the final");
+    expect(groupPlanLabel({ groupCount: 8, qualifiersPerGroup: 1 })).toBe("8 groups, winners to the quarter-finals");
+  });
+
+  it("sends a lone group's winner and runner-up to meet in the final", () => {
+    const rounds = buildBracketFromSlots(knockoutSlots({ groupCount: 1, qualifiersPerGroup: 2 }), 4);
+
+    expect(rounds).toHaveLength(1);
+    expect(rounds[0]).toMatchObject({
+      name: "Final",
+      matches: [{ number: 4, top: { kind: "group", group: 1, place: 1 }, bottom: { kind: "group", group: 1, place: 2 } }],
+    });
   });
 
   it("starts the knockout as semi-finals for 40+ singles' four group winners", () => {
