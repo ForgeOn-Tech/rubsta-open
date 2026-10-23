@@ -101,7 +101,7 @@ describe("court chat", () => {
     postFanMessage(database, { ...CHAT, body: "  What a rally  ", now: NOW });
 
     expect(listCourtMessages(database, TOURNAMENT_ID, COURT)).toEqual([
-      { id: expect.any(String), name: "Rhea S.", body: "What a rally", createdAt: NOW },
+      { id: expect.any(String), name: "Rhea Sharma", body: "What a rally", createdAt: NOW },
     ]);
   });
 
@@ -110,7 +110,7 @@ describe("court chat", () => {
 
     postFanMessage(database, { ...CHAT, userId: ARJUN.userId, body: "Come on", now: NOW });
 
-    expect(listCourtMessages(database, TOURNAMENT_ID, COURT)[0].name).toBe("Arjun K.");
+    expect(listCourtMessages(database, TOURNAMENT_ID, COURT)[0].name).toBe("Arjun Kumar");
   });
 
   it("refuses a second message before the wait has passed, and allows it after", () => {
@@ -154,7 +154,7 @@ describe("court chat", () => {
     expect(listMessagesToModerate(database, TOURNAMENT_ID, 10)).toEqual([
       {
         id: message.id,
-        name: "Rhea S.",
+        name: "Rhea Sharma",
         body: "Out of order",
         createdAt: NOW,
         courtNumber: COURT,
@@ -234,8 +234,8 @@ describe("predictions", () => {
       .run();
 
     expect(fanLeaderboard(database, TOURNAMENT_ID)).toEqual([
-      { userId: RHEA.userId, name: "Rhea S.", points: 1, correct: 1, decided: 1 },
-      { userId: ARJUN.userId, name: "Arjun K.", points: 0, correct: 0, decided: 1 },
+      { userId: RHEA.userId, name: "Rhea Sharma", points: 1, correct: 1, decided: 1 },
+      { userId: ARJUN.userId, name: "Arjun Kumar", points: 0, correct: 0, decided: 1 },
     ]);
   });
 

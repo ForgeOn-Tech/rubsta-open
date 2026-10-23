@@ -1,6 +1,7 @@
 import { signInWithDemo, signInWithGoogle } from "./actions";
 import Link from "next/link";
 import { ClearOfflinePages } from "./clear-offline-pages";
+import { afterSignInPath } from "@/lib/sign-in-return";
 
 export const dynamic = "force-dynamic";
 
@@ -12,9 +13,10 @@ const ERROR_COPY: Record<string, string> = {
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; next?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, next } = await searchParams;
+  const returnTo = afterSignInPath(next ?? "");
 
   const googleEnabled = Boolean(
     process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET,
@@ -58,6 +60,7 @@ export default async function SignInPage({
           <div className="mt-8 flex flex-col gap-3">
             {googleEnabled ? (
               <form action={signInWithGoogle}>
+                <input type="hidden" name="next" value={returnTo} />
                 <button type="submit" className="btn btn-outline w-full">
                   <GoogleMark /> Continue with Google
                 </button>
@@ -65,6 +68,7 @@ export default async function SignInPage({
             ) : null}
             {demoEnabled ? (
               <form action={signInWithDemo}>
+                <input type="hidden" name="next" value={returnTo} />
                 <button type="submit" className="btn btn-primary w-full">
                   Continue with demo account
                 </button>

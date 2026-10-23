@@ -57,9 +57,9 @@ describe("checkFanMessage", () => {
 });
 
 describe("fan names", () => {
-  it("shows a first name and a surname initial", () => {
-    expect(fanName("Rhea Sharma", null)).toBe("Rhea S.");
-    expect(fanName(null, "Arjun Kumar Nair")).toBe("Arjun N.");
+  it("shows the full name, profile first, with spaces tidied", () => {
+    expect(fanName("Rhea Sharma", "rhea.s")).toBe("Rhea Sharma");
+    expect(fanName(null, "  Arjun   Kumar Nair ")).toBe("Arjun Kumar Nair");
     expect(fanName(null, "Meera")).toBe("Meera");
   });
 

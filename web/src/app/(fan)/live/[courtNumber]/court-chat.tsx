@@ -7,6 +7,7 @@ import type { ChatMessage } from "@/db/fan";
 import { MAX_FAN_MESSAGE_LENGTH, fanInitials } from "@/lib/fan-chat";
 import { INITIAL_ACTION_STATE, type FormAction } from "@/lib/form-state";
 import { venueClock } from "@/lib/schedule";
+import { signInPathFor } from "@/lib/sign-in-return";
 
 export interface CourtChatProps {
   courtNumber: number;
@@ -75,10 +76,10 @@ export function CourtChat({ courtNumber, messages, signedIn, action }: CourtChat
         </form>
       ) : (
         <p className="text-[12px]">
-          <Link href="/signin" className="underline">
-            Sign in
+          <Link href={signInPathFor(`/live/${courtNumber}`)} className="underline">
+            Sign up or sign in
           </Link>{" "}
-          to join the chat.
+          to join the chat. Your name shows with what you write.
         </p>
       )}
 

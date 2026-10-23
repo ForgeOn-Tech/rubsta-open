@@ -95,6 +95,7 @@ export function CourtLive({
       {feed.live === null || feed.predictions === null ? null : (
         <PredictionPanel
           matchId={feed.live.matchId}
+          courtNumber={courtNumber}
           board={feed.live}
           prediction={feed.predictions}
           signedIn={feed.signedIn}
