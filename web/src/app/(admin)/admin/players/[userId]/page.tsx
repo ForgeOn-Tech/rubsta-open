@@ -20,7 +20,7 @@ import { countLabel } from "@/lib/format";
 import { other } from "@/lib/match";
 import { teamMatches, teamSide } from "@/lib/player-matches";
 import { ADMIN_PLAYERS_PATH } from "@/lib/players";
-import { publishedPlaces } from "@/lib/schedule";
+import { placeLabel, publishedPlaces } from "@/lib/schedule";
 import { matchSummary, sideLabel } from "@/lib/scoring-display";
 
 export const dynamic = "force-dynamic";
@@ -189,7 +189,7 @@ export default async function AdminPlayerPage({ params }: { params: Promise<{ us
                     <span className="mono text-[12px] text-muted">
                       {place === undefined
                         ? "Not on the order of play"
-                        : `${place.day} · Court ${place.courtNumber} · ${place.timing}`}
+                        : placeLabel(place)}
                     </span>
                     <span className="font-medium">
                       {result}
