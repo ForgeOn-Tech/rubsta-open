@@ -4,7 +4,7 @@ import { startTransition, useActionState, useState, type FormEvent } from "react
 
 import type { FillState } from "./actions";
 import type { FillRound } from "@/db/auto-schedule";
-import { DEFAULT_MATCH_LENGTHS, DEFAULT_REST_MINUTES, DEFAULT_START_TIME } from "@/lib/auto-schedule";
+import { DEFAULT_START_TIME, type ScheduleSettings } from "@/lib/auto-schedule";
 import type { CourtOption } from "@/lib/schedule";
 
 type FillAction = (previous: FillState, formData: FormData) => Promise<FillState>;
@@ -37,12 +37,15 @@ export function FillSchedule({
   dayLabel,
   courts,
   rounds,
+  settings,
   action,
 }: {
   day: string;
   dayLabel: string;
   courts: readonly CourtOption[];
   rounds: readonly FillRound[];
+  /** The rest and lengths the last fill used. */
+  settings: ScheduleSettings;
   action: FillAction;
 }) {
   const [state, formAction, pending] = useActionState(action, EMPTY);
@@ -151,25 +154,25 @@ export function FillSchedule({
             <label className="caps" htmlFor="fill-rest">
               Rest (min)
             </label>
-            <input id="fill-rest" name="restMinutes" type="number" min={0} defaultValue={DEFAULT_REST_MINUTES} className={SMALL_INPUT} required />
+            <input id="fill-rest" name="restMinutes" type="number" min={0} defaultValue={settings.restMinutes} className={SMALL_INPUT} required />
           </div>
           <div>
             <label className="caps" htmlFor="fill-one-set">
               One set (min)
             </label>
-            <input id="fill-one-set" name="oneSet" type="number" min={10} defaultValue={DEFAULT_MATCH_LENGTHS.oneSet} className={SMALL_INPUT} required />
+            <input id="fill-one-set" name="oneSet" type="number" min={10} defaultValue={settings.lengths.oneSet} className={SMALL_INPUT} required />
           </div>
           <div>
             <label className="caps" htmlFor="fill-eight">
               8 games (min)
             </label>
-            <input id="fill-eight" name="eightGames" type="number" min={10} defaultValue={DEFAULT_MATCH_LENGTHS.eightGames} className={SMALL_INPUT} required />
+            <input id="fill-eight" name="eightGames" type="number" min={10} defaultValue={settings.lengths.eightGames} className={SMALL_INPUT} required />
           </div>
           <div>
             <label className="caps" htmlFor="fill-best-of-three">
               Best of 3 (min)
             </label>
-            <input id="fill-best-of-three" name="bestOfThree" type="number" min={10} defaultValue={DEFAULT_MATCH_LENGTHS.bestOfThree} className={SMALL_INPUT} required />
+            <input id="fill-best-of-three" name="bestOfThree" type="number" min={10} defaultValue={settings.lengths.bestOfThree} className={SMALL_INPUT} required />
           </div>
         </div>
 

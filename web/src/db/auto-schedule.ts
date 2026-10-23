@@ -4,7 +4,7 @@ import type { Database } from "./draws";
 import { listScoringMatches, type ScoringMatchRow } from "./matches";
 import { listEntryPlayers, type EntryPlayer } from "./partners";
 import { addMatchItem } from "./schedule";
-import { CATEGORIES, CATEGORY_LABELS, scheduleItems, type Category, type MatchSlot, type ScheduleItem } from "./schema";
+import { CATEGORIES, CATEGORY_LABELS, scheduleItems, tournaments, type Category, type MatchSlot, type ScheduleItem } from "./schema";
 import {
   courtEnd,
   clockOf,
@@ -269,10 +269,22 @@ export function previewFill(database: Database, tournamentId: string, request: F
   };
 }
 
-/** Adds the fill to the working order of play, court by court in start order. Returns how many it placed. */
+/**
+ * Adds the fill to the working order of play, court by court in start order, and keeps its rest
+ * and match lengths for the next fill and the grid. Returns how many it placed.
+ */
 export function applyFill(database: Database, tournamentId: string, request: FillRequest): number {
   return database.transaction((tx) => {
     const plan = buildPlan(tx, tournamentId, request);
+    tx.update(tournaments)
+      .set({
+        scheduleRestMinutes: request.restMinutes,
+        oneSetMinutes: request.lengths.oneSet,
+        eightGamesMinutes: request.lengths.eightGames,
+        bestOfThreeMinutes: request.lengths.bestOfThree,
+      })
+      .where(eq(tournaments.id, tournamentId))
+      .run();
     for (const courtNumber of request.courts) {
       let previousEnd = plan.courtEnds.get(courtNumber) ?? null;
       const onCourt = plan.placed.filter((item) => item.courtNumber === courtNumber).sort((a, b) => a.start - b.start);

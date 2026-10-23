@@ -7,6 +7,7 @@ import {
   expectedMinutes,
   minutesOf,
   planDay,
+  scheduleSettingsOf,
   timingFor,
   validateFillRequest,
   type PlanMatch,
@@ -31,6 +32,18 @@ describe("expectedMinutes", () => {
     expect(expectedMinutes(ONE_SET_DECIDING_POINT, DEFAULT_MATCH_LENGTHS)).toBe(45);
     expect(expectedMinutes(EIGHT_GAMES, DEFAULT_MATCH_LENGTHS)).toBe(60);
     expect(expectedMinutes(BEST_OF_THREE, DEFAULT_MATCH_LENGTHS)).toBe(90);
+  });
+});
+
+describe("scheduleSettingsOf", () => {
+  it("uses what the last fill saved, and the defaults for anything never saved", () => {
+    const none = { scheduleRestMinutes: null, oneSetMinutes: null, eightGamesMinutes: null, bestOfThreeMinutes: null };
+
+    expect(scheduleSettingsOf(none)).toEqual({ restMinutes: 30, lengths: DEFAULT_MATCH_LENGTHS });
+    expect(scheduleSettingsOf({ ...none, scheduleRestMinutes: 20, oneSetMinutes: 40 })).toEqual({
+      restMinutes: 20,
+      lengths: { ...DEFAULT_MATCH_LENGTHS, oneSet: 40 },
+    });
   });
 });
 

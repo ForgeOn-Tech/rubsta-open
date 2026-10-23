@@ -107,6 +107,18 @@ describe("filling a day", () => {
     expect(firstQuarter).toBeLessThanOrEqual(lastGroupEnd + 30);
   });
 
+  it("keeps the rest and match lengths a fill used, and a preview changes nothing", () => {
+    const database = setup();
+    const lengths = { oneSet: 40, eightGames: 55, bestOfThree: 80 };
+    const saved = () => database.select().from(schema.tournaments).where(eq(schema.tournaments.id, TOURNAMENT_ID)).get()!;
+
+    previewFill(database, TOURNAMENT_ID, { ...request(GROUPS), restMinutes: 20, lengths });
+    expect(saved().scheduleRestMinutes).toBeNull();
+
+    applyFill(database, TOURNAMENT_ID, { ...request(GROUPS), restMinutes: 20, lengths });
+    expect(saved()).toMatchObject({ scheduleRestMinutes: 20, oneSetMinutes: 40, eightGamesMinutes: 55, bestOfThreeMinutes: 80 });
+  });
+
   it("starts an event no earlier than its own start time", () => {
     const preview = previewFill(setup(), TOURNAMENT_ID, { ...request(GROUPS), eventStarts: { OS: "10:30" } });
 

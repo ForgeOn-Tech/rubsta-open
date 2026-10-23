@@ -1,4 +1,4 @@
-import { CATEGORIES, CATEGORY_LABELS, type Category } from "@/db/schema";
+import { CATEGORIES, CATEGORY_LABELS, type Category, type Tournament } from "@/db/schema";
 import type { MatchFormat } from "@/lib/match";
 import { isScheduleTime } from "@/lib/schedule";
 
@@ -16,6 +16,26 @@ const MINUTES_PER_HOUR = 60;
 const LAST_MINUTE_OF_DAY = 24 * MINUTES_PER_HOUR - 1;
 /** Rest-driven start times round up to the next 5 minutes. */
 const TIME_STEP_MINUTES = 5;
+
+/** The rest and match lengths a tournament schedules with. */
+export interface ScheduleSettings {
+  restMinutes: number;
+  lengths: MatchLengths;
+}
+
+/** What the last fill saved, each value falling back to its default. */
+export function scheduleSettingsOf(
+  tournament: Pick<Tournament, "scheduleRestMinutes" | "oneSetMinutes" | "eightGamesMinutes" | "bestOfThreeMinutes">,
+): ScheduleSettings {
+  return {
+    restMinutes: tournament.scheduleRestMinutes ?? DEFAULT_REST_MINUTES,
+    lengths: {
+      oneSet: tournament.oneSetMinutes ?? DEFAULT_MATCH_LENGTHS.oneSet,
+      eightGames: tournament.eightGamesMinutes ?? DEFAULT_MATCH_LENGTHS.eightGames,
+      bestOfThree: tournament.bestOfThreeMinutes ?? DEFAULT_MATCH_LENGTHS.bestOfThree,
+    },
+  };
+}
 
 export function expectedMinutes(format: MatchFormat, lengths: MatchLengths): number {
   if (format.setsToWin > 1) return lengths.bestOfThree;

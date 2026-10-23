@@ -18,6 +18,7 @@ import { AdminNotice } from "@/components/admin-notice";
 import { AdminPageHeader } from "@/components/admin-page-header";
 import { ScheduleCard } from "@/components/schedule-card";
 import { listFillRounds } from "@/db/auto-schedule";
+import { scheduleSettingsOf } from "@/lib/auto-schedule";
 import { getDb } from "@/db/client";
 import { listCourts } from "@/db/courts";
 import { isWalkover, listScoringMatches, type ScoringMatchRow } from "@/db/matches";
@@ -215,6 +216,7 @@ export default async function AdminOrderOfPlayPage({
             dayLabel={dayLabel}
             courts={courtOptions}
             rounds={listFillRounds(database, tournament.id)}
+            settings={scheduleSettingsOf(tournament)}
             action={fillScheduleAction}
           />
         )}
