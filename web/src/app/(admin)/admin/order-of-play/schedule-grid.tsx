@@ -48,6 +48,22 @@ export interface GridCard {
   warnings: string[];
 }
 
+/** A court's camera, from its broadcast status: on air, or set up and starting soon. */
+export type CourtStream = "live" | "scheduled";
+
+const STREAM_TAGS: Record<CourtStream, string> = { live: "Streaming", scheduled: "Stream starting soon" };
+
+/** A tag beside a court's name for its camera; nothing for a court without one. */
+export function StreamTag({ stream }: { stream: CourtStream | undefined }) {
+  if (stream === undefined) return null;
+  return (
+    <span className={`caps ml-2 text-[9.5px] ${stream === "live" ? "text-bad" : "text-muted"}`}>
+      {stream === "live" ? "● " : ""}
+      {STREAM_TAGS[stream]}
+    </span>
+  );
+}
+
 /** Pixels for one SLOT_MINUTES row. */
 const ROW_PX = 20;
 const MIN_CARD_PX = 36;
@@ -276,6 +292,7 @@ export function ScheduleGrid({
   courts,
   cards,
   range,
+  streams,
   umpires,
   action,
   editAction,
@@ -284,6 +301,8 @@ export function ScheduleGrid({
   courts: readonly CourtOption[];
   cards: readonly GridCard[];
   range: GridRange;
+  /** Courts with a camera, by number: streaming now, or starting soon. */
+  streams: ReadonlyMap<number, CourtStream>;
   umpires: readonly UmpireOption[];
   /** Drops: moving, placing and taking off. */
   action: FormAction;
@@ -389,6 +408,7 @@ export function ScheduleGrid({
             {courts.map((court) => (
               <h2 key={court.number} className="border-b-2 border-ink px-2 pb-2 text-[13px] font-semibold">
                 {court.label}
+                <StreamTag stream={streams.get(court.number)} />
               </h2>
             ))}
             <div className="relative" style={{ height: px(range.to - range.from) }}>

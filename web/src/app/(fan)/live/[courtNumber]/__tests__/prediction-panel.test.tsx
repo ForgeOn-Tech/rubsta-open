@@ -24,6 +24,7 @@ const BOARD: FanScoreboard = {
 
 const PROPS: PredictionPanelProps = {
   matchId: "match-1",
+  courtNumber: 3,
   board: BOARD,
   prediction: {
     setNumber: 1,
@@ -56,7 +57,7 @@ describe("PredictionPanel", () => {
     render(<PredictionPanel {...PROPS} signedIn={false} />);
 
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/signin");
+    expect(screen.getByRole("link", { name: "Sign up or sign in" })).toHaveAttribute("href", "/signin?next=%2Flive%2F3");
   });
 
   it("stops taking votes once the set closes", () => {

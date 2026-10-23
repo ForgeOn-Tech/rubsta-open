@@ -71,14 +71,12 @@ export function checkFanMessage(input: {
 }
 
 /**
- * How a fan appears in the chat: a first name and a surname initial, as in
- * "Rhea S.". Fans who signed in without a profile may have no name at all.
+ * How a fan appears in the chat: their full name, as in "Rhea Sharma", from their player
+ * profile or else their Google account. A fan with neither has no name at all.
  */
 export function fanName(profileName: string | null, accountName: string | null): string {
   const parts = (profileName ?? accountName ?? "").trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return FALLBACK_FAN_NAME;
-  if (parts.length === 1) return parts[0];
-  return `${parts[0]} ${parts[parts.length - 1][0].toUpperCase()}.`;
+  return parts.length === 0 ? FALLBACK_FAN_NAME : parts.join(" ");
 }
 
 /** One or two letters for the chat avatar, or "?" when the fan has no name. */

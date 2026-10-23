@@ -35,6 +35,17 @@ export class FanRejectedError extends Error {
   }
 }
 
+export const EXPIRED_SIGN_IN = "Your sign-in has expired. Sign in again.";
+
+/**
+ * A fan's sign-in lasts in their browser, so it can outlive their account, e.g. after the
+ * database is restored. Writing for a missing account would break a foreign key.
+ */
+function requireFanAccount(database: Database, userId: string): void {
+  const account = database.select({ id: users.id }).from(users).where(eq(users.id, userId)).get();
+  if (account === undefined) throw new FanRejectedError(EXPIRED_SIGN_IN);
+}
+
 /** A chat message as the public page shows it: a display name, never an email. */
 export interface ChatMessage {
   id: string;
@@ -143,6 +154,7 @@ export function postFanMessage(
   input: { tournamentId: string; courtNumber: number; userId: string; body: string; now: number },
 ): void {
   database.transaction((tx) => {
+    requireFanAccount(tx, input.userId);
     const check = checkFanMessage({
       body: input.body,
       muted: isMuted(tx, input.userId),
@@ -203,7 +215,10 @@ export function addReaction(
   userId: string,
   kind: ReactionKind,
 ): void {
-  database.insert(fanReactions).values({ matchId, userId, kind }).onConflictDoNothing().run();
+  database.transaction((tx) => {
+    requireFanAccount(tx, userId);
+    tx.insert(fanReactions).values({ matchId, userId, kind }).onConflictDoNothing().run();
+  });
 }
 
 /** How many fans sent each reaction on a match. */
@@ -244,6 +259,7 @@ export function savePrediction(
   input: { matchId: string; setNumber: number; userId: string; side: Side },
 ): void {
   database.transaction((tx) => {
+    requireFanAccount(tx, input.userId);
     const match = tx.select().from(matches).where(eq(matches.id, input.matchId)).get();
     if (!match) throw new FanRejectedError("This match is not being played.");
     const state = matchState(match);

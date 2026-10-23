@@ -41,7 +41,7 @@ describe("CourtChat", () => {
     render(<CourtChat {...PROPS} signedIn={false} />);
 
     expect(screen.queryByLabelText("Message")).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/signin");
+    expect(screen.getByRole("link", { name: "Sign up or sign in" })).toHaveAttribute("href", "/signin?next=%2Flive%2F1");
   });
 
   it("says when nobody has spoken yet", () => {

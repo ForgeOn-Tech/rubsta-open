@@ -12,7 +12,7 @@ import {
 import { AddToSchedule, type MatchChoice } from "./add-to-schedule";
 import { FillSchedule } from "./fill-schedule";
 import { PublishDayButton } from "./publish-day-button";
-import { ScheduleGrid, type GridCard } from "./schedule-grid";
+import { ScheduleGrid, StreamTag, type CourtStream, type GridCard } from "./schedule-grid";
 import { ScheduleItemEditor } from "./schedule-item-editor";
 import { UndoWalkoverButton, WalkoverButton } from "./walkover-button";
 import { listScorerEmails, requireAdmin } from "@/auth/require";
@@ -20,6 +20,7 @@ import { AdminNotice } from "@/components/admin-notice";
 import { AdminPageHeader } from "@/components/admin-page-header";
 import { ScheduleCard } from "@/components/schedule-card";
 import { dependencyWarnings, listFillRounds, listTimedItems, type TimedItem } from "@/db/auto-schedule";
+import { getBroadcast } from "@/db/broadcasts";
 import { getDb } from "@/db/client";
 import { listCourts } from "@/db/courts";
 import { isWalkover, listScoringMatches, type ScoringMatchRow } from "@/db/matches";
@@ -195,6 +196,14 @@ export default async function AdminOrderOfPlayPage({
   const names = listNamesByEmail(database, [...new Set([...scorerEmails, ...assignedEmails])]);
   const umpires = scorerEmails.map((email) => ({ email, label: names.get(email) ?? email }));
   const courtOptions = courts.map((court) => ({ number: court.number, label: courtOptionLabel(court) }));
+  // Which courts have a camera: on air, or with a link and starting soon.
+  const streams = new Map(
+    courts.flatMap((court): [number, CourtStream][] => {
+      const broadcast = getBroadcast(database, tournament.id, court.number);
+      if (broadcast?.status === "live") return [[court.number, "live"]];
+      return broadcast?.status === "scheduled" && broadcast.streamUrl !== null ? [[court.number, "scheduled"]] : [];
+    }),
+  );
 
   const entryPlayers = listEntryPlayers(database, tournament.id);
   const columns = courtColumns(courts, entries);
@@ -346,6 +355,7 @@ export default async function AdminOrderOfPlayPage({
             courts={courtOptions}
             cards={gridCards({ timed, unplaced, rowOf, warnings: gridWarnings, lengths: settings.lengths })}
             range={gridRange(timed)}
+            streams={streams}
             umpires={umpires}
             action={gridDropAction}
             editAction={changeScheduleItemAction}
@@ -365,6 +375,7 @@ export default async function AdminOrderOfPlayPage({
                   <div className="border-b-2 border-ink pb-[9px]">
                     <h2 id={`court-${column.number}-heading`} className="text-[14px] font-semibold">
                       {courtTitle(column.number)}
+                      <StreamTag stream={streams.get(column.number)} />
                     </h2>
                     {detail === null ? null : (
                       <div className="mono mt-[3px] text-[10px] uppercase tracking-[0.06em] text-dim">

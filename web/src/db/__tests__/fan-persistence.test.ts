@@ -6,6 +6,7 @@ import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { describe, expect, it } from "vitest";
 
 import {
+  EXPIRED_SIGN_IN,
   FanRejectedError,
   addReaction,
   clearMatchFanData,
@@ -101,7 +102,7 @@ describe("court chat", () => {
     postFanMessage(database, { ...CHAT, body: "  What a rally  ", now: NOW });
 
     expect(listCourtMessages(database, TOURNAMENT_ID, COURT)).toEqual([
-      { id: expect.any(String), name: "Rhea S.", body: "What a rally", createdAt: NOW },
+      { id: expect.any(String), name: "Rhea Sharma", body: "What a rally", createdAt: NOW },
     ]);
   });
 
@@ -110,7 +111,7 @@ describe("court chat", () => {
 
     postFanMessage(database, { ...CHAT, userId: ARJUN.userId, body: "Come on", now: NOW });
 
-    expect(listCourtMessages(database, TOURNAMENT_ID, COURT)[0].name).toBe("Arjun K.");
+    expect(listCourtMessages(database, TOURNAMENT_ID, COURT)[0].name).toBe("Arjun Kumar");
   });
 
   it("refuses a second message before the wait has passed, and allows it after", () => {
@@ -154,7 +155,7 @@ describe("court chat", () => {
     expect(listMessagesToModerate(database, TOURNAMENT_ID, 10)).toEqual([
       {
         id: message.id,
-        name: "Rhea S.",
+        name: "Rhea Sharma",
         body: "Out of order",
         createdAt: NOW,
         courtNumber: COURT,
@@ -190,6 +191,21 @@ describe("reactions", () => {
 
     expect(countReactions(database, MATCH_ID)).toEqual({ clap: 2, shot: 1, ball: 0 });
     expect(listOwnReactions(database, MATCH_ID, RHEA.userId).sort()).toEqual(["clap", "shot"]);
+  });
+});
+
+describe("a sign-in that outlived its account", () => {
+  it("asks the fan to sign in again instead of failing", () => {
+    // Arrange: a browser still signed in as an account the database no longer has.
+    const database = setup([]);
+    const gone = "deleted-user";
+    const expired = new FanRejectedError(EXPIRED_SIGN_IN);
+
+    // Act and assert
+    expect(() => postFanMessage(database, { ...CHAT, userId: gone, body: "Hello", now: NOW })).toThrow(expired);
+    expect(() => addReaction(database, MATCH_ID, gone, "clap")).toThrow(expired);
+    expect(() => savePrediction(database, { matchId: MATCH_ID, setNumber: 1, userId: gone, side: "top" })).toThrow(expired);
+    expect(listCourtMessages(database, TOURNAMENT_ID, COURT)).toEqual([]);
   });
 });
 
@@ -234,8 +250,8 @@ describe("predictions", () => {
       .run();
 
     expect(fanLeaderboard(database, TOURNAMENT_ID)).toEqual([
-      { userId: RHEA.userId, name: "Rhea S.", points: 1, correct: 1, decided: 1 },
-      { userId: ARJUN.userId, name: "Arjun K.", points: 0, correct: 0, decided: 1 },
+      { userId: RHEA.userId, name: "Rhea Sharma", points: 1, correct: 1, decided: 1 },
+      { userId: ARJUN.userId, name: "Arjun Kumar", points: 0, correct: 0, decided: 1 },
     ]);
   });
 

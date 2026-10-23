@@ -8,9 +8,12 @@ import type { FanScoreboard } from "@/lib/fan-live";
 import { PREDICTION_CLOSES_AT_GAMES, PREDICTION_DISCLAIMER } from "@/lib/fan-predictions";
 import { INITIAL_ACTION_STATE, type FormAction } from "@/lib/form-state";
 import { SIDES, type Side } from "@/lib/match";
+import { signInPathFor } from "@/lib/sign-in-return";
 
 export interface PredictionPanelProps {
   matchId: string;
+  /** The court this page shows, to come back to after signing in. */
+  courtNumber: number;
   board: FanScoreboard;
   prediction: FanPredictionFeed;
   signedIn: boolean;
@@ -18,7 +21,7 @@ export interface PredictionPanelProps {
 }
 
 /** "Who takes this set?": the vote, the split so far, and what it is worth. */
-export function PredictionPanel({ matchId, board, prediction, signedIn, action }: PredictionPanelProps) {
+export function PredictionPanel({ matchId, courtNumber, board, prediction, signedIn, action }: PredictionPanelProps) {
   const [state, formAction, pending] = useActionState(action, INITIAL_ACTION_STATE);
 
   return (
@@ -58,8 +61,8 @@ export function PredictionPanel({ matchId, board, prediction, signedIn, action }
 
       {signedIn ? null : (
         <p className="mt-2 text-[12px]">
-          <Link href="/signin" className="underline">
-            Sign in
+          <Link href={signInPathFor(`/live/${courtNumber}`)} className="underline">
+            Sign up or sign in
           </Link>{" "}
           to call the set.
         </p>
