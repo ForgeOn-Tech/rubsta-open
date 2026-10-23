@@ -6,6 +6,7 @@ import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { describe, expect, it } from "vitest";
 
 import {
+  EXPIRED_SIGN_IN,
   FanRejectedError,
   addReaction,
   clearMatchFanData,
@@ -190,6 +191,21 @@ describe("reactions", () => {
 
     expect(countReactions(database, MATCH_ID)).toEqual({ clap: 2, shot: 1, ball: 0 });
     expect(listOwnReactions(database, MATCH_ID, RHEA.userId).sort()).toEqual(["clap", "shot"]);
+  });
+});
+
+describe("a sign-in that outlived its account", () => {
+  it("asks the fan to sign in again instead of failing", () => {
+    // Arrange: a browser still signed in as an account the database no longer has.
+    const database = setup([]);
+    const gone = "deleted-user";
+    const expired = new FanRejectedError(EXPIRED_SIGN_IN);
+
+    // Act and assert
+    expect(() => postFanMessage(database, { ...CHAT, userId: gone, body: "Hello", now: NOW })).toThrow(expired);
+    expect(() => addReaction(database, MATCH_ID, gone, "clap")).toThrow(expired);
+    expect(() => savePrediction(database, { matchId: MATCH_ID, setNumber: 1, userId: gone, side: "top" })).toThrow(expired);
+    expect(listCourtMessages(database, TOURNAMENT_ID, COURT)).toEqual([]);
   });
 });
 
