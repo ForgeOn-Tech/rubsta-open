@@ -182,10 +182,10 @@ describe("planDay", () => {
 });
 
 describe("timingFor", () => {
-  it("starts an empty court at a time, follows on without a gap, and waits otherwise", () => {
+  it("starts an empty court at a time, follows on without a gap, and starts at its time after one", () => {
     expect(timingFor(EIGHT, null)).toEqual({ timing: "at", time: "08:00" });
     expect(timingFor(minutesOf("08:45"), minutesOf("08:45"))).toEqual({ timing: "followOn", time: null });
-    expect(timingFor(minutesOf("09:15"), minutesOf("08:45"))).toEqual({ timing: "notBefore", time: "09:15" });
+    expect(timingFor(minutesOf("09:15"), minutesOf("08:45"))).toEqual({ timing: "at", time: "09:15" });
   });
 });
 
