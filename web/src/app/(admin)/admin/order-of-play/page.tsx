@@ -87,6 +87,8 @@ function matchChoices(rows: readonly ScoringMatchRow[], scheduled: ReadonlySet<s
 const VIEWS = ["grid", "list"] as const;
 type View = (typeof VIEWS)[number];
 const VIEW_LABELS: Record<View, string> = { grid: "Grid", list: "List" };
+/** Short words on a grid card for a start that can move; a match at a fixed time has none. */
+const GRID_TIMING_NOTES: Record<"notBefore" | "followOn", string> = { notBefore: "Not before", followOn: "Follows on" };
 
 function gridTitle(row: ScoringMatchRow): string {
   return `${CATEGORY_LABELS[row.category]} · ${row.match.roundName} · M${row.match.matchNumber}`;
@@ -124,6 +126,7 @@ function gridCards(input: {
       minutes: Math.max(end - start, 1),
       locked: row === null || row.match.status !== "scheduled",
       badge: row === null ? "Session" : badgeOf(row),
+      timingNote: item.kind === "match" && item.timing !== "at" ? GRID_TIMING_NOTES[item.timing] : null,
       warnings: row === null ? [] : [...(input.warnings.get(row.match.id) ?? [])],
     };
   });
@@ -141,6 +144,7 @@ function gridCards(input: {
       minutes: expectedMinutes(row.match.format ?? formatFor(row.category, row.match.roundName), input.lengths),
       locked: false,
       badge: null,
+      timingNote: null,
       warnings: [],
     }),
   );

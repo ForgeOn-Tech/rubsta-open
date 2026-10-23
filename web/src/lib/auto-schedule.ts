@@ -151,14 +151,16 @@ export function planDay(input: {
   return { placed, unplaced };
 }
 
-export type PlannedTiming = { timing: "at"; time: string } | { timing: "followOn"; time: null };
+export interface PlannedTiming {
+  timing: "at";
+  time: string;
+}
 
 /**
- * How a planned match reads on the order of play: one that starts as the match above it ends
- * follows on ("After M3"); any other starts at its time, which players see as it is.
+ * How a planned match reads on the order of play: at its start time, so every player knows when
+ * they play. An admin can still make one wait on the match above by hand.
  */
-export function timingFor(start: number, previousEnd: number | null): PlannedTiming {
-  if (previousEnd !== null && start <= previousEnd) return { timing: "followOn", time: null };
+export function timingFor(start: number): PlannedTiming {
   return { timing: "at", time: clockOf(start) };
 }
 

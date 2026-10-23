@@ -152,8 +152,8 @@ describe("filling a day", () => {
     const court2 = items.filter((item) => item.courtNumber === 2);
     expect(court1[0]).toMatchObject({ matchId: first.id, timing: "at", time: "09:00" });
     expect(court2[0]).toMatchObject({ timing: "at", time: "08:00" });
-    // Players see a time or "After M3", never "Not before".
-    expect(items.every((item) => item.timing !== "notBefore")).toBe(true);
+    // Every match the fill places starts at a time players can read.
+    expect(items.every((item) => item.timing === "at" && item.time !== null)).toBe(true);
     // Placed matches are gone from the offer.
     expect(listFillRounds(database, TOURNAMENT_ID).map((round) => round.key)).not.toContain("OS|Group A");
   });
@@ -183,10 +183,10 @@ describe("moving a match on the grid", () => {
     // Act: M2 to court 2 at 09:00, ahead of M3.
     moveItemToSlot(database, items[1].id, { courtNumber: 2, time: "09:00" }, DEFAULT_MATCH_LENGTHS);
 
-    // Assert: M3 was fixed at 09:00, where M2 now plays, so it follows on after M2.
+    // Assert: M3 was at 09:00, where M2 now plays, so it gets the time M2 should finish.
     expect(grid(database, 2)).toEqual([
       ["09:00", "at", 1, byNumber(2).id],
-      ["09:45", "followOn", 2, byNumber(3).id],
+      ["09:45", "at", 2, byNumber(3).id],
       ["10:30", "followOn", 3, byNumber(4).id],
     ]);
     expect(grid(database, 1)).toEqual([["08:00", "at", 1, byNumber(1).id]]);
@@ -242,7 +242,7 @@ describe("moving a match on the grid", () => {
 
     expect(grid(database, 2)).toEqual([
       ["08:30", "at", 1, byNumber(5).id],
-      ["09:15", "followOn", 2, byNumber(3).id],
+      ["09:15", "at", 2, byNumber(3).id],
       ["10:00", "followOn", 3, byNumber(4).id],
     ]);
   });
