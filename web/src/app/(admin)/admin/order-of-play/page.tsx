@@ -55,7 +55,7 @@ import {
   venueClock,
   venueDay,
 } from "@/lib/schedule";
-import { sameDayWarnings } from "@/lib/schedule-clashes";
+import { sameDayWarnings, timingClashes } from "@/lib/schedule-clashes";
 import { gridRange } from "@/lib/schedule-grid";
 import { scoringGroupOf, sideLabel } from "@/lib/scoring-display";
 
@@ -188,6 +188,7 @@ export default async function AdminOrderOfPlayPage({
   const umpires = scorerEmails.map((email) => ({ email, label: names.get(email) ?? email }));
   const courtOptions = courts.map((court) => ({ number: court.number, label: courtOptionLabel(court) }));
 
+  const entryPlayers = listEntryPlayers(database, tournament.id);
   const columns = courtColumns(courts, entries);
   const previousNameOf = (items: readonly ScheduleEntry[], index: number): string | null => {
     const above = index === 0 ? null : items[index - 1];
@@ -204,7 +205,7 @@ export default async function AdminOrderOfPlayPage({
         return [{ row, place: `${courtTitle(column.number)} · ${when}` }];
       }),
     ),
-    listEntryPlayers(database, tournament.id),
+    entryPlayers,
   );
   const matchRows = entries.flatMap((entry) => {
     const row = rowOf(entry.matchId);
@@ -212,6 +213,14 @@ export default async function AdminOrderOfPlayPage({
   });
   const settings = scheduleSettingsOf(tournament);
   const timed = listTimedItems(database, tournament.id, day, settings.lengths);
+  const gridClashes = timingClashes(
+    timed.flatMap(({ item, start, end }) => {
+      const row = rowOf(item.matchId);
+      return row === null ? [] : [{ row, courtNumber: item.courtNumber, start, end }];
+    }),
+    entryPlayers,
+    settings.restMinutes,
+  );
   const scheduledIds = listScheduledMatchIds(database, tournament.id);
   const unplaced = rows
     .filter((row) => scoringGroupOf(row) !== null && row.match.status !== "completed" && !scheduledIds.has(row.match.id))
@@ -320,7 +329,7 @@ export default async function AdminOrderOfPlayPage({
             key={`grid-${day}`}
             day={day}
             courts={courtOptions}
-            cards={gridCards({ timed, unplaced, rowOf, warnings, lengths: settings.lengths })}
+            cards={gridCards({ timed, unplaced, rowOf, warnings: gridClashes, lengths: settings.lengths })}
             range={gridRange(timed)}
             action={gridDropAction}
           />

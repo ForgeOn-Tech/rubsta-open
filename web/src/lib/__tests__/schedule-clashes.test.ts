@@ -3,7 +3,8 @@ import { describe, expect, it } from "vitest";
 import type { ScoringMatchRow } from "@/db/matches";
 import type { EntryPlayer } from "@/db/partners";
 import type { Category, Match, MatchSlot } from "@/db/schema";
-import { busyElsewhereWarnings, sameDayWarnings } from "@/lib/schedule-clashes";
+import { minutesOf } from "@/lib/auto-schedule";
+import { busyElsewhereWarnings, sameDayWarnings, timingClashes } from "@/lib/schedule-clashes";
 
 const AT = 1_700_000_000_000;
 const ARJUN: EntryPlayer = { userId: "arjun", name: "Arjun Mehta" };
@@ -134,5 +135,53 @@ describe("busyElsewhereWarnings", () => {
 
     expect(busyElsewhereWarnings(SINGLES, [SINGLES, DOUBLES], ENTRY_PLAYERS)).toEqual([]);
     expect(busyElsewhereWarnings(finished, [finished, live], ENTRY_PLAYERS)).toEqual([]);
+  });
+});
+
+describe("timingClashes", () => {
+  const REST = 30;
+  const at = (start: string, end: string, courtNumber: number) => ({ courtNumber, start: minutesOf(start), end: minutesOf(end) });
+
+  it("flags a player on two courts at the same time, on both matches", () => {
+    const clashes = timingClashes(
+      [
+        { row: SINGLES, ...at("10:00", "10:45", 1) },
+        { row: DOUBLES, ...at("10:30", "11:15", 2) },
+      ],
+      ENTRY_PLAYERS,
+      REST,
+    );
+
+    expect(clashes.get("singles")).toEqual(["Arjun Mehta also plays Open doubles M12 on Court 2 at 10:30"]);
+    expect(clashes.get("doubles")).toEqual(["Arjun Mehta also plays Open singles M3 on Court 1 at 10:00"]);
+  });
+
+  it("flags too little rest between a player's matches", () => {
+    const clashes = timingClashes(
+      [
+        { row: SINGLES, ...at("10:00", "10:45", 1) },
+        { row: DOUBLES, ...at("11:00", "11:45", 1) },
+      ],
+      ENTRY_PLAYERS,
+      REST,
+    );
+
+    expect(clashes.get("doubles")).toEqual(["Arjun Mehta has 15 min rest after Open singles M3"]);
+    expect(clashes.get("singles")).toEqual(["Arjun Mehta has 15 min rest before Open doubles M12"]);
+  });
+
+  it("is quiet with enough rest, and leaves out finished matches", () => {
+    const finished = row("done", "OS", 4, slot("os-arjun"), slot("os-rohan"), { status: "completed" });
+    const clashes = timingClashes(
+      [
+        { row: SINGLES, ...at("10:00", "10:45", 1) },
+        { row: DOUBLES, ...at("11:15", "12:00", 2) },
+        { row: finished, ...at("10:00", "10:45", 3) },
+      ],
+      ENTRY_PLAYERS,
+      REST,
+    );
+
+    expect([...clashes.values()].flat()).toEqual([]);
   });
 });
