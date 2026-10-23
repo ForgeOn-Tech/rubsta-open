@@ -4,13 +4,19 @@ import { startTransition, useActionState, useState, type FormEvent } from "react
 
 import type { FillState } from "./actions";
 import type { FillRound } from "@/db/auto-schedule";
-import { DEFAULT_MATCH_LENGTHS, DEFAULT_REST_MINUTES, DEFAULT_START_TIME } from "@/lib/auto-schedule";
+import { DEFAULT_START_TIME, type ScheduleSettings } from "@/lib/auto-schedule";
 import type { CourtOption } from "@/lib/schedule";
 
 type FillAction = (previous: FillState, formData: FormData) => Promise<FillState>;
 
 const EMPTY: FillState = { error: null, preview: null, added: null };
 const SMALL_INPUT = "field mono w-24";
+
+/** The events among the chosen rounds, once each, in the rounds' order. */
+function chosenEvents(rounds: readonly FillRound[], chosen: ReadonlySet<string>): Pick<FillRound, "category" | "eventLabel">[] {
+  const picked = rounds.filter((round) => chosen.has(round.key));
+  return picked.filter((round, index) => picked.findIndex((other) => other.category === round.category) === index);
+}
 
 /** Each event's earliest stage still to place, ticked to begin with: every group, or the first round. */
 function firstRounds(rounds: readonly FillRound[]): Set<string> {
@@ -31,17 +37,21 @@ export function FillSchedule({
   dayLabel,
   courts,
   rounds,
+  settings,
   action,
 }: {
   day: string;
   dayLabel: string;
   courts: readonly CourtOption[];
   rounds: readonly FillRound[];
+  /** The rest and lengths the last fill used. */
+  settings: ScheduleSettings;
   action: FillAction;
 }) {
   const [state, formAction, pending] = useActionState(action, EMPTY);
   const [chosen, setChosen] = useState<Set<string>>(() => firstRounds(rounds));
   const shown = state.preview;
+  const events = chosenEvents(rounds, chosen);
 
   // Submitted by hand so React does not reset the fields after each action: the plan that is
   // added must come from the same choices as the preview on screen.
@@ -95,6 +105,26 @@ export function FillSchedule({
           )}
         </fieldset>
 
+        {events.length === 0 ? null : (
+          <fieldset>
+            <legend className="caps">Event start times</legend>
+            <p className="mt-1 text-[12px] text-muted">
+              Leave an event blank to start it with the first match. An event with its own time starts no earlier,
+              and the courts take earlier matches until then.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-4">
+              {events.map((event) => (
+                <div key={event.category}>
+                  <label className="text-[12px]" htmlFor={`fill-event-${event.category}`}>
+                    {event.eventLabel}
+                  </label>
+                  <input id={`fill-event-${event.category}`} name={`eventStart-${event.category}`} type="time" className="field mono" />
+                </div>
+              ))}
+            </div>
+          </fieldset>
+        )}
+
         <fieldset>
           <legend className="caps">Courts</legend>
           <div className="mt-2 flex flex-wrap gap-4">
@@ -124,25 +154,25 @@ export function FillSchedule({
             <label className="caps" htmlFor="fill-rest">
               Rest (min)
             </label>
-            <input id="fill-rest" name="restMinutes" type="number" min={0} defaultValue={DEFAULT_REST_MINUTES} className={SMALL_INPUT} required />
+            <input id="fill-rest" name="restMinutes" type="number" min={0} defaultValue={settings.restMinutes} className={SMALL_INPUT} required />
           </div>
           <div>
             <label className="caps" htmlFor="fill-one-set">
               One set (min)
             </label>
-            <input id="fill-one-set" name="oneSet" type="number" min={10} defaultValue={DEFAULT_MATCH_LENGTHS.oneSet} className={SMALL_INPUT} required />
+            <input id="fill-one-set" name="oneSet" type="number" min={10} defaultValue={settings.lengths.oneSet} className={SMALL_INPUT} required />
           </div>
           <div>
             <label className="caps" htmlFor="fill-eight">
               8 games (min)
             </label>
-            <input id="fill-eight" name="eightGames" type="number" min={10} defaultValue={DEFAULT_MATCH_LENGTHS.eightGames} className={SMALL_INPUT} required />
+            <input id="fill-eight" name="eightGames" type="number" min={10} defaultValue={settings.lengths.eightGames} className={SMALL_INPUT} required />
           </div>
           <div>
             <label className="caps" htmlFor="fill-best-of-three">
               Best of 3 (min)
             </label>
-            <input id="fill-best-of-three" name="bestOfThree" type="number" min={10} defaultValue={DEFAULT_MATCH_LENGTHS.bestOfThree} className={SMALL_INPUT} required />
+            <input id="fill-best-of-three" name="bestOfThree" type="number" min={10} defaultValue={settings.lengths.bestOfThree} className={SMALL_INPUT} required />
           </div>
         </div>
 

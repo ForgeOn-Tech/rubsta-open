@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { listScorerEmails, requireAdmin } from "@/auth/require";
-import { applyFill, previewFill, type FillPreview } from "@/db/auto-schedule";
+import { applyFill, moveItemToSlot, placeMatchAtSlot, previewFill, unscheduleItem, type FillPreview } from "@/db/auto-schedule";
 import { getDb } from "@/db/client";
 import { listCourts } from "@/db/courts";
 import { ScoreRejectedError, undoWalkover, walkoverMatch } from "@/db/matches";
@@ -20,8 +20,8 @@ import {
   updateBlockItem,
   updateMatchItem,
 } from "@/db/schedule";
-import type { Tournament } from "@/db/schema";
-import { validateFillRequest, type FillValidation } from "@/lib/auto-schedule";
+import { CATEGORIES, type Tournament } from "@/db/schema";
+import { scheduleSettingsOf, validateFillRequest, type FillValidation } from "@/lib/auto-schedule";
 import type { ActionState } from "@/lib/form-state";
 import { SIDES } from "@/lib/match";
 import {
@@ -34,6 +34,7 @@ import {
 } from "@/lib/schedule";
 
 const ITEM_INTENTS = ["save", "up", "down", "court", "remove"] as const;
+const GRID_DROPS = ["move", "place", "unschedule"] as const;
 
 function field(formData: FormData, name: string): string {
   return String(formData.get(name) ?? "");
@@ -226,6 +227,7 @@ function fillRequestFrom(formData: FormData, tournament: Tournament): FillValida
       eightGames: text("eightGames"),
       bestOfThree: text("bestOfThree"),
       rounds: formData.getAll("rounds").map(String),
+      eventStarts: Object.fromEntries(CATEGORIES.map((category) => [category, text(`eventStart-${category}`)])),
     },
     scheduleDayChoices(tournamentDays(tournament.startsOn, tournament.endsOn), listScheduleDaysInUse(getDb(), tournament.id)),
     listCourts(getDb(), tournament.id).map((court) => court.number),
@@ -253,4 +255,32 @@ export async function fillScheduleAction(_previous: FillState, formData: FormDat
     if (error instanceof ScheduleRejectedError) return { error: error.message, preview: null, added: null };
     throw error;
   }
+}
+
+/**
+ * A card dropped on the grid: "move" takes a placed match to a court and time, "place" puts a
+ * match from the tray there, and "unschedule" takes a placed match back to the tray.
+ */
+export async function gridDropAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const tournament = requireTournament();
+  const drop = GRID_DROPS.find((value) => value === field(formData, "drop"));
+  if (drop === undefined) throw new Error(`Unknown grid drop "${field(formData, "drop")}".`);
+  const database = getDb();
+  const { lengths } = scheduleSettingsOf(tournament);
+
+  if (drop === "place") {
+    const day = dayFrom(formData, tournament);
+    const courtNumber = courtNumberFrom(formData);
+    if (courtNumber === null) return failed("Drop the match on a court.");
+    const placement = { day, matchId: field(formData, "matchId"), courtNumber, time: field(formData, "time") };
+    return attempt(() => placeMatchAtSlot(database, tournament.id, placement, lengths));
+  }
+
+  const item = getScheduleItem(database, field(formData, "itemId"));
+  if (item.tournamentId !== tournament.id) throw new Error(`Schedule item ${item.id} is not in ${tournament.name}.`);
+  if (drop === "unschedule") return attempt(() => unscheduleItem(database, item.id));
+  const courtNumber = courtNumberFrom(formData);
+  if (courtNumber === null) return failed("Drop the match on a court.");
+  return attempt(() => moveItemToSlot(database, item.id, { courtNumber, time: field(formData, "time") }, lengths));
 }

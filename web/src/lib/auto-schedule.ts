@@ -1,3 +1,4 @@
+import { CATEGORIES, CATEGORY_LABELS, type Category, type Tournament } from "@/db/schema";
 import type { MatchFormat } from "@/lib/match";
 import { isScheduleTime } from "@/lib/schedule";
 
@@ -15,6 +16,26 @@ const MINUTES_PER_HOUR = 60;
 const LAST_MINUTE_OF_DAY = 24 * MINUTES_PER_HOUR - 1;
 /** Rest-driven start times round up to the next 5 minutes. */
 const TIME_STEP_MINUTES = 5;
+
+/** The rest and match lengths a tournament schedules with. */
+export interface ScheduleSettings {
+  restMinutes: number;
+  lengths: MatchLengths;
+}
+
+/** What the last fill saved, each value falling back to its default. */
+export function scheduleSettingsOf(
+  tournament: Pick<Tournament, "scheduleRestMinutes" | "oneSetMinutes" | "eightGamesMinutes" | "bestOfThreeMinutes">,
+): ScheduleSettings {
+  return {
+    restMinutes: tournament.scheduleRestMinutes ?? DEFAULT_REST_MINUTES,
+    lengths: {
+      oneSet: tournament.oneSetMinutes ?? DEFAULT_MATCH_LENGTHS.oneSet,
+      eightGames: tournament.eightGamesMinutes ?? DEFAULT_MATCH_LENGTHS.eightGames,
+      bestOfThree: tournament.bestOfThreeMinutes ?? DEFAULT_MATCH_LENGTHS.bestOfThree,
+    },
+  };
+}
 
 export function expectedMinutes(format: MatchFormat, lengths: MatchLengths): number {
   if (format.setsToWin > 1) return lengths.bestOfThree;
@@ -72,10 +93,12 @@ export interface DayPlan {
 }
 
 /**
- * Places matches, in the order given, each on the court where it can start soonest. A match
- * starts only when its court is free, every match it waits on is over, and none of its possible
- * players has played within `restMinutes`. `busyUntil` holds each player's last finish already
- * on the day, so a fill after earlier matches still gives rest.
+ * Places matches one at a time: of the matches whose earlier matches are placed, the one that
+ * can start soonest goes next, on the court where it can start soonest; a tie keeps the order
+ * given. So an event that starts later does not take a court the morning could still use.
+ * A match starts only when its court is free, every match it waits on is over, and none of its
+ * possible players has played within `restMinutes`. `busyUntil` holds each player's last
+ * finish already on the day, so a fill after earlier matches still gives rest.
  */
 export function planDay(input: {
   courts: readonly CourtFree[];
@@ -92,11 +115,7 @@ export function planDay(input: {
   const placed: PlannedMatch[] = [];
   const unplaced: DayPlan["unplaced"] = [];
 
-  for (const match of input.matches) {
-    if (match.after.some((id) => !endOf.has(id))) {
-      unplaced.push({ matchId: match.id, reason: "waits" });
-      continue;
-    }
+  const soonest = (match: PlanMatch): { courtNumber: number; start: number } => {
     const ready = Math.max(
       match.readyAt,
       ...match.after.map((id) => (endOf.get(id) as number) + input.restMinutes),
@@ -105,16 +124,30 @@ export function planDay(input: {
     const [courtNumber, start] = [...courtFree.entries()]
       .map(([court, free]): [number, number] => [court, roundUp(Math.max(free, ready))])
       .sort((a, b) => a[1] - b[1] || a[0] - b[0])[0];
-    if (input.latestStart !== null && start > input.latestStart) {
-      unplaced.push({ matchId: match.id, reason: "late" });
+    return { courtNumber, start };
+  };
+
+  let remaining = [...input.matches];
+  for (;;) {
+    const next = remaining
+      .filter((match) => match.after.every((id) => endOf.has(id)))
+      .map((match) => ({ match, ...soonest(match) }))
+      // Stable: on equal starts the earlier match in the given order stays first.
+      .sort((a, b) => a.start - b.start)[0];
+    if (next === undefined) break;
+    remaining = remaining.filter((match) => match !== next.match);
+    if (input.latestStart !== null && next.start > input.latestStart) {
+      unplaced.push({ matchId: next.match.id, reason: "late" });
       continue;
     }
-    const end = start + match.minutes;
-    courtFree.set(courtNumber, end);
-    for (const player of match.players) playerFree.set(player, end + input.restMinutes);
-    endOf.set(match.id, end);
-    placed.push({ matchId: match.id, courtNumber, start, end });
+    const end = next.start + next.match.minutes;
+    courtFree.set(next.courtNumber, end);
+    for (const player of next.match.players) playerFree.set(player, end + input.restMinutes);
+    endOf.set(next.match.id, end);
+    placed.push({ matchId: next.match.id, courtNumber: next.courtNumber, start: next.start, end });
   }
+  // What is left waits on a match that was never placed.
+  for (const match of remaining) unplaced.push({ matchId: match.id, reason: "waits" });
   return { placed, unplaced };
 }
 
@@ -139,22 +172,43 @@ export interface CourtItemTiming {
   minutes: number | null;
 }
 
+/** When one item on a court is expected to start and finish, in minutes after midnight. */
+export interface ExpectedSpan {
+  start: number;
+  end: number;
+}
+
 /**
- * When a court's existing items should be over, walking down from its first item. A timed
- * item starts at its own time, even before `dayStart`; only a first item with no time
- * starts at `dayStart`. The end never moves back, so a short session at a fixed time
- * does not free a court a longer match still holds. Null with no items.
+ * When each of a court's items is expected to start and finish, walking down from its first
+ * item. A timed item starts at its own time, even before `dayStart`; only a first item with no
+ * time starts at `dayStart`. The court's end never moves back, so a short session at a fixed
+ * time does not free a court a longer match still holds.
  */
-export function courtEnd(items: readonly CourtItemTiming[], dayStart: number): number | null {
-  let end: number | null = null;
-  for (const item of items) {
+export function courtTimeline(items: readonly CourtItemTiming[], dayStart: number): ExpectedSpan[] {
+  let courtFree: number | null = null;
+  return items.map((item) => {
     const own = item.timing === "followOn" || item.time === null ? null : minutesOf(item.time);
     const start =
-      own === null ? (end ?? dayStart) : item.timing === "notBefore" && end !== null ? Math.max(own, end) : own;
-    const finish = item.minutes !== null ? start + item.minutes : item.endTime !== null ? minutesOf(item.endTime) : start;
-    end = Math.max(end ?? start, start, finish);
-  }
-  return end;
+      own === null ? (courtFree ?? dayStart) : item.timing === "notBefore" && courtFree !== null ? Math.max(own, courtFree) : own;
+    const end = item.minutes !== null ? start + item.minutes : item.endTime !== null ? minutesOf(item.endTime) : start;
+    courtFree = Math.max(courtFree ?? start, start, end);
+    return { start, end };
+  });
+}
+
+/** When a court's existing items should be over; null with no items. */
+export function courtEnd(items: readonly CourtItemTiming[], dayStart: number): number | null {
+  const spans = courtTimeline(items, dayStart);
+  return spans.length === 0 ? null : Math.max(...spans.flatMap((span) => [span.start, span.end]));
+}
+
+/**
+ * Where an item dropped at `time` goes in a court's list: before the first item expected to
+ * start at that time or later. `starts` are the court's expected starts, top to bottom.
+ */
+export function positionForTime(starts: readonly number[], time: number): number {
+  const index = starts.findIndex((start) => start >= time);
+  return index === -1 ? starts.length : index;
 }
 
 /** What the organiser asks the fill for. */
@@ -168,6 +222,8 @@ export interface FillRequest {
   lengths: MatchLengths;
   /** Rounds to place, as `${category}|${roundName}`. */
   rounds: readonly string[];
+  /** An event's own first start ("14:00"); an event left out starts with the fill. */
+  eventStarts: Partial<Record<Category, string>>;
 }
 
 const MAX_REST_MINUTES = 240;
@@ -185,6 +241,8 @@ export interface RawFillRequest {
   eightGames: string;
   bestOfThree: string;
   rounds: readonly string[];
+  /** Blank for an event that starts with the fill. */
+  eventStarts: Partial<Record<Category, string>>;
 }
 
 export type FillValidation = { ok: true; request: FillRequest } | { ok: false; error: string };
@@ -219,6 +277,15 @@ export function validateFillRequest(
     return { ok: false, error: `Match lengths must be whole minutes from ${MIN_MATCH_MINUTES} to ${MAX_MATCH_MINUTES}.` };
   }
   if (raw.rounds.length === 0) return { ok: false, error: "Choose at least one round to place." };
+  const eventStarts: Partial<Record<Category, string>> = {};
+  for (const category of CATEGORIES) {
+    const time = (raw.eventStarts[category] ?? "").trim();
+    if (time === "") continue;
+    if (!isScheduleTime(time) || minutesOf(time) < minutesOf(raw.startTime)) {
+      return { ok: false, error: `Enter the ${CATEGORY_LABELS[category]} start as a time at or after the first match, or leave it blank.` };
+    }
+    eventStarts[category] = time;
+  }
   return {
     ok: true,
     request: {
@@ -229,6 +296,7 @@ export function validateFillRequest(
       restMinutes,
       lengths: { oneSet: lengths.oneSet, eightGames: lengths.eightGames, bestOfThree: lengths.bestOfThree },
       rounds: raw.rounds,
+      eventStarts,
     },
   };
 }

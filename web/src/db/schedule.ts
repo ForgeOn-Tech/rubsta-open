@@ -66,7 +66,8 @@ export function getScheduleItem(database: Database, itemId: string): ScheduleIte
   return item;
 }
 
-function courtItems(
+/** One court's items on a day, top to bottom. */
+export function courtItems(
   database: Database,
   tournamentId: string,
   day: string,
@@ -92,7 +93,7 @@ function nextPosition(database: Database, tournamentId: string, day: string, cou
 }
 
 /** Sets positions 1, 2, 3… in the given order. */
-function renumber(database: Database, ids: readonly string[]): void {
+export function renumber(database: Database, ids: readonly string[]): void {
   const now = Date.now();
   ids.forEach((id, index) => {
     database
@@ -103,7 +104,7 @@ function renumber(database: Database, ids: readonly string[]): void {
   });
 }
 
-function requireCourt(database: Database, tournamentId: string, courtNumber: number): void {
+export function requireCourt(database: Database, tournamentId: string, courtNumber: number): void {
   const court = database
     .select({ id: courts.id })
     .from(courts)

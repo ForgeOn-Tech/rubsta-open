@@ -1,27 +1,36 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 
 import type { Database } from "./draws";
 import { listScoringMatches, type ScoringMatchRow } from "./matches";
 import { listEntryPlayers, type EntryPlayer } from "./partners";
-import { addMatchItem } from "./schedule";
-import { CATEGORIES, CATEGORY_LABELS, scheduleItems, type MatchSlot, type ScheduleItem } from "./schema";
+import { ScheduleRejectedError, addMatchItem, courtItems, getScheduleItem, removeItem, renumber, requireCourt } from "./schedule";
+import { CATEGORIES, CATEGORY_LABELS, draws, matches, scheduleItems, tournaments, type Category, type MatchSlot, type ScheduleItem } from "./schema";
 import {
+  DEFAULT_START_TIME,
   courtEnd,
+  courtTimeline,
   clockOf,
   expectedMinutes,
   minutesOf,
   planDay,
+  positionForTime,
   timingFor,
+  type ExpectedSpan,
   type FillRequest,
   type MatchLengths,
   type PlanMatch,
 } from "@/lib/auto-schedule";
 import { formatFor } from "@/lib/match-formats";
+import { groupRoundName } from "@/lib/groups";
+import { formatScheduleDay, isScheduleTime } from "@/lib/schedule";
 import { sideLabel } from "@/lib/scoring-display";
 
 /** A round with matches still to place, offered on the fill form. */
 export interface FillRound {
   key: string;
+  category: Category;
+  /** The event, e.g. "Open singles". */
+  eventLabel: string;
   label: string;
   matchCount: number;
   /** The round's stage in its event; an event's groups share one. */
@@ -68,6 +77,8 @@ export function listFillRounds(database: Database, tournamentId: string): FillRo
       const [first] = inRound;
       return {
         key,
+        category: first.category,
+        eventLabel: CATEGORY_LABELS[first.category],
         label: `${CATEGORY_LABELS[first.category]} · ${first.match.roundName}`,
         matchCount: inRound.length,
         roundIndex: first.match.roundIndex,
@@ -75,7 +86,7 @@ export function listFillRounds(database: Database, tournamentId: string): FillRo
       };
     })
     .sort((a, b) => a.sort[0] - b.sort[0] || a.sort[1] - b.sort[1] || a.sort[2] - b.sort[2])
-    .map(({ key, label, matchCount, roundIndex }) => ({ key, label, matchCount, roundIndex }));
+    .map(({ key, category, eventLabel, label, matchCount, roundIndex }) => ({ key, category, eventLabel, label, matchCount, roundIndex }));
 }
 
 /** The day each match on the order of play is placed on. */
@@ -202,7 +213,8 @@ function buildPlan(database: Database, tournamentId: string, request: FillReques
   const planMatches: PlanMatch[] = [];
   for (const row of chosen) {
     const feeders = [row.match.topSlot, row.match.bottomSlot].flatMap((slot) => graph.feedersOf(row, slot));
-    let readyAt = dayStart;
+    const eventStart = request.eventStarts[row.category];
+    let readyAt = eventStart === undefined ? dayStart : Math.max(dayStart, minutesOf(eventStart));
     const after: string[] = [];
     let reason: string | null = null;
     for (const feeder of feeders) {
@@ -263,10 +275,22 @@ export function previewFill(database: Database, tournamentId: string, request: F
   };
 }
 
-/** Adds the fill to the working order of play, court by court in start order. Returns how many it placed. */
+/**
+ * Adds the fill to the working order of play, court by court in start order, and keeps its rest
+ * and match lengths for the next fill and the grid. Returns how many it placed.
+ */
 export function applyFill(database: Database, tournamentId: string, request: FillRequest): number {
   return database.transaction((tx) => {
     const plan = buildPlan(tx, tournamentId, request);
+    tx.update(tournaments)
+      .set({
+        scheduleRestMinutes: request.restMinutes,
+        oneSetMinutes: request.lengths.oneSet,
+        eightGamesMinutes: request.lengths.eightGames,
+        bestOfThreeMinutes: request.lengths.bestOfThree,
+      })
+      .where(eq(tournaments.id, tournamentId))
+      .run();
     for (const courtNumber of request.courts) {
       let previousEnd = plan.courtEnds.get(courtNumber) ?? null;
       const onCourt = plan.placed.filter((item) => item.courtNumber === courtNumber).sort((a, b) => a.start - b.start);
@@ -285,4 +309,178 @@ export function applyFill(database: Database, tournamentId: string, request: Fil
     }
     return plan.placed.length;
   });
+}
+
+/** A court's first item with no time of its own starts at this time on the grid. */
+const GRID_DAY_START = minutesOf(DEFAULT_START_TIME);
+
+/** Expected minutes for each match item among `items`; a session runs to its end time. */
+function itemMinutes(database: Database, items: readonly ScheduleItem[], lengths: MatchLengths): Map<string, number> {
+  const matchIds = items.flatMap((item) => (item.matchId === null ? [] : [item.matchId]));
+  if (matchIds.length === 0) return new Map();
+  const rows = database
+    .select({ id: matches.id, format: matches.format, roundName: matches.roundName, category: draws.category })
+    .from(matches)
+    .innerJoin(draws, eq(matches.drawId, draws.id))
+    .where(inArray(matches.id, matchIds))
+    .all();
+  const byMatch = new Map(rows.map((row) => [row.id, expectedMinutes(row.format ?? formatFor(row.category, row.roundName), lengths)]));
+  return new Map(items.flatMap((item) => (item.matchId === null || !byMatch.has(item.matchId) ? [] : [[item.id, byMatch.get(item.matchId) as number]])));
+}
+
+function spansOf(database: Database, onCourt: readonly ScheduleItem[], lengths: MatchLengths): ExpectedSpan[] {
+  const minutes = itemMinutes(database, onCourt, lengths);
+  return courtTimeline(
+    onCourt.map((item) => ({ timing: item.timing, time: item.time, endTime: item.endTime, minutes: minutes.get(item.id) ?? null })),
+    GRID_DAY_START,
+  );
+}
+
+/** One item of a day's order of play with when it is expected to play, for the grid. */
+export interface TimedItem {
+  item: ScheduleItem;
+  start: number;
+  end: number;
+}
+
+/** A day's working order of play with each item's expected start and finish, court by court. */
+export function listTimedItems(database: Database, tournamentId: string, day: string, lengths: MatchLengths): TimedItem[] {
+  const items = database
+    .select()
+    .from(scheduleItems)
+    .where(eq(scheduleItems.tournamentId, tournamentId))
+    .all()
+    .filter((item) => item.day === day)
+    .sort((a, b) => a.courtNumber - b.courtNumber || a.position - b.position);
+  return [...new Set(items.map((item) => item.courtNumber))].flatMap((courtNumber) => {
+    const onCourt = items.filter((item) => item.courtNumber === courtNumber);
+    const spans = spansOf(database, onCourt, lengths);
+    return onCourt.map((item, index) => ({ item, ...spans[index] }));
+  });
+}
+
+/** A match item that may still move: refused for a session, or a match under way or finished. */
+function movableItem(database: Database, itemId: string): ScheduleItem {
+  const item = getScheduleItem(database, itemId);
+  if (item.kind !== "match" || item.matchId === null) throw new ScheduleRejectedError("Only matches move on the grid.");
+  const match = database.select().from(matches).where(eq(matches.id, item.matchId)).get();
+  if (!match) throw new Error(`Schedule item ${itemId} points at match ${item.matchId}, which does not exist.`);
+  if (match.status !== "scheduled") {
+    throw new ScheduleRejectedError(`M${match.matchNumber} has started, so it stays on Court ${item.courtNumber}.`);
+  }
+  return item;
+}
+
+/**
+ * Moves a match to a court and a time on the same day. It goes in the court's list before the
+ * first item expected to start at that time or later, and waits for that time; items below it
+ * that follow on move later with it. A fixed time just below becomes "not before", so the two
+ * cannot overlap. On the court it leaves, items that follow on move up into the gap, and a new
+ * first item keeps the moved match's start. A match under way or finished stays where it is.
+ */
+export function moveItemToSlot(
+  database: Database,
+  itemId: string,
+  target: { courtNumber: number; time: string },
+  lengths: MatchLengths,
+): void {
+  if (!isScheduleTime(target.time)) throw new ScheduleRejectedError("Choose a time such as 10:15.");
+  database.transaction((tx) => {
+    const item = movableItem(tx, itemId);
+    requireCourt(tx, item.tournamentId, target.courtNumber);
+    const now = Date.now();
+
+    const source = courtItems(tx, item.tournamentId, item.day, item.courtNumber);
+    const sourceIndex = source.findIndex((row) => row.id === itemId);
+    const oldStart = spansOf(tx, source, lengths)[sourceIndex].start;
+
+    const others = courtItems(tx, item.tournamentId, item.day, target.courtNumber).filter((row) => row.id !== itemId);
+    const index = positionForTime(
+      spansOf(tx, others, lengths).map((span) => span.start),
+      minutesOf(target.time),
+    );
+    tx.update(scheduleItems)
+      .set({ courtNumber: target.courtNumber, timing: "notBefore", time: target.time, updatedAt: now })
+      .where(eq(scheduleItems.id, itemId))
+      .run();
+    const below = others[index];
+    if (below !== undefined && below.timing === "at") {
+      tx.update(scheduleItems).set({ timing: "notBefore", updatedAt: now }).where(eq(scheduleItems.id, below.id)).run();
+    }
+    renumber(tx, [...others.slice(0, index), item, ...others.slice(index)].map((row) => row.id));
+
+    if (item.courtNumber !== target.courtNumber) renumber(tx, source.filter((row) => row.id !== itemId).map((row) => row.id));
+    const [first] = courtItems(tx, item.tournamentId, item.day, item.courtNumber);
+    if (sourceIndex === 0 && first !== undefined && first.id !== itemId && first.timing === "followOn") {
+      // Nothing above it any more, so it takes the start the moved match had.
+      tx.update(scheduleItems).set({ timing: "at", time: clockOf(oldStart), updatedAt: now }).where(eq(scheduleItems.id, first.id)).run();
+    }
+  });
+}
+
+/** Puts a match with no place yet on a court at a time, where moving it there would. */
+export function placeMatchAtSlot(
+  database: Database,
+  tournamentId: string,
+  placement: { day: string; matchId: string; courtNumber: number; time: string },
+  lengths: MatchLengths,
+): void {
+  if (!isScheduleTime(placement.time)) throw new ScheduleRejectedError("Choose a time such as 10:15.");
+  const { day, matchId, courtNumber, time } = placement;
+  database.transaction((tx) => {
+    const item = addMatchItem(tx, tournamentId, { day, courtNumber, matchId, timing: "notBefore", time, umpireEmail: null });
+    moveItemToSlot(tx, item.id, { courtNumber, time }, lengths);
+  });
+}
+
+/** Takes a match that has not started off the order of play, back to the grid's tray. */
+export function unscheduleItem(database: Database, itemId: string): void {
+  database.transaction((tx) => {
+    movableItem(tx, itemId);
+    removeItem(tx, itemId);
+  });
+}
+
+/** How a match names the earlier matches a slot waits on, e.g. "Open singles M27" or "Open singles Group A". */
+function feederName(row: ScoringMatchRow, slot: MatchSlot): string {
+  if (slot.kind === "group") return `${CATEGORY_LABELS[row.category]} ${groupRoundName(slot.group)}`;
+  if (slot.kind === "winner") return `${CATEGORY_LABELS[row.category]} M${slot.matchNumber}`;
+  throw new Error(`A ${slot.kind} slot waits on no match.`);
+}
+
+/**
+ * For each placed match on the day, the earlier matches it waits on that will not be over, with
+ * rest, before it starts: still without a place, on a later day, or ending too late that day.
+ * e.g. "Waits on Open singles Group A, which should end 13:30". Keyed by match id.
+ */
+export function dependencyWarnings(
+  database: Database,
+  tournamentId: string,
+  day: string,
+  timed: readonly TimedItem[],
+  restMinutes: number,
+): Map<string, string[]> {
+  const rows = listScoringMatches(database, tournamentId);
+  const graph = graphOf(rows, new Map());
+  const days = matchDays(database, tournamentId);
+  const endOf = new Map(timed.flatMap(({ item, end }) => (item.matchId === null ? [] : [[item.matchId, end] as const])));
+  return new Map(
+    timed.flatMap(({ item, start }) => {
+      const row = item.matchId === null ? undefined : graph.rowsById.get(item.matchId);
+      if (row === undefined || row.match.status !== "scheduled") return [];
+      const warnings = [row.match.topSlot, row.match.bottomSlot].flatMap((slot) => {
+        if (slot.kind !== "group" && slot.kind !== "winner") return [];
+        const open = graph.feedersOf(row, slot).filter((feeder) => feeder.match.status !== "completed");
+        if (open.length === 0) return [];
+        const name = feederName(row, slot);
+        if (open.some((feeder) => !days.has(feeder.match.id))) return [`Waits on ${name}, which has a match with no place yet`];
+        const later = open.find((feeder) => (days.get(feeder.match.id) as string) > day);
+        if (later !== undefined) return [`Waits on ${name}, which plays on ${formatScheduleDay(days.get(later.match.id) as string)}`];
+        const ends = open.flatMap((feeder) => (days.get(feeder.match.id) === day ? [endOf.get(feeder.match.id) ?? start] : []));
+        const lastEnd = Math.max(...ends);
+        return ends.length > 0 && start < lastEnd + restMinutes ? [`Waits on ${name}, which should end ${clockOf(lastEnd)}`] : [];
+      });
+      return warnings.length === 0 ? [] : [[row.match.id, warnings] as const];
+    }),
+  );
 }

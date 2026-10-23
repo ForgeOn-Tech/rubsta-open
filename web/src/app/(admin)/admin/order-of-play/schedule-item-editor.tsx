@@ -37,7 +37,6 @@ export function ScheduleItemEditor({
   action,
 }: ScheduleItemEditorProps) {
   const [state, formAction, pending] = useActionState(action, INITIAL_ACTION_STATE);
-  const idPrefix = `item-${entry.id}`;
 
   return (
     <div className="mt-2.5 border-t border-line pt-2.5">
@@ -79,51 +78,79 @@ export function ScheduleItemEditor({
         <summary className="cursor-pointer text-[12px] font-semibold text-accent">
           Edit <span className="sr-only">{name}</span>
         </summary>
-        <form action={formAction} className="mt-2 flex flex-col gap-2">
-          <input type="hidden" name="itemId" value={entry.id} />
-          <input type="hidden" name="intent" value="save" />
-          {entry.kind === "match" ? (
-            <>
-              <TimingFields
-                idPrefix={idPrefix}
-                initialTiming={entry.timing}
-                initialTime={entry.time ?? ""}
-              />
-              <UmpireSelect id={`${idPrefix}-umpire`} umpires={umpires} initial={entry.umpireEmail} />
-            </>
-          ) : (
-            <BlockFields
-              idPrefix={idPrefix}
-              initial={{
-                title: entry.title ?? "",
-                note: entry.note ?? "",
-                time: entry.time ?? "",
-                endTime: entry.endTime ?? "",
-              }}
-            />
-          )}
-          <button type="submit" className="btn btn-primary h-8 w-fit text-[12px]" disabled={pending}>
-            Save
-          </button>
-        </form>
-        <form action={formAction} className="mt-3 flex items-end gap-2">
-          <input type="hidden" name="itemId" value={entry.id} />
-          <input type="hidden" name="intent" value="court" />
-          <CourtSelect
-            id={`${idPrefix}-court`}
-            label="Move to court"
-            courts={courts}
-            initial={entry.courtNumber}
-          />
-          <button type="submit" className="btn btn-outline h-9 text-[12px]" disabled={pending}>
-            Move
-          </button>
-        </form>
+        <ScheduleItemForms entry={entry} courts={courts} umpires={umpires} action={action} />
       </details>
 
       {state.error ? (
         <p className="mt-2 text-[12px] text-bad" role="alert">
           {state.error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+export interface ScheduleItemFormsProps {
+  entry: ScheduleEntry;
+  courts: readonly CourtOption[];
+  umpires: readonly UmpireOption[];
+  action: FormAction;
+}
+
+/** Edit an item's timing and umpire, or a session's details, and move it to another court. */
+export function ScheduleItemForms({ entry, courts, umpires, action }: ScheduleItemFormsProps) {
+  const [state, formAction, pending] = useActionState(action, INITIAL_ACTION_STATE);
+  const idPrefix = `item-${entry.id}`;
+
+  return (
+    <div>
+      <form action={formAction} className="mt-2 flex flex-col gap-2">
+        <input type="hidden" name="itemId" value={entry.id} />
+        <input type="hidden" name="intent" value="save" />
+        {entry.kind === "match" ? (
+          <>
+            <TimingFields
+              idPrefix={idPrefix}
+              initialTiming={entry.timing}
+              initialTime={entry.time ?? ""}
+            />
+            <UmpireSelect id={`${idPrefix}-umpire`} umpires={umpires} initial={entry.umpireEmail} />
+          </>
+        ) : (
+          <BlockFields
+            idPrefix={idPrefix}
+            initial={{
+              title: entry.title ?? "",
+              note: entry.note ?? "",
+              time: entry.time ?? "",
+              endTime: entry.endTime ?? "",
+            }}
+          />
+        )}
+        <button type="submit" className="btn btn-primary h-8 w-fit text-[12px]" disabled={pending}>
+          Save
+        </button>
+      </form>
+      <form action={formAction} className="mt-3 flex items-end gap-2">
+        <input type="hidden" name="itemId" value={entry.id} />
+        <input type="hidden" name="intent" value="court" />
+        <CourtSelect
+          id={`${idPrefix}-court`}
+          label="Move to court"
+          courts={courts}
+          initial={entry.courtNumber}
+        />
+        <button type="submit" className="btn btn-outline h-9 text-[12px]" disabled={pending}>
+          Move
+        </button>
+      </form>
+      {state.error ? (
+        <p className="mt-2 text-[12px] text-bad" role="alert">
+          {state.error}
+        </p>
+      ) : state.savedAt !== null ? (
+        <p className="mt-2 text-[12px] text-good" role="status">
+          Saved.
         </p>
       ) : null}
     </div>

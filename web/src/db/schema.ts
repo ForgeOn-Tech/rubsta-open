@@ -164,6 +164,12 @@ export const tournaments = sqliteTable("tournaments", {
   scheduleConfirmed: integer("schedule_confirmed", { mode: "boolean" })
     .notNull()
     .default(false),
+  // What the last auto-fill used, so the next fill and the order-of-play grid agree. Null for
+  // the defaults in lib/auto-schedule.
+  scheduleRestMinutes: integer("schedule_rest_minutes"),
+  oneSetMinutes: integer("one_set_minutes"),
+  eightGamesMinutes: integer("eight_games_minutes"),
+  bestOfThreeMinutes: integer("best_of_three_minutes"),
 });
 
 export const CATEGORIES = ["OS", "W30", "U15", "OD", "S40", "D40"] as const;
