@@ -5,14 +5,14 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { describe, expect, it } from "vitest";
 
-import { applyFill, listFillRounds, previewFill } from "@/db/auto-schedule";
+import { applyFill, listFillRounds, listTimedItems, moveItemToSlot, previewFill } from "@/db/auto-schedule";
 import { addCourt } from "@/db/courts";
 import { getDrawWithSlots, saveGeneratedGroups } from "@/db/draws";
 import { publishDraw } from "@/db/matches";
-import { addMatchItem, listScheduleItems } from "@/db/schedule";
+import { ScheduleRejectedError, addMatchItem, listScheduleItems } from "@/db/schedule";
 import * as schema from "@/db/schema";
 import { SEED_TOURNAMENT } from "@/db/seed";
-import { DEFAULT_MATCH_LENGTHS, minutesOf, type FillRequest } from "@/lib/auto-schedule";
+import { DEFAULT_MATCH_LENGTHS, clockOf, minutesOf, type FillRequest } from "@/lib/auto-schedule";
 import { generateGroups, groupPlan } from "@/lib/groups";
 
 const TOURNAMENT_ID = "tournament-1";
@@ -155,5 +155,89 @@ describe("filling a day", () => {
     expect(court1.slice(1).every((item) => item.timing !== "at")).toBe(true);
     // Placed matches are gone from the offer.
     expect(listFillRounds(database, TOURNAMENT_ID).map((round) => round.key)).not.toContain("OS|Group A");
+  });
+});
+
+describe("moving a match on the grid", () => {
+  /** Group A's matches 1–4 placed by hand: court 1 has M1 at 08:00 then M2 following on; court 2 has M3 at 09:00 then M4. */
+  function placed() {
+    const database = setup();
+    const byNumber = (number: number) => database.select().from(schema.matches).where(eq(schema.matches.matchNumber, number)).get()!;
+    const place = (number: number, courtNumber: number, timing: "at" | "followOn", time: string | null) =>
+      addMatchItem(database, TOURNAMENT_ID, { day: DAY, courtNumber, matchId: byNumber(number).id, timing, time, umpireEmail: null });
+    const items = [place(1, 1, "at", "08:00"), place(2, 1, "followOn", null), place(3, 2, "at", "09:00"), place(4, 2, "followOn", null)];
+    return { database, byNumber, items };
+  }
+
+  function grid(database: ReturnType<typeof setup>, courtNumber: number): [string, string, number, string | null][] {
+    return listTimedItems(database, TOURNAMENT_ID, DAY, DEFAULT_MATCH_LENGTHS)
+      .filter((row) => row.item.courtNumber === courtNumber)
+      .map((row) => [clockOf(row.start), row.item.timing, row.item.position, row.item.matchId]);
+  }
+
+  it("puts the match at its new court and time, and moves the court's later matches after it", () => {
+    // Arrange
+    const { database, byNumber, items } = placed();
+
+    // Act: M2 to court 2 at 09:00, ahead of M3.
+    moveItemToSlot(database, items[1].id, { courtNumber: 2, time: "09:00" }, DEFAULT_MATCH_LENGTHS);
+
+    // Assert: M3 keeps its time as "not before", so it waits for M2 to finish.
+    expect(grid(database, 2)).toEqual([
+      ["09:00", "notBefore", 1, byNumber(2).id],
+      ["09:45", "notBefore", 2, byNumber(3).id],
+      ["10:30", "followOn", 3, byNumber(4).id],
+    ]);
+    expect(grid(database, 1)).toEqual([["08:00", "at", 1, byNumber(1).id]]);
+  });
+
+  it("goes after a court's matches when dropped later than all of them", () => {
+    const { database, byNumber, items } = placed();
+
+    moveItemToSlot(database, items[0].id, { courtNumber: 2, time: "13:00" }, DEFAULT_MATCH_LENGTHS);
+
+    expect(grid(database, 2).map((row) => [row[0], row[3]])).toEqual([
+      ["09:00", byNumber(3).id],
+      ["09:45", byNumber(4).id],
+      ["13:00", byNumber(1).id],
+    ]);
+  });
+
+  it("gives the court it leaves a new first match at the moved match's start", () => {
+    const { database, byNumber, items } = placed();
+
+    moveItemToSlot(database, items[0].id, { courtNumber: 2, time: "13:00" }, DEFAULT_MATCH_LENGTHS);
+
+    expect(grid(database, 1)).toEqual([["08:00", "at", 1, byNumber(2).id]]);
+  });
+
+  it("moves a match later on its own court", () => {
+    const { database, byNumber, items } = placed();
+
+    moveItemToSlot(database, items[0].id, { courtNumber: 1, time: "11:00" }, DEFAULT_MATCH_LENGTHS);
+
+    expect(grid(database, 1)).toEqual([
+      ["08:00", "at", 1, byNumber(2).id],
+      ["11:00", "notBefore", 2, byNumber(1).id],
+    ]);
+  });
+
+  it("leaves a match under way where it is", () => {
+    const { database, byNumber, items } = placed();
+    database.update(schema.matches).set({ status: "in_progress" }).where(eq(schema.matches.id, byNumber(1).id)).run();
+
+    expect(() => moveItemToSlot(database, items[0].id, { courtNumber: 2, time: "13:00" }, DEFAULT_MATCH_LENGTHS)).toThrow(
+      new ScheduleRejectedError("M1 has started, so it stays on Court 1."),
+    );
+    expect(grid(database, 1).map((row) => row[3])).toEqual([byNumber(1).id, byNumber(2).id]);
+  });
+
+  it.each([
+    ["a court that does not exist", { courtNumber: 9, time: "10:00" }, "Court 9 does not exist. Add it in Settings first."],
+    ["a time that is not a time", { courtNumber: 2, time: "25:00" }, "Choose a time such as 10:15."],
+  ])("refuses %s", (_case, target, message) => {
+    const { database, items } = placed();
+
+    expect(() => moveItemToSlot(database, items[0].id, target, DEFAULT_MATCH_LENGTHS)).toThrow(new ScheduleRejectedError(message));
   });
 });

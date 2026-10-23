@@ -172,22 +172,43 @@ export interface CourtItemTiming {
   minutes: number | null;
 }
 
+/** When one item on a court is expected to start and finish, in minutes after midnight. */
+export interface ExpectedSpan {
+  start: number;
+  end: number;
+}
+
 /**
- * When a court's existing items should be over, walking down from its first item. A timed
- * item starts at its own time, even before `dayStart`; only a first item with no time
- * starts at `dayStart`. The end never moves back, so a short session at a fixed time
- * does not free a court a longer match still holds. Null with no items.
+ * When each of a court's items is expected to start and finish, walking down from its first
+ * item. A timed item starts at its own time, even before `dayStart`; only a first item with no
+ * time starts at `dayStart`. The court's end never moves back, so a short session at a fixed
+ * time does not free a court a longer match still holds.
  */
-export function courtEnd(items: readonly CourtItemTiming[], dayStart: number): number | null {
-  let end: number | null = null;
-  for (const item of items) {
+export function courtTimeline(items: readonly CourtItemTiming[], dayStart: number): ExpectedSpan[] {
+  let courtFree: number | null = null;
+  return items.map((item) => {
     const own = item.timing === "followOn" || item.time === null ? null : minutesOf(item.time);
     const start =
-      own === null ? (end ?? dayStart) : item.timing === "notBefore" && end !== null ? Math.max(own, end) : own;
-    const finish = item.minutes !== null ? start + item.minutes : item.endTime !== null ? minutesOf(item.endTime) : start;
-    end = Math.max(end ?? start, start, finish);
-  }
-  return end;
+      own === null ? (courtFree ?? dayStart) : item.timing === "notBefore" && courtFree !== null ? Math.max(own, courtFree) : own;
+    const end = item.minutes !== null ? start + item.minutes : item.endTime !== null ? minutesOf(item.endTime) : start;
+    courtFree = Math.max(courtFree ?? start, start, end);
+    return { start, end };
+  });
+}
+
+/** When a court's existing items should be over; null with no items. */
+export function courtEnd(items: readonly CourtItemTiming[], dayStart: number): number | null {
+  const spans = courtTimeline(items, dayStart);
+  return spans.length === 0 ? null : Math.max(...spans.flatMap((span) => [span.start, span.end]));
+}
+
+/**
+ * Where an item dropped at `time` goes in a court's list: before the first item expected to
+ * start at that time or later. `starts` are the court's expected starts, top to bottom.
+ */
+export function positionForTime(starts: readonly number[], time: number): number {
+  const index = starts.findIndex((start) => start >= time);
+  return index === -1 ? starts.length : index;
 }
 
 /** What the organiser asks the fill for. */

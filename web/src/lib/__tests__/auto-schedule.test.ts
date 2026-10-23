@@ -4,9 +4,11 @@ import {
   DEFAULT_MATCH_LENGTHS,
   clockOf,
   courtEnd,
+  courtTimeline,
   expectedMinutes,
   minutesOf,
   planDay,
+  positionForTime,
   scheduleSettingsOf,
   timingFor,
   validateFillRequest,
@@ -219,6 +221,43 @@ describe("courtEnd", () => {
       EIGHT,
     );
     expect(clockOf(end ?? 0)).toBe("09:30");
+  });
+});
+
+describe("courtTimeline", () => {
+  it("gives each item its expected start and finish", () => {
+    const spans = courtTimeline(
+      [
+        { timing: "at", time: "08:00", endTime: null, minutes: 45 },
+        { timing: "followOn", time: null, endTime: null, minutes: 45 },
+        { timing: "notBefore", time: "10:00", endTime: null, minutes: 90 },
+        { timing: "notBefore", time: "11:00", endTime: null, minutes: 45 },
+      ],
+      EIGHT,
+    );
+
+    // The last waits for 11:00 but starts only when the 10:00 match is over.
+    expect(spans.map((span) => [clockOf(span.start), clockOf(span.end)])).toEqual([
+      ["08:00", "08:45"],
+      ["08:45", "09:30"],
+      ["10:00", "11:30"],
+      ["11:30", "12:15"],
+    ]);
+  });
+});
+
+describe("positionForTime", () => {
+  const starts = [minutesOf("08:00"), minutesOf("08:45"), minutesOf("09:30")];
+
+  it("goes before the first item starting at that time or later", () => {
+    expect(positionForTime(starts, minutesOf("07:30"))).toBe(0);
+    expect(positionForTime(starts, minutesOf("08:45"))).toBe(1);
+    expect(positionForTime(starts, minutesOf("09:00"))).toBe(2);
+  });
+
+  it("goes last after every start, and first on an empty court", () => {
+    expect(positionForTime(starts, minutesOf("12:00"))).toBe(3);
+    expect(positionForTime([], minutesOf("12:00"))).toBe(0);
   });
 });
 

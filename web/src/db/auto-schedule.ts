@@ -1,22 +1,27 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 
 import type { Database } from "./draws";
 import { listScoringMatches, type ScoringMatchRow } from "./matches";
 import { listEntryPlayers, type EntryPlayer } from "./partners";
-import { addMatchItem } from "./schedule";
-import { CATEGORIES, CATEGORY_LABELS, scheduleItems, tournaments, type Category, type MatchSlot, type ScheduleItem } from "./schema";
+import { ScheduleRejectedError, addMatchItem, courtItems, getScheduleItem, renumber, requireCourt } from "./schedule";
+import { CATEGORIES, CATEGORY_LABELS, draws, matches, scheduleItems, tournaments, type Category, type MatchSlot, type ScheduleItem } from "./schema";
 import {
+  DEFAULT_START_TIME,
   courtEnd,
+  courtTimeline,
   clockOf,
   expectedMinutes,
   minutesOf,
   planDay,
+  positionForTime,
   timingFor,
+  type ExpectedSpan,
   type FillRequest,
   type MatchLengths,
   type PlanMatch,
 } from "@/lib/auto-schedule";
 import { formatFor } from "@/lib/match-formats";
+import { isScheduleTime } from "@/lib/schedule";
 import { sideLabel } from "@/lib/scoring-display";
 
 /** A round with matches still to place, offered on the fill form. */
@@ -302,5 +307,106 @@ export function applyFill(database: Database, tournamentId: string, request: Fil
       }
     }
     return plan.placed.length;
+  });
+}
+
+/** A court's first item with no time of its own starts at this time on the grid. */
+const GRID_DAY_START = minutesOf(DEFAULT_START_TIME);
+
+/** Expected minutes for each match item among `items`; a session runs to its end time. */
+function itemMinutes(database: Database, items: readonly ScheduleItem[], lengths: MatchLengths): Map<string, number> {
+  const matchIds = items.flatMap((item) => (item.matchId === null ? [] : [item.matchId]));
+  if (matchIds.length === 0) return new Map();
+  const rows = database
+    .select({ id: matches.id, format: matches.format, roundName: matches.roundName, category: draws.category })
+    .from(matches)
+    .innerJoin(draws, eq(matches.drawId, draws.id))
+    .where(inArray(matches.id, matchIds))
+    .all();
+  const byMatch = new Map(rows.map((row) => [row.id, expectedMinutes(row.format ?? formatFor(row.category, row.roundName), lengths)]));
+  return new Map(items.flatMap((item) => (item.matchId === null || !byMatch.has(item.matchId) ? [] : [[item.id, byMatch.get(item.matchId) as number]])));
+}
+
+function spansOf(database: Database, onCourt: readonly ScheduleItem[], lengths: MatchLengths): ExpectedSpan[] {
+  const minutes = itemMinutes(database, onCourt, lengths);
+  return courtTimeline(
+    onCourt.map((item) => ({ timing: item.timing, time: item.time, endTime: item.endTime, minutes: minutes.get(item.id) ?? null })),
+    GRID_DAY_START,
+  );
+}
+
+/** One item of a day's order of play with when it is expected to play, for the grid. */
+export interface TimedItem {
+  item: ScheduleItem;
+  start: number;
+  end: number;
+}
+
+/** A day's working order of play with each item's expected start and finish, court by court. */
+export function listTimedItems(database: Database, tournamentId: string, day: string, lengths: MatchLengths): TimedItem[] {
+  const items = database
+    .select()
+    .from(scheduleItems)
+    .where(eq(scheduleItems.tournamentId, tournamentId))
+    .all()
+    .filter((item) => item.day === day)
+    .sort((a, b) => a.courtNumber - b.courtNumber || a.position - b.position);
+  return [...new Set(items.map((item) => item.courtNumber))].flatMap((courtNumber) => {
+    const onCourt = items.filter((item) => item.courtNumber === courtNumber);
+    const spans = spansOf(database, onCourt, lengths);
+    return onCourt.map((item, index) => ({ item, ...spans[index] }));
+  });
+}
+
+/**
+ * Moves a match to a court and a time on the same day. It goes in the court's list before the
+ * first item expected to start at that time or later, and waits for that time; items below it
+ * that follow on move later with it. A fixed time just below becomes "not before", so the two
+ * cannot overlap. On the court it leaves, items that follow on move up into the gap, and a new
+ * first item keeps the moved match's start. A match under way or finished stays where it is.
+ */
+export function moveItemToSlot(
+  database: Database,
+  itemId: string,
+  target: { courtNumber: number; time: string },
+  lengths: MatchLengths,
+): void {
+  if (!isScheduleTime(target.time)) throw new ScheduleRejectedError("Choose a time such as 10:15.");
+  database.transaction((tx) => {
+    const item = getScheduleItem(tx, itemId);
+    if (item.kind !== "match" || item.matchId === null) throw new ScheduleRejectedError("Only matches move on the grid.");
+    const match = tx.select().from(matches).where(eq(matches.id, item.matchId)).get();
+    if (!match) throw new Error(`Schedule item ${itemId} points at match ${item.matchId}, which does not exist.`);
+    if (match.status !== "scheduled") {
+      throw new ScheduleRejectedError(`M${match.matchNumber} has started, so it stays on Court ${item.courtNumber}.`);
+    }
+    requireCourt(tx, item.tournamentId, target.courtNumber);
+    const now = Date.now();
+
+    const source = courtItems(tx, item.tournamentId, item.day, item.courtNumber);
+    const sourceIndex = source.findIndex((row) => row.id === itemId);
+    const oldStart = spansOf(tx, source, lengths)[sourceIndex].start;
+
+    const others = courtItems(tx, item.tournamentId, item.day, target.courtNumber).filter((row) => row.id !== itemId);
+    const index = positionForTime(
+      spansOf(tx, others, lengths).map((span) => span.start),
+      minutesOf(target.time),
+    );
+    tx.update(scheduleItems)
+      .set({ courtNumber: target.courtNumber, timing: "notBefore", time: target.time, updatedAt: now })
+      .where(eq(scheduleItems.id, itemId))
+      .run();
+    const below = others[index];
+    if (below !== undefined && below.timing === "at") {
+      tx.update(scheduleItems).set({ timing: "notBefore", updatedAt: now }).where(eq(scheduleItems.id, below.id)).run();
+    }
+    renumber(tx, [...others.slice(0, index), item, ...others.slice(index)].map((row) => row.id));
+
+    if (item.courtNumber !== target.courtNumber) renumber(tx, source.filter((row) => row.id !== itemId).map((row) => row.id));
+    const [first] = courtItems(tx, item.tournamentId, item.day, item.courtNumber);
+    if (sourceIndex === 0 && first !== undefined && first.id !== itemId && first.timing === "followOn") {
+      // Nothing above it any more, so it takes the start the moved match had.
+      tx.update(scheduleItems).set({ timing: "at", time: clockOf(oldStart), updatedAt: now }).where(eq(scheduleItems.id, first.id)).run();
+    }
   });
 }
