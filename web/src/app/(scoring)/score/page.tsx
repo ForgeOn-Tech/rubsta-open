@@ -1,6 +1,7 @@
 import { ScoringLink as Link } from "@/components/scoring-link";
 
 import { ConnectionNotice } from "./connection-notice";
+import { MatchFinder } from "./match-finder";
 import { signOutAction } from "@/auth/actions";
 import { canAccessAdmin, requireScorer } from "@/auth/require";
 import { getDb } from "@/db/client";
@@ -24,6 +25,7 @@ import {
   scoringGroupOf,
   sideLabel,
 } from "@/lib/scoring-display";
+import type { MatchCardView, MatchGroupView } from "@/lib/scoring-search";
 import { isUmpireLinkEmail } from "@/lib/umpire-links";
 
 export const dynamic = "force-dynamic";
@@ -99,94 +101,40 @@ export default async function ScoringListPage() {
             No matches yet. They appear here once an admin publishes a draw.
           </p>
         ) : (
-          <>
-            {yours.length === 0 ? null : (
-              <MatchGroup id="yours" title="Your matches" rows={yours} places={places} />
-            )}
-            {shownGroups.map((group) => (
-              <MatchGroup
-                key={group}
-                id={group}
-                title={SCORING_GROUP_TITLES[group]}
-                rows={groups[group]}
-                places={places}
-              />
-            ))}
-          </>
+          <MatchFinder
+            groups={[
+              ...(yours.length === 0 ? [] : [groupView("yours", "Your matches", yours, places)]),
+              ...shownGroups.map((group) =>
+                groupView(group, SCORING_GROUP_TITLES[group], groups[group], places),
+              ),
+            ]}
+          />
         )}
       </main>
     </div>
   );
 }
 
-function MatchGroup({
-  id,
-  title,
-  rows,
-  places,
-}: {
-  id: string;
-  title: string;
-  rows: readonly ScoringMatchRow[];
-  places: ReadonlyMap<string, PublishedPlace>;
-}) {
-  return (
-    <section aria-labelledby={`group-${id}`}>
-      <h2 id={`group-${id}`} className="thead">
-        {title} · {rows.length}
-      </h2>
-      <ul className="mt-2 flex flex-col gap-2">
-        {rows.map((row) => (
-          <li key={row.match.id}>
-            <MatchCard
-              row={row}
-              place={places.get(row.match.id) ?? null}
-              linked={scoringGroupOf(row) !== "waiting"}
-            />
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
+function groupView(
+  id: string,
+  title: string,
+  rows: readonly ScoringMatchRow[],
+  places: ReadonlyMap<string, PublishedPlace>,
+): MatchGroupView {
+  return { id, title, cards: rows.map((row) => cardView(row, places.get(row.match.id) ?? null)) };
 }
 
-function MatchCard({
-  row,
-  place,
-  linked,
-}: {
-  row: ScoringMatchRow;
-  place: PublishedPlace | null;
-  linked: boolean;
-}) {
+function cardView(row: ScoringMatchRow, place: PublishedPlace | null): MatchCardView {
   const { match } = row;
-  const summary = matchSummary(row);
   const court = match.court ?? place?.courtNumber ?? null;
-  const content = (
-    <>
-      <div className="mono flex justify-between gap-3 text-[10px] uppercase text-dim">
-        <span>
-          M{match.matchNumber} · {CATEGORY_LABELS[row.category]} · {match.roundName}
-        </span>
-        <span className="flex-none">{court === null ? "No court" : `Court ${court}`}</span>
-      </div>
-      <div className="mt-1.5 truncate text-[14px] font-semibold text-ink">
-        {sideLabel(row.top, match.topSlot).name}
-      </div>
-      <div className="truncate text-[14px] font-semibold text-ink">
-        {sideLabel(row.bottom, match.bottomSlot).name}
-      </div>
-      {summary ? <div className="mono mt-1 text-[12px] text-muted">{summary}</div> : null}
-      {place !== null && match.status === "scheduled" ? (
-        <div className="mono mt-1 text-[11px] text-muted">{placeLabel(place)}</div>
-      ) : null}
-    </>
-  );
-
-  if (!linked) return <div className="card p-3">{content}</div>;
-  return (
-    <Link href={`/score/${match.id}`} className="card block p-3 hover:border-accent">
-      {content}
-    </Link>
-  );
+  return {
+    id: match.id,
+    heading: `M${match.matchNumber} · ${CATEGORY_LABELS[row.category]} · ${match.roundName}`,
+    court: court === null ? "No court" : `Court ${court}`,
+    top: sideLabel(row.top, match.topSlot).name,
+    bottom: sideLabel(row.bottom, match.bottomSlot).name,
+    summary: matchSummary(row),
+    place: place !== null && match.status === "scheduled" ? placeLabel(place) : null,
+    linked: scoringGroupOf(row) !== "waiting",
+  };
 }
