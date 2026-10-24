@@ -558,7 +558,8 @@ export const fanReactions = sqliteTable(
       .notNull()
       .default(sql`(unixepoch() * 1000)`),
   },
-  (table) => [uniqueIndex("fan_reactions_match_user_kind").on(table.matchId, table.userId, table.kind)],
+  // A fan may react again and again; this index finds their last tap for the cooldown.
+  (table) => [index("fan_reactions_match_user_time").on(table.matchId, table.userId, table.createdAt)],
 );
 
 /**

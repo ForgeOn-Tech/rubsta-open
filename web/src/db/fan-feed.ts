@@ -7,7 +7,6 @@ import {
   getOwnPrediction,
   latestSetCall,
   listCourtMessages,
-  listOwnReactions,
 } from "./fan";
 import { listScoringMatches } from "./matches";
 import { listPublishedDays } from "./schedule";
@@ -56,8 +55,6 @@ export function fanFeed(
         ? null
         : { board: scoreboard(nextRow), place: nextPlace === undefined ? null : placeLabel(nextPlace) },
     reactions: liveRow === null ? noReactions() : countReactions(database, liveRow.match.id),
-    ownReactions:
-      liveRow === null || userId === null ? [] : listOwnReactions(database, liveRow.match.id, userId),
     predictions:
       live === null || live.setNumber === null
         ? null

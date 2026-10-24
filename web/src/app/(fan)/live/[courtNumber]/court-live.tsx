@@ -109,7 +109,6 @@ export function CourtLive({
           matchId={feed.live.matchId}
           courtNumber={courtNumber}
           counts={feed.reactions}
-          own={feed.ownReactions}
           signedIn={feed.signedIn}
           action={refreshingAfter(reactAction)}
         />
