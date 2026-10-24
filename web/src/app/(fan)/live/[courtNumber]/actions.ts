@@ -48,7 +48,10 @@ function kindFrom(formData: FormData): ReactionKind | null {
   return REACTION_KINDS.find((kind) => kind === value) ?? null;
 }
 
-/** Sends a fan's reaction to the match being played. Each kind counts once. */
+/**
+ * Sends a fan's reaction to the match being played. A tap inside the cooldown is dropped
+ * quietly: it returns no error and no save time, so the page neither alerts nor bursts.
+ */
 export async function reactAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const session = await auth();
   const userId = session?.user?.id;
@@ -58,14 +61,14 @@ export async function reactAction(_prev: ActionState, formData: FormData): Promi
   if (kind === null) return { error: "That reaction does not exist.", savedAt: null };
 
   const matchId = String(formData.get("matchId") ?? "");
+  const now = Date.now();
   try {
-    addReaction(getDb(), matchId, userId, kind);
+    const counted = addReaction(getDb(), { matchId, userId, kind, now });
+    return { error: null, savedAt: counted ? now : null };
   } catch (error) {
     if (error instanceof FanRejectedError) return { error: error.message, savedAt: null };
     throw error;
   }
-
-  return { error: null, savedAt: Date.now() };
 }
 
 /** Posts a fan's message to a court chat. */

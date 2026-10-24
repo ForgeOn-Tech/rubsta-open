@@ -25,7 +25,6 @@ export interface FanFeed {
   live: FanScoreboard | null;
   next: { board: FanScoreboard; place: string | null } | null;
   reactions: Record<ReactionKind, number>;
-  ownReactions: ReactionKind[];
   predictions: FanPredictionFeed | null;
   /** Chat for the court's current match. */
   messages: ChatMessage[];

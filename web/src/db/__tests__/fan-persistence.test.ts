@@ -18,7 +18,7 @@ import {
   latestSetCall,
   listCourtMessages,
   listMessagesToModerate,
-  listOwnReactions,
+  REACTION_COOLDOWN_MS,
   muteFan,
   postFanMessage,
   savePrediction,
@@ -27,6 +27,7 @@ import {
 } from "@/db/fan";
 import { resetMatch } from "@/db/matches";
 import * as schema from "@/db/schema";
+import type { ReactionKind } from "@/db/schema";
 import { SEED_TOURNAMENT } from "@/db/seed";
 import { FAN_MESSAGE_INTERVAL_MS } from "@/lib/fan-chat";
 import type { MatchEvent, Side } from "@/lib/match";
@@ -193,16 +194,30 @@ describe("court chat", () => {
 });
 
 describe("reactions", () => {
-  it("counts one of each kind per fan", () => {
+  const react = (userId: string, kind: ReactionKind, now: number) =>
+    ({ matchId: MATCH_ID, userId, kind, now }) as const;
+
+  it("counts every tap a fan makes once the cooldown has passed", () => {
     const database = setup([]);
 
-    addReaction(database, MATCH_ID, RHEA.userId, "clap");
-    addReaction(database, MATCH_ID, RHEA.userId, "clap");
-    addReaction(database, MATCH_ID, ARJUN.userId, "clap");
-    addReaction(database, MATCH_ID, RHEA.userId, "shot");
+    expect(addReaction(database, react(RHEA.userId, "clap", NOW))).toBe(true);
+    expect(addReaction(database, react(RHEA.userId, "clap", NOW + REACTION_COOLDOWN_MS))).toBe(true);
+    expect(addReaction(database, react(RHEA.userId, "shot", NOW + 2 * REACTION_COOLDOWN_MS))).toBe(true);
+    expect(addReaction(database, react(ARJUN.userId, "clap", NOW))).toBe(true);
 
-    expect(countReactions(database, MATCH_ID)).toEqual({ clap: 2, shot: 1, ball: 0 });
-    expect(listOwnReactions(database, MATCH_ID, RHEA.userId).sort()).toEqual(["clap", "shot"]);
+    expect(countReactions(database, MATCH_ID)).toEqual({ clap: 3, shot: 1, ball: 0 });
+  });
+
+  it("drops a tap inside the cooldown, whichever reaction it is, without an error", () => {
+    const database = setup([]);
+    addReaction(database, react(RHEA.userId, "clap", NOW));
+
+    expect(addReaction(database, react(RHEA.userId, "clap", NOW + REACTION_COOLDOWN_MS - 1))).toBe(false);
+    expect(addReaction(database, react(RHEA.userId, "ball", NOW + 1))).toBe(false);
+    // Another fan's cooldown is their own.
+    expect(addReaction(database, react(ARJUN.userId, "clap", NOW + 1))).toBe(true);
+
+    expect(countReactions(database, MATCH_ID)).toEqual({ clap: 2, shot: 0, ball: 0 });
   });
 });
 
@@ -215,7 +230,7 @@ describe("a sign-in that outlived its account", () => {
 
     // Act and assert
     expect(() => postFanMessage(database, { ...CHAT, userId: gone, body: "Hello", now: NOW })).toThrow(expired);
-    expect(() => addReaction(database, MATCH_ID, gone, "clap")).toThrow(expired);
+    expect(() => addReaction(database, { matchId: MATCH_ID, userId: gone, kind: "clap", now: NOW })).toThrow(expired);
     expect(() => savePrediction(database, { matchId: MATCH_ID, setNumber: 1, userId: gone, side: "top" })).toThrow(expired);
     expect(listCourtMessages(database, TOURNAMENT_ID, COURT, null)).toEqual([]);
   });
@@ -318,7 +333,7 @@ describe("clearMatchFanData", () => {
   it("drops picks and reactions when a match is reset", () => {
     const database = setup(gamesWonBy("top", 2));
     savePrediction(database, { matchId: MATCH_ID, setNumber: 1, userId: RHEA.userId, side: "top" });
-    addReaction(database, MATCH_ID, RHEA.userId, "clap");
+    addReaction(database, { matchId: MATCH_ID, userId: RHEA.userId, kind: "clap", now: NOW });
 
     resetMatch(database, MATCH_ID);
 

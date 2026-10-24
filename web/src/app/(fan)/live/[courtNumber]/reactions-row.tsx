@@ -16,14 +16,12 @@ export interface ReactionsRowProps {
   /** The court this page shows, to come back to after signing in. */
   courtNumber: number;
   counts: Record<ReactionKind, number>;
-  /** What this fan has already sent on this match. Each one is sent once. */
-  own: readonly ReactionKind[];
   signedIn: boolean;
   action: FormAction;
 }
 
-/** Applause, a great shot and a good ball, counted once per fan per match. */
-export function ReactionsRow({ matchId, courtNumber, counts, own, signedIn, action }: ReactionsRowProps) {
+/** Applause, a great shot and a good ball. Fans can tap again and again, one tap every two seconds. */
+export function ReactionsRow({ matchId, courtNumber, counts, signedIn, action }: ReactionsRowProps) {
   const [state, formAction, pending] = useActionState(action, INITIAL_ACTION_STATE);
   const tapped = useRef<{ kind: ReactionKind; button: HTMLButtonElement } | null>(null);
 
@@ -38,7 +36,6 @@ export function ReactionsRow({ matchId, courtNumber, counts, own, signedIn, acti
       <form action={formAction} className="flex gap-2.5">
         <input type="hidden" name="matchId" value={matchId} />
         {REACTION_KINDS.map((kind) => {
-          const sent = own.includes(kind);
           const label = `${REACTION_LABELS[kind]}: ${counts[kind]}`;
           const shell =
             "flex h-12 flex-1 items-center justify-center gap-2 border border-club-mist/25 text-[12px]";
@@ -58,13 +55,12 @@ export function ReactionsRow({ matchId, courtNumber, counts, own, signedIn, acti
               type="submit"
               name="kind"
               value={kind}
-              disabled={pending || sent}
-              aria-pressed={sent}
+              disabled={pending}
               aria-label={label}
               onClick={(event) => {
                 tapped.current = { kind, button: event.currentTarget };
               }}
-              className={`${shell} ${sent ? "border-club-lime text-club-lime" : "cursor-pointer hover:border-club-lime"} disabled:cursor-default`}
+              className={`${shell} cursor-pointer hover:border-club-lime active:scale-95 disabled:cursor-default`}
             >
               <span aria-hidden="true">{REACTION_LABELS[kind]}</span>
               <span className="font-semibold lining-nums" aria-hidden="true">

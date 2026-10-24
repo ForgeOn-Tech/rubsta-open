@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, isNull } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, isNull } from "drizzle-orm";
 
 import type { Database } from "./draws";
 import {
@@ -214,40 +214,47 @@ export function unmuteFan(database: Database, userId: string): void {
   database.delete(fanMutes).where(eq(fanMutes.userId, userId)).run();
 }
 
-/** Records a fan's reaction to a match. Sending the same one again changes nothing. */
+/** The shortest gap between two of one fan's reactions on a match that both count. */
+export const REACTION_COOLDOWN_MS = 2_000;
+
+/**
+ * Records a fan's reaction to a match. A fan may react as often as they like, but a tap
+ * within the cooldown of their last one is dropped, so one fan cannot run up the count.
+ * Returns whether the tap counted.
+ */
 export function addReaction(
   database: Database,
-  matchId: string,
-  userId: string,
-  kind: ReactionKind,
-): void {
-  database.transaction((tx) => {
-    requireFanAccount(tx, userId);
-    tx.insert(fanReactions).values({ matchId, userId, kind }).onConflictDoNothing().run();
+  input: { matchId: string; userId: string; kind: ReactionKind; now: number },
+): boolean {
+  return database.transaction((tx) => {
+    requireFanAccount(tx, input.userId);
+    const last = tx
+      .select({ createdAt: fanReactions.createdAt })
+      .from(fanReactions)
+      .where(and(eq(fanReactions.matchId, input.matchId), eq(fanReactions.userId, input.userId)))
+      .orderBy(desc(fanReactions.createdAt))
+      .limit(1)
+      .get();
+    if (last !== undefined && input.now - last.createdAt < REACTION_COOLDOWN_MS) return false;
+    tx.insert(fanReactions)
+      .values({ matchId: input.matchId, userId: input.userId, kind: input.kind, createdAt: input.now })
+      .run();
+    return true;
   });
 }
 
-/** How many fans sent each reaction on a match. */
+/** How many taps each reaction has had on a match. */
 export function countReactions(database: Database, matchId: string): Record<ReactionKind, number> {
   const counts = Object.fromEntries(REACTION_KINDS.map((kind) => [kind, 0])) as Record<ReactionKind, number>;
   for (const row of database
-    .select({ kind: fanReactions.kind })
+    .select({ kind: fanReactions.kind, taps: count() })
     .from(fanReactions)
     .where(eq(fanReactions.matchId, matchId))
+    .groupBy(fanReactions.kind)
     .all()) {
-    counts[row.kind] += 1;
+    counts[row.kind] = row.taps;
   }
   return counts;
-}
-
-/** The reactions this fan has already sent on a match. */
-export function listOwnReactions(database: Database, matchId: string, userId: string): ReactionKind[] {
-  return database
-    .select({ kind: fanReactions.kind })
-    .from(fanReactions)
-    .where(and(eq(fanReactions.matchId, matchId), eq(fanReactions.userId, userId)))
-    .all()
-    .map((row) => row.kind);
 }
 
 function matchState(match: Match): MatchState | null {
