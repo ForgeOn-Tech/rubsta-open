@@ -82,7 +82,7 @@ export function PlayerCard({ profile, playerId, entryCount, record, certificates
         </dl>
 
         <div className="mt-5 flex flex-wrap items-start gap-3">
-          <Link href="/player-card" className="pill pill-primary">Open full player card →</Link>
+          <Link href="/player-card" className="pill pill-primary">Share to Instagram →</Link>
           {certificates.map((certificate) => (
             <a key={certificate.href} href={certificate.href} className="pill pill-outline" download>
               {certificate.label} <span aria-hidden="true">↓</span>

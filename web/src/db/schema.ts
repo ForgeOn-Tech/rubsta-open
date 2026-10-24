@@ -32,6 +32,16 @@ export const playerAvatars = sqliteTable("player_avatars", {
   consentAt: integer("consent_at").notNull().default(0),
 });
 
+// A player's own photo for their profile and player card. Stored cropped and re-encoded,
+// so no camera details or location survive; adults only, like photo avatars.
+export const profilePhotos = sqliteTable("profile_photos", {
+  userId: text("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  jpeg: text("jpeg").notNull(), // base64
+  updatedAt: integer("updated_at").notNull(),
+  consentAt: integer("consent_at").notNull(),
+  consentText: text("consent_text").notNull(),
+});
+
 export const avatarAttempts = sqliteTable("avatar_attempts", {
   id: text("id").primaryKey(),
   userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),

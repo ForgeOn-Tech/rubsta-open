@@ -2,12 +2,16 @@ import { eq } from "drizzle-orm";
 
 import { requireUser } from "@/auth/require";
 import { ProfileForm } from "./profile-form";
+import { ProfilePhotoSection } from "./profile-photo-section";
 import { db } from "@/db/client";
 import { CATEGORIES, profiles, tournaments, type Category } from "@/db/schema";
 import { getEventFees } from "@/db/fees";
 import { listPlayedCategories } from "@/db/partners";
+import { profilePhotoVersion } from "@/db/profile-photos";
+import { ageFromDob } from "@/lib/age";
 import { entriesOpen, isDoubles } from "@/lib/entries";
 import { eventFeeLabel } from "@/lib/fees";
+import { profilePhotoAccessError } from "@/lib/profile-photo";
 import { razorpayConfig } from "@/lib/razorpay";
 
 export const dynamic = "force-dynamic";
@@ -51,6 +55,13 @@ export default async function ProfilePage() {
         email={user.email}
         registration={registration}
       />
+
+      {profile ? (
+        <ProfilePhotoSection
+          version={profilePhotoVersion(db, user.id)}
+          accessError={profilePhotoAccessError(ageFromDob(profile.dateOfBirth))}
+        />
+      ) : null}
     </div>
   );
 }
