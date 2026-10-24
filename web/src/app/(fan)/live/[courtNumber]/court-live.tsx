@@ -10,7 +10,7 @@ import { ReactionsRow } from "./reactions-row";
 import { CATEGORY_LABELS } from "@/db/schema";
 import { FAN_FEED_INTERVAL_MS, fanFeedPath, type FanFeed } from "@/lib/fan-feed";
 import type { FanScoreboard } from "@/lib/fan-live";
-import type { FormAction } from "@/lib/form-state";
+import type { ActionState, FormAction } from "@/lib/form-state";
 import { SIDES } from "@/lib/match";
 import { signInPathFor } from "@/lib/sign-in-return";
 
@@ -45,6 +45,8 @@ export function CourtLive({
 }) {
   const [feed, setFeed] = useState<FanFeed>(initialFeed);
   const [stale, setStale] = useState(false);
+  // Bumped after a fan's tap saves, so the counts update at once instead of at the next poll.
+  const [refreshes, setRefreshes] = useState(0);
 
   useEffect(() => {
     let stopped = false;
@@ -68,7 +70,15 @@ export function CourtLive({
       stopped = true;
       window.clearInterval(timer);
     };
-  }, [courtNumber]);
+  }, [courtNumber, refreshes]);
+
+  function refreshingAfter(action: FormAction): FormAction {
+    return async (previous: ActionState, formData: FormData): Promise<ActionState> => {
+      const result = await action(previous, formData);
+      if (result.error === null) setRefreshes((count) => count + 1);
+      return result;
+    };
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -100,7 +110,7 @@ export function CourtLive({
           counts={feed.reactions}
           own={feed.ownReactions}
           signedIn={feed.signedIn}
-          action={reactAction}
+          action={refreshingAfter(reactAction)}
         />
       )}
 
@@ -111,7 +121,7 @@ export function CourtLive({
           board={feed.live}
           prediction={feed.predictions}
           signedIn={feed.signedIn}
-          action={predictAction}
+          action={refreshingAfter(predictAction)}
         />
       )}
 
@@ -119,7 +129,7 @@ export function CourtLive({
         courtNumber={courtNumber}
         messages={feed.messages}
         signedIn={feed.signedIn}
-        action={postMessageAction}
+        action={refreshingAfter(postMessageAction)}
       />
     </div>
   );
