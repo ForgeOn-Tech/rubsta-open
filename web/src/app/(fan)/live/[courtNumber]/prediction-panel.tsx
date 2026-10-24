@@ -1,14 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 
+import { CONFETTI_PIECES, burstFrom } from "@/components/confetti";
 import type { FanPredictionFeed } from "@/lib/fan-feed";
 import type { FanScoreboard } from "@/lib/fan-live";
 import { PREDICTION_CLOSES_AT_GAMES, PREDICTION_DISCLAIMER } from "@/lib/fan-predictions";
 import { INITIAL_ACTION_STATE, type FormAction } from "@/lib/form-state";
 import { SIDES, type Side } from "@/lib/match";
 import { signInPathFor } from "@/lib/sign-in-return";
+
+const VOTE_BURST = 18;
 
 export interface PredictionPanelProps {
   matchId: string;
@@ -23,6 +26,13 @@ export interface PredictionPanelProps {
 /** "Who takes this set?": the vote, the split so far, and what it is worth. */
 export function PredictionPanel({ matchId, courtNumber, board, prediction, signedIn, action }: PredictionPanelProps) {
   const [state, formAction, pending] = useActionState(action, INITIAL_ACTION_STATE);
+  const tapped = useRef<HTMLButtonElement | null>(null);
+
+  // Confetti from the picked player once the vote has saved.
+  useEffect(() => {
+    if (state.savedAt === null || tapped.current === null) return;
+    burstFrom(tapped.current, CONFETTI_PIECES, VOTE_BURST);
+  }, [state.savedAt]);
 
   return (
     <section aria-labelledby="prediction-heading" className="border border-club-mist/25 p-4">
@@ -47,6 +57,9 @@ export function PredictionPanel({ matchId, courtNumber, board, prediction, signe
             picked={prediction.own === side}
             votable={prediction.open && signedIn}
             pending={pending}
+            onPick={(element) => {
+              tapped.current = element;
+            }}
           />
         ))}
       </form>
@@ -78,6 +91,7 @@ function PredictionBar({
   picked,
   votable,
   pending,
+  onPick,
 }: {
   side: Side;
   name: string;
@@ -85,6 +99,8 @@ function PredictionBar({
   picked: boolean;
   votable: boolean;
   pending: boolean;
+  /** Called with the bar's button as the fan taps it. */
+  onPick: (element: HTMLButtonElement) => void;
 }) {
   const label = (
     <>
@@ -95,7 +111,10 @@ function PredictionBar({
         style={{ width: `${share}%` }}
       />
       <span className="relative flex w-full items-center justify-between gap-3 px-3">
-        <span className="min-w-0 truncate text-[14px] font-medium">{name}</span>
+        <span className="min-w-0 truncate text-[14px] font-medium">
+          {name}
+          {picked ? <span className="ml-2 text-[11px] font-normal text-club-lime">Your pick</span> : null}
+        </span>
         <span className="flex-none text-[14px] font-semibold lining-nums">{share}%</span>
       </span>
     </>
@@ -116,6 +135,7 @@ function PredictionBar({
       value={side}
       disabled={pending}
       aria-pressed={picked}
+      onClick={(event) => onPick(event.currentTarget)}
       className={`${shell} cursor-pointer hover:border-club-lime disabled:cursor-wait`}
     >
       {label}

@@ -23,11 +23,13 @@ export function CourtChat({ courtNumber, messages, signedIn, action }: CourtChat
   return (
     <section aria-labelledby="chat-heading" className="flex flex-col gap-3">
       <h2 id="chat-heading" className="text-[11px] font-medium uppercase tracking-[1.5px] text-club-mist/60">
-        Court chat
+        Match chat
       </h2>
 
       {messages.length === 0 ? (
-        <p className="text-[13px] text-club-mist/60">No messages yet. Say something.</p>
+        <p className="text-[13px] text-club-mist/60">
+          No messages for this match yet. Say something. The chat starts fresh with each match.
+        </p>
       ) : (
         <ol className="flex flex-col">
           {messages.map((message) => (

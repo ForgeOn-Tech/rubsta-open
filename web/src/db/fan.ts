@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNull } from "drizzle-orm";
 
 import type { Database } from "./draws";
 import {
@@ -83,11 +83,16 @@ function messageQuery(database: Database) {
     .leftJoin(fanMutes, eq(fanMutes.userId, fanMessages.userId));
 }
 
-/** One court's chat, oldest first. Hidden messages are left out. */
+/**
+ * One court's chat since `since`, oldest first, or all of it when `since` is null. The
+ * court page passes the current match's start, so each match has its own chat. Hidden
+ * messages are left out.
+ */
 export function listCourtMessages(
   database: Database,
   tournamentId: string,
   courtNumber: number,
+  since: number | null,
 ): ChatMessage[] {
   return messageQuery(database)
     .where(
@@ -95,6 +100,7 @@ export function listCourtMessages(
         eq(fanMessages.tournamentId, tournamentId),
         eq(fanMessages.courtNumber, courtNumber),
         isNull(fanMessages.hiddenAt),
+        since === null ? undefined : gte(fanMessages.createdAt, since),
       ),
     )
     .orderBy(desc(fanMessages.createdAt))
@@ -278,6 +284,35 @@ export function savePrediction(
       })
       .run();
   });
+}
+
+/** How the latest finished set a fan called went. */
+export interface SetCall {
+  matchId: string;
+  setNumber: number;
+  own: Side;
+  winner: Side;
+}
+
+/**
+ * The fan's pick on the latest finished set of a match they called, or null when they
+ * called none that has finished. A match's last set counts once the match is over.
+ */
+export function latestSetCall(database: Database, match: Match, userId: string): SetCall | null {
+  const state = matchState(match);
+  if (state === null) return null;
+  const winners = setWinners(state);
+  const picks = database
+    .select({ setNumber: fanPredictions.setNumber, side: fanPredictions.side })
+    .from(fanPredictions)
+    .where(and(eq(fanPredictions.matchId, match.id), eq(fanPredictions.userId, userId)))
+    .orderBy(desc(fanPredictions.setNumber))
+    .all();
+  for (const pick of picks) {
+    const winner = winners.get(pick.setNumber);
+    if (winner !== undefined) return { matchId: match.id, setNumber: pick.setNumber, own: pick.side, winner };
+  }
+  return null;
 }
 
 /** The votes for one set of a match. */

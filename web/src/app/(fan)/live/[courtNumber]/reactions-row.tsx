@@ -1,11 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 
+import { burstFrom } from "@/components/confetti";
 import { REACTION_KINDS, REACTION_LABELS, type ReactionKind } from "@/db/schema";
 import { INITIAL_ACTION_STATE, type FormAction } from "@/lib/form-state";
 import { signInPathFor } from "@/lib/sign-in-return";
+
+const REACTION_EMOJI: Record<ReactionKind, string> = { clap: "👏", shot: "🔥", ball: "🎾" };
+const REACTION_BURST = 10;
 
 export interface ReactionsRowProps {
   matchId: string;
@@ -21,6 +25,13 @@ export interface ReactionsRowProps {
 /** Applause, a great shot and a good ball, counted once per fan per match. */
 export function ReactionsRow({ matchId, courtNumber, counts, own, signedIn, action }: ReactionsRowProps) {
   const [state, formAction, pending] = useActionState(action, INITIAL_ACTION_STATE);
+  const tapped = useRef<{ kind: ReactionKind; button: HTMLButtonElement } | null>(null);
+
+  // Burst from the tapped button once the reaction has saved.
+  useEffect(() => {
+    if (state.savedAt === null || tapped.current === null) return;
+    burstFrom(tapped.current.button, [REACTION_EMOJI[tapped.current.kind]], REACTION_BURST);
+  }, [state.savedAt]);
 
   return (
     <section aria-label="Reactions">
@@ -50,6 +61,9 @@ export function ReactionsRow({ matchId, courtNumber, counts, own, signedIn, acti
               disabled={pending || sent}
               aria-pressed={sent}
               aria-label={label}
+              onClick={(event) => {
+                tapped.current = { kind, button: event.currentTarget };
+              }}
               className={`${shell} ${sent ? "border-club-lime text-club-lime" : "cursor-pointer hover:border-club-lime"} disabled:cursor-default`}
             >
               <span aria-hidden="true">{REACTION_LABELS[kind]}</span>
