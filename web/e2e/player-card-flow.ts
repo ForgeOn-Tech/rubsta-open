@@ -2,7 +2,7 @@ import { expect, type Page, type TestInfo } from "@playwright/test";
 import { PDFDocument } from "pdf-lib";
 export async function checkPlayerCard(page: Page, info: TestInfo) {
  await page.goto("/home");
- await page.getByRole("link", { name: "Open full player card" }).click();
+ await page.getByRole("link", { name: "Share to Instagram" }).click();
  await expect(page).toHaveURL(/\/player-card$/);
  await page.getByText("Sharing options", { exact: true }).click();
  await expect(page.getByRole("heading", { name: "Your card is private" })).toBeVisible();
