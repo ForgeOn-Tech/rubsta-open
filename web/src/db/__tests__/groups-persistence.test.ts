@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 
 import { getDrawWithSlots, saveGeneratedGroups } from "@/db/draws";
 import { GroupDecisionError, decideGroupPlace, listGroups } from "@/db/groups";
-import { publishDraw, retireMatch, saveMatchScore, undoWalkover, unpublishDraw, walkoverMatch } from "@/db/matches";
+import { publishDraw, retireMatch, saveMatchScore, undoResult, unpublishDraw, walkoverMatch } from "@/db/matches";
 import * as schema from "@/db/schema";
 import { SEED_TOURNAMENT } from "@/db/seed";
 import type { Category } from "@/db/schema";
@@ -203,7 +203,7 @@ describe("a group draw", () => {
     expect(listGroups(database, draw)[0].through[0]).not.toBeNull();
 
     // Act
-    undoWalkover(database, groupA[2].id);
+    undoResult(database, groupA[2].id);
 
     // Assert
     const view = listGroups(database, draw)[0];
@@ -233,7 +233,7 @@ describe("a group draw", () => {
     const lastOfA = groupMatches(database, draw.id, 1).at(-1)!;
 
     // Act and assert
-    expect(() => undoWalkover(database, lastOfA.id)).toThrow(/has already started/);
+    expect(() => undoResult(database, lastOfA.id)).toThrow(/has already started/);
   });
 
   it("waits for an admin when the rules leave players level, and takes only a level player", () => {

@@ -403,6 +403,9 @@ export const matches = sqliteTable(
     topSlot: text("top_slot", { mode: "json" }).$type<MatchSlot>().notNull(),
     bottomSlot: text("bottom_slot", { mode: "json" }).$type<MatchSlot>().notNull(),
     events: text("events", { mode: "json" }).$type<MatchEvent[]>().notNull().default([]),
+    // True when the final score was typed in after the match: its points are made up to
+    // fit the score, so they carry no statistics.
+    manualScore: integer("manual_score", { mode: "boolean" }).notNull().default(false),
     decidingSet: text("deciding_set", { enum: ["set", "matchTiebreak"] })
       .notNull()
       .default("set"),

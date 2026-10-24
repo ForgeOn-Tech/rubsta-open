@@ -18,7 +18,8 @@ import {
   resetMatch,
   retireMatch,
   saveMatchScore,
-  undoWalkover,
+  enterFinalScore,
+  undoResult,
   unpublishDraw,
   walkoverMatch,
 } from "@/db/matches";
@@ -477,7 +478,7 @@ describe("walkoverMatch", () => {
   });
 });
 
-describe("undoWalkover", () => {
+describe("undoResult", () => {
   it("puts the match back to play and takes its winner out of the final", () => {
     // Arrange
     const database = setup();
@@ -487,7 +488,7 @@ describe("undoWalkover", () => {
     walkoverMatch(database, semi.id, "top");
 
     // Act
-    const row = undoWalkover(database, semi.id);
+    const row = undoResult(database, semi.id);
 
     // Assert
     expect(row).toMatchObject({ status: "scheduled", winnerEntryId: null, startedAt: null, completedAt: null });
@@ -504,7 +505,7 @@ describe("undoWalkover", () => {
     saveMatchScore(database, matchByNumber(matches, 3).id, 0, record([]));
 
     // Act and assert
-    expect(() => undoWalkover(database, semi.id)).toThrow(/match 3 has already started/i);
+    expect(() => undoResult(database, semi.id)).toThrow(/match 3 has already started/i);
   });
 
   it("refuses a match decided by play or by a bye", () => {
@@ -516,8 +517,63 @@ describe("undoWalkover", () => {
     retireMatch(database, semi.id, "bottom");
 
     // Act and assert
-    expect(() => undoWalkover(database, semi.id)).toThrow(/not won by walkover/);
-    expect(() => undoWalkover(database, matchByNumber(matches, 1).id)).toThrow(/not won by walkover/);
+    expect(() => undoResult(database, semi.id)).toThrow(/not won by walkover/);
+    expect(() => undoResult(database, matchByNumber(matches, 1).id)).toThrow(/not won by walkover/);
+  });
+});
+
+describe("enterFinalScore", () => {
+  const STRAIGHT_SETS = [
+    { top: 3, bottom: 6, tiebreak: null },
+    { top: 2, bottom: 6, tiebreak: null },
+  ];
+
+  it("records a paper score, marks it typed in, and moves the winner on", () => {
+    // Arrange: an Open singles semi-final, best of three.
+    const database = setup();
+    const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
+    const semi = matchByNumber(matches, 2);
+    const final = matchByNumber(matches, 3);
+
+    // Act
+    const row = enterFinalScore(database, semi.id, STRAIGHT_SETS);
+
+    // Assert
+    expect(row).toMatchObject({ status: "completed", winnerEntryId: "c", manualScore: true, court: null });
+    expect(row.version).toBe(semi.version + 1);
+    expect(loadRow(database, final.id).bottomSlot).toEqual({ kind: "entry", entryId: "c" });
+  });
+
+  it("replaces a match an umpire had started", () => {
+    const database = setup();
+    const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
+    const semi = matchByNumber(matches, 2);
+    saveMatchScore(database, semi.id, 0, record([{ type: "point", side: "top" }]));
+
+    expect(enterFinalScore(database, semi.id, STRAIGHT_SETS).winnerEntryId).toBe("c");
+  });
+
+  it("refuses a score the format cannot end with, a finished match and a match still waiting", () => {
+    const database = setup();
+    const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
+    const semi = matchByNumber(matches, 2);
+
+    expect(() => enterFinalScore(database, semi.id, [{ top: 6, bottom: 4, tiebreak: null }])).toThrow(/Best of 3/);
+    expect(() => enterFinalScore(database, matchByNumber(matches, 3).id, STRAIGHT_SETS)).toThrow(/waiting on an earlier result/);
+    enterFinalScore(database, semi.id, STRAIGHT_SETS);
+    expect(() => enterFinalScore(database, semi.id, STRAIGHT_SETS)).toThrow(/already has a result/);
+  });
+
+  it("can be undone until the next match starts, clearing the typed-in points", () => {
+    const database = setup();
+    const { matches } = materializedDraw(database, ["a", null, "b", "c"]);
+    const semi = matchByNumber(matches, 2);
+    enterFinalScore(database, semi.id, STRAIGHT_SETS);
+
+    const row = undoResult(database, semi.id);
+
+    expect(row).toMatchObject({ status: "scheduled", events: [], manualScore: false, firstServer: null, format: null });
+    expect(loadRow(database, matchByNumber(matches, 3).id).bottomSlot).toEqual({ kind: "winner", matchNumber: 2 });
   });
 });
 

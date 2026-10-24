@@ -38,6 +38,7 @@ function row(id: string, category: Category, matchNumber: number, top: MatchSlot
     bottomSlot: bottom,
     events: [],
     decidingSet: "set",
+    manualScore: false,
     format: null,
     firstServer: null,
     status: "scheduled",
