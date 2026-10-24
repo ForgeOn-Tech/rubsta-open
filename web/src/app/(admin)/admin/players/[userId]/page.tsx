@@ -9,6 +9,7 @@ import { getAdminPlayer } from "@/db/admin-players";
 import { getDb } from "@/db/client";
 import { listScoringMatches } from "@/db/matches";
 import { getPlayerCard } from "@/db/player-cards";
+import { profilePhotoVersion } from "@/db/profile-photos";
 import { getCurrentTournament } from "@/db/queries";
 import { listPublishedDays } from "@/db/schedule";
 import { GENDER_LABELS, HAND_LABELS } from "@/db/schema";
@@ -23,10 +24,13 @@ import { ADMIN_PLAYERS_PATH } from "@/lib/players";
 import { placeLabel, publishedPlaces } from "@/lib/schedule";
 import { matchSummary, sideLabel } from "@/lib/scoring-display";
 
+import { AdminStoryCard } from "./admin-story-card";
+
 export const dynamic = "force-dynamic";
 
 const EMPTY_VALUE = "—";
 const ADMIN_RESULTS_PATH = "/admin/results";
+const ADMIN_STORY_CARD_PATH = "/api/admin/story-card";
 const MATCH_STATUS_LABELS = { scheduled: "To play", in_progress: "In play", completed: "Played" } as const;
 
 interface Detail {
@@ -223,6 +227,19 @@ export default async function AdminPlayerPage({ params }: { params: Promise<{ us
             </div>
           )}
         </section>
+
+        {card === null ? null : (
+          <section aria-labelledby="story-card-heading" className="card lg:col-span-2">
+            <h2 id="story-card-heading" className="thead px-4 pt-4">
+              Story card
+            </h2>
+            <AdminStoryCard
+              imagePath={`${ADMIN_STORY_CARD_PATH}/${encodeURIComponent(userId)}`}
+              name={name}
+              hasPhoto={profilePhotoVersion(database, userId) !== null}
+            />
+          </section>
+        )}
 
         {profile && profile.previousTournaments.length > 0 ? (
           <section aria-labelledby="history-heading" className="card lg:col-span-2">
