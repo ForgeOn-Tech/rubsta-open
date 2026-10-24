@@ -12,8 +12,8 @@ export class UnprintableTextError extends Error {
 
 /** The PNG images a certificate carries. The signature is null until the organisers supply one. */
 export interface CertificateArtwork {
-  venueLogo: Uint8Array;
-  partnerLogo: Uint8Array;
+  /** In print order. Each logo fits the same size box. */
+  partnerLogos: readonly { name: string; png: Uint8Array }[];
   signature: Uint8Array | null;
 }
 
@@ -32,19 +32,27 @@ const NAME_Y = 316;
 // Below the italic descenders (g, y) at full size.
 const NAME_RULE_Y = 294;
 const MARK_SIZE = 46;
-const SEAL_RADIUS = 46;
-const SEAL_Y = 138;
-const LOGO_HEIGHT = 50;
-const SIGNATURE_LEFT = 96;
+// The seal sits in the top-right corner like a stamp.
+const SEAL_RADIUS = 40;
+const SEAL_X = PAGE_WIDTH - 96;
+const SEAL_Y = 509;
+// Text inside the seal stays clear of its inner ring.
+const SEAL_TEXT_WIDTH = 2 * SEAL_RADIUS - 28;
 const SIGNATURE_WIDTH = 200;
-const SIGNATURE_RULE_Y = 108;
-const SIGNATURE_MAX_HEIGHT = 46;
+const SIGNATURE_LEFT = CENTRE - SIGNATURE_WIDTH / 2;
+const SIGNATURE_RULE_Y = 146;
+const SIGNATURE_MAX_HEIGHT = 34;
 const SIGNATORY_NAME = "Manvir Randhawa";
 const SIGNATORY_TITLE = "Tournament Director";
 const FOOTER_Y = 42;
-const SPONSORS_Y = 58;
-const SPONSORS_LABEL = "OUR PARTNERS";
-const SPONSORS = ["Team Leader Logistics", "SP Cards", "Heath Matthews Physio", "Heartful", "ForgeLabs"];
+const PARTNERS_LABEL = "IN PARTNERSHIP WITH";
+const PARTNERS_LABEL_Y = 98;
+const LOGO_BOX_WIDTH = 70;
+const LOGO_BOX_HEIGHT = 34;
+const LOGO_GAP = 15;
+const LOGOS_Y = 54;
+// No ForgeLabs logo file exists yet, so it prints as a wordmark in the last box.
+const WORDMARK = { first: "Forge", second: "Labs" };
 
 // Club theme colours from globals.css.
 const CREAM = rgb(0.957, 0.945, 0.91);
@@ -129,14 +137,15 @@ function drawMark(page: PDFPage, x: number, top: number): void {
 
 function drawSeal(page: PDFPage, text: CertificateText, fonts: { sans: PDFFont; sansBold: PDFFont }): void {
   const colour = SEAL_COLOURS[text.kind];
-  page.drawCircle({ x: CENTRE, y: SEAL_Y, size: SEAL_RADIUS, color: colour });
-  page.drawCircle({ x: CENTRE, y: SEAL_Y, size: SEAL_RADIUS - 5, borderColor: CREAM, borderWidth: 0.75 });
-  drawCentred(page, "RUBSTA OPEN", { font: fonts.sans, size: 6.5, color: CREAM, tracking: 1.6 }, CENTRE, SEAL_Y + 14);
+  page.drawCircle({ x: SEAL_X, y: SEAL_Y, size: SEAL_RADIUS, color: colour });
+  page.drawCircle({ x: SEAL_X, y: SEAL_Y, size: SEAL_RADIUS - 5, borderColor: CREAM, borderWidth: 0.75 });
+  const brand = "RUBSTA OPEN";
+  drawCentred(page, brand, fitted(brand, { font: fonts.sans, size: 6.5, color: CREAM, tracking: 1.6 }, SEAL_TEXT_WIDTH - 8), SEAL_X, SEAL_Y + 14);
   const word = text.seal.toUpperCase();
-  drawCentred(page, word, fitted(word, { font: fonts.sansBold, size: 12, color: CREAM, tracking: 1.2 }, 2 * SEAL_RADIUS - 34), CENTRE, SEAL_Y - 4);
+  drawCentred(page, word, fitted(word, { font: fonts.sansBold, size: 12, color: CREAM, tracking: 1.2 }, SEAL_TEXT_WIDTH), SEAL_X, SEAL_Y - 4);
   page.drawLine({
-    start: { x: CENTRE - 14, y: SEAL_Y - 14 },
-    end: { x: CENTRE + 14, y: SEAL_Y - 14 },
+    start: { x: SEAL_X - 14, y: SEAL_Y - 14 },
+    end: { x: SEAL_X + 14, y: SEAL_Y - 14 },
     thickness: 0.75,
     color: CREAM,
   });
@@ -163,10 +172,22 @@ function drawSignature(page: PDFPage, signature: PDFImage | null, sans: PDFFont)
   drawCentred(page, SIGNATORY_TITLE, { font: sans, size: 9, color: MUTED, tracking: 0 }, centre, SIGNATURE_RULE_Y - 28);
 }
 
-function drawLogo(page: PDFPage, logo: PDFImage, label: string, centre: number, sans: PDFFont): void {
-  const width = (logo.width / logo.height) * LOGO_HEIGHT;
-  page.drawImage(logo, { x: centre - width / 2, y: SIGNATURE_RULE_Y - 14, width, height: LOGO_HEIGHT });
-  drawCentred(page, label, { font: sans, size: 6.5, color: MUTED, tracking: 1.4 }, centre, SIGNATURE_RULE_Y + LOGO_HEIGHT - 4);
+/** Six equal boxes under one label: each partner logo scaled to fit its box, then the ForgeLabs wordmark. */
+function drawPartners(page: PDFPage, logos: readonly PDFImage[], sansBold: PDFFont): void {
+  const boxes = logos.length + 1;
+  const left = CENTRE - (boxes * LOGO_BOX_WIDTH + (boxes - 1) * LOGO_GAP) / 2;
+  const boxCentre = (index: number): number => left + index * (LOGO_BOX_WIDTH + LOGO_GAP) + LOGO_BOX_WIDTH / 2;
+  drawCentred(page, PARTNERS_LABEL, { font: sansBold, size: 6.5, color: MUTED, tracking: 1.6 }, CENTRE, PARTNERS_LABEL_Y);
+  logos.forEach((logo, index) => {
+    const { width, height } = logo.scaleToFit(LOGO_BOX_WIDTH, LOGO_BOX_HEIGHT);
+    page.drawImage(logo, { x: boxCentre(index) - width / 2, y: LOGOS_Y + (LOGO_BOX_HEIGHT - height) / 2, width, height });
+  });
+  const first: TextStyle = { font: sansBold, size: 13, color: INK, tracking: 0 };
+  const second: TextStyle = { ...first, color: SEAL_COLOURS.winner };
+  const start = boxCentre(logos.length) - (widthOf(WORDMARK.first, first) + widthOf(WORDMARK.second, second)) / 2;
+  const baseline = LOGOS_Y + LOGO_BOX_HEIGHT / 2 - 4.5;
+  drawAt(page, WORDMARK.first, first, start, baseline);
+  drawAt(page, WORDMARK.second, second, start + widthOf(WORDMARK.first, first), baseline);
 }
 
 /** A one-page A4 certificate. Throws UnprintableTextError for text the fonts cannot print. */
@@ -179,8 +200,7 @@ export async function certificatePdf(text: CertificateText, artwork: Certificate
   const serifItalic = await document.embedFont(StandardFonts.TimesRomanItalic);
   const sans = await document.embedFont(StandardFonts.Helvetica);
   const sansBold = await document.embedFont(StandardFonts.HelveticaBold);
-  const venueLogo = await document.embedPng(artwork.venueLogo);
-  const partnerLogo = await document.embedPng(artwork.partnerLogo);
+  const partnerLogos = await Promise.all(artwork.partnerLogos.map((logo) => document.embedPng(logo.png)));
   const signature = artwork.signature === null ? null : await document.embedPng(artwork.signature);
   const accent = SEAL_COLOURS[text.kind];
   const textWidth = PAGE_WIDTH - 2 * TEXT_MARGIN;
@@ -210,11 +230,7 @@ export async function certificatePdf(text: CertificateText, artwork: Certificate
 
   drawSignature(page, signature, sans);
   drawSeal(page, text, { sans, sansBold });
-  drawLogo(page, venueLogo, "HOSTED AT", 610, sans);
-  drawLogo(page, partnerLogo, "SUPPORTED BY", 715, sans);
-
-  const sponsors = `${SPONSORS_LABEL}   ${SPONSORS.join("  \u00b7  ")}`;
-  drawCentred(page, sponsors, { font: sans, size: 7.5, color: MUTED, tracking: 0.3 }, CENTRE, SPONSORS_Y);
+  drawPartners(page, partnerLogos, sansBold);
 
   const footer: TextStyle = { font: sans, size: 8, color: MUTED, tracking: 0.3 };
   if (text.number !== null) drawAt(page, `Certificate no. ${text.number}`, footer, INNER_RULE + 18, FOOTER_Y);
