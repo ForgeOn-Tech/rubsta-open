@@ -1,5 +1,5 @@
 import { auth } from "@/auth/auth";
-import { canScoreMatch, canScoreMatches } from "@/auth/require";
+import { canScoreMatches } from "@/auth/require";
 import { getDb } from "@/db/client";
 import { MatchNotFoundError, ScoreRejectedError, saveMatchScore } from "@/db/matches";
 import { parseScoreRecord, type ScoreRecord } from "@/lib/score-record";
@@ -45,9 +45,6 @@ export async function POST(
     return errorResponse(403, "This account is not allowed to score matches.");
   }
   const { matchId } = await params;
-  if (!canScoreMatch(session.user.email ?? "", matchId)) {
-    return errorResponse(403, "This scoring link is not assigned to this match.");
-  }
   // JSON only, so a cross-site form post cannot reach the save.
   if (!request.headers.get("content-type")?.startsWith("application/json")) {
     return errorResponse(415, "Send the score as application/json.");
