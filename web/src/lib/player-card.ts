@@ -69,3 +69,4 @@ export function eventResultLabel(matches: readonly ResultMatch[], entryId: strin
 /** The signed-in player's Instagram story card as a PNG (src/app/(player)/home/story-card/route.tsx). */
 export const STORY_CARD_IMAGE_PATH = "/home/story-card";
 export const STORY_CARD_FILE_NAME = "rubsta-open-story.png";
+export const STORY_CARD_THEME_PARAM = "theme";

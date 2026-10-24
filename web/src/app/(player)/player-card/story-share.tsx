@@ -1,40 +1,54 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { STORY_CARD_FILE_NAME, STORY_CARD_IMAGE_PATH } from "@/lib/player-card";
+import { STORY_CARD_FILE_NAME, STORY_CARD_IMAGE_PATH, STORY_CARD_THEME_PARAM } from "@/lib/player-card";
+import { STORY_PALETTES, STORY_THEMES, type StoryTheme } from "@/lib/story-themes";
 
 type Card = { kind: "loading" } | { kind: "ready"; file: File; url: string } | { kind: "failed" };
 type Outcome = "idle" | "shared" | "saved";
 
+function cardPath(theme: StoryTheme): string {
+  return `${STORY_CARD_IMAGE_PATH}?${new URLSearchParams({ [STORY_CARD_THEME_PARAM]: theme })}`;
+}
+
 /**
- * The Instagram story card: a preview, and one button to share or save it. The image is
- * fetched when the page opens, so the share sheet opens straight from the tap; Safari
- * refuses a share that waits on a download first.
+ * The Instagram story card: a colour picker, a preview, and one button to share or save it.
+ * Each colour's image is fetched when it is picked and kept, so the share sheet opens
+ * straight from the tap; Safari refuses a share that waits on a download first.
  */
 export function StoryShare({ name }: { name: string }) {
-  const [card, setCard] = useState<Card>({ kind: "loading" });
+  const [theme, setTheme] = useState<StoryTheme>(STORY_THEMES[0]);
+  const [cards, setCards] = useState<Partial<Record<StoryTheme, Card>>>({});
   const [outcome, setOutcome] = useState<Outcome>("idle");
+  const card = cards[theme] ?? { kind: "loading" };
+
+  // Themes already asked for, and the image URLs to free when the page closes.
+  const requested = useRef(new Set<StoryTheme>());
+  const urls = useRef<string[]>([]);
 
   useEffect(() => {
-    let url: string | null = null;
-    let cancelled = false;
-    fetch(STORY_CARD_IMAGE_PATH, { cache: "no-store" })
+    if (requested.current.has(theme)) return;
+    requested.current.add(theme);
+    fetch(cardPath(theme), { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) throw new Error(`The story card returned status ${response.status}.`);
         const blob = await response.blob();
-        if (cancelled) return;
-        url = URL.createObjectURL(blob);
-        setCard({ kind: "ready", file: new File([blob], STORY_CARD_FILE_NAME, { type: blob.type }), url });
+        const file = new File([blob], STORY_CARD_FILE_NAME, { type: blob.type });
+        const url = URL.createObjectURL(blob);
+        urls.current.push(url);
+        setCards((current) => ({ ...current, [theme]: { kind: "ready", file, url } }));
       })
       .catch((error: unknown) => {
         console.warn("The story card could not be made.", error);
-        if (!cancelled) setCard({ kind: "failed" });
+        requested.current.delete(theme);
+        setCards((current) => ({ ...current, [theme]: { kind: "failed" } }));
       });
-    return () => {
-      cancelled = true;
-      if (url !== null) URL.revokeObjectURL(url);
-    };
+  }, [theme]);
+
+  useEffect(() => {
+    const kept = urls.current;
+    return () => kept.forEach((url) => URL.revokeObjectURL(url));
   }, []);
 
   async function share(file: File, url: string) {
@@ -70,8 +84,39 @@ export function StoryShare({ name }: { name: string }) {
       <div className="flex flex-col gap-3">
         <h2 id="story-heading" className="font-serif text-3xl">Share your Rubsta Open</h2>
         <p className="text-[14px]">
-          Your story card shows your tag, earned from how your matches went. It updates as you play.
+          Your story card shows your tag, earned from how your matches went, and your best numbers from matches
+          scored point by point. It updates as you play.
         </p>
+        <fieldset className="flex flex-wrap gap-2">
+          <legend className="mb-2 text-[12px] uppercase tracking-[0.12em] text-club-muted">Colour</legend>
+          {STORY_THEMES.map((option) => {
+            const palette = STORY_PALETTES[option];
+            return (
+              <label
+                key={option}
+                className="flex cursor-pointer items-center gap-2 border border-club-line px-3 py-2 text-[13px] has-[:checked]:border-club-ink has-[:focus-visible]:outline has-[:focus-visible]:outline-2"
+              >
+                <input
+                  type="radio"
+                  name="story-theme"
+                  value={option}
+                  checked={option === theme}
+                  onChange={() => {
+                    setTheme(option);
+                    setOutcome("idle");
+                  }}
+                  className="sr-only"
+                />
+                <span aria-hidden className="flex">
+                  {[palette.background, palette.accent, palette.tiles[2]].map((colour) => (
+                    <span key={colour} className="h-4 w-4 rounded-full border border-black/10 -ml-1 first:ml-0" style={{ backgroundColor: colour }} />
+                  ))}
+                </span>
+                {palette.name}
+              </label>
+            );
+          })}
+        </fieldset>
         <button
           type="button"
           className="pill pill-primary w-fit"

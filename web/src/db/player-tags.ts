@@ -6,15 +6,30 @@ import { listTeamEntryIds } from "./partners";
 import { getPlayerCard } from "./player-cards";
 import { draws, tournaments } from "./schema";
 import { deriveState, other } from "@/lib/match";
+import { statsOfRecord, type SideStats } from "@/lib/match-stats";
+import { standoutFacts, type StandoutFact } from "@/lib/player-facts";
 import { teamMatches, teamSide } from "@/lib/player-matches";
 import { playerTag, type PlayedMatch, type PlayerTag } from "@/lib/player-tag";
 import { formatOfRecord, scoreRecordOf } from "@/lib/score-record";
 
+/** What the story card says about a player's tournament. */
+export interface PlayerStory {
+  tag: PlayerTag;
+  /** Empty when no match was scored point by point, or nothing stands out. */
+  facts: StandoutFact[];
+}
+
+interface FinishedMatch {
+  played: PlayedMatch;
+  /** Both sides' numbers; null for a typed-in score, whose points are made up. */
+  stats: { mine: SideStats; theirs: SideStats } | null;
+}
+
 /**
- * The finished matches the player (or their doubles team) played points in, set by set
- * from their side. Walkovers have no points, so they are left out.
+ * The finished matches the player (or their doubles team) played points in, from their side.
+ * Walkovers have no points, so they are left out.
  */
-function playedMatches(database: Database, userId: string): PlayedMatch[] {
+function finishedMatches(database: Database, userId: string): FinishedMatch[] {
   const tournament = database.select({ id: tournaments.id }).from(tournaments).get();
   if (tournament === undefined) return [];
   const ids = new Set(listTeamEntryIds(database, userId));
@@ -27,21 +42,30 @@ function playedMatches(database: Database, userId: string): PlayedMatch[] {
     const side = teamSide(row, ids);
     if (row.match.status !== "completed" || record === null || side === null) return [];
     const state = deriveState(record.events, formatOfRecord(record), record.firstServer);
+    const stats = row.match.manualScore ? null : statsOfRecord(record);
     return [
       {
-        won: row.match.winnerEntryId !== null && ids.has(row.match.winnerEntryId),
-        sets: state.sets.map((set) => ({
-          mine: set.games[side],
-          theirs: set.games[other(side)],
-          tiebreak: set.tiebreak !== null,
-        })),
+        played: {
+          won: row.match.winnerEntryId !== null && ids.has(row.match.winnerEntryId),
+          sets: state.sets.map((set) => ({
+            mine: set.games[side],
+            theirs: set.games[other(side)],
+            tiebreak: set.tiebreak !== null,
+          })),
+        },
+        stats: stats === null ? null : { mine: stats[side], theirs: stats[other(side)] },
       },
     ];
   });
 }
 
-/** The tag on the player's shareable card, from how their events and matches went. */
-export function playerTagFor(database: Database, userId: string): PlayerTag {
+/** The tag and standout numbers on the player's shareable card. */
+export function playerStoryFor(database: Database, userId: string): PlayerStory {
   const standings = getPlayerCard(database, userId)?.tournaments.flatMap((tournament) => tournament.results) ?? [];
-  return playerTag(standings, playedMatches(database, userId));
+  const matches = finishedMatches(database, userId);
+  const scored = matches.flatMap((match) => (match.stats === null ? [] : [match.stats]));
+  return {
+    tag: playerTag(standings, matches.map((match) => match.played)),
+    facts: standoutFacts(scored.map((stats) => stats.mine), scored.map((stats) => stats.theirs)),
+  };
 }
