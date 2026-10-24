@@ -39,8 +39,12 @@ const SIGNATURE_LEFT = 96;
 const SIGNATURE_WIDTH = 200;
 const SIGNATURE_RULE_Y = 108;
 const SIGNATURE_MAX_HEIGHT = 46;
+const SIGNATORY_NAME = "Manvir Randhawa";
 const SIGNATORY_TITLE = "Tournament Director";
 const FOOTER_Y = 42;
+const SPONSORS_Y = 58;
+const SPONSORS_LABEL = "OUR PARTNERS";
+const SPONSORS = ["Team Leader Logistics", "SP Cards", "Heath Matthews Physio", "Heartful", "ForgeLabs"];
 
 // Club theme colours from globals.css.
 const CREAM = rgb(0.957, 0.945, 0.91);
@@ -154,7 +158,9 @@ function drawSignature(page: PDFPage, signature: PDFImage | null, sans: PDFFont)
     thickness: 0.75,
     color: INK,
   });
-  drawCentred(page, SIGNATORY_TITLE, { font: sans, size: 10, color: MUTED, tracking: 0 }, SIGNATURE_LEFT + SIGNATURE_WIDTH / 2, SIGNATURE_RULE_Y - 15);
+  const centre = SIGNATURE_LEFT + SIGNATURE_WIDTH / 2;
+  drawCentred(page, SIGNATORY_NAME, { font: sans, size: 11, color: INK, tracking: 0 }, centre, SIGNATURE_RULE_Y - 15);
+  drawCentred(page, SIGNATORY_TITLE, { font: sans, size: 9, color: MUTED, tracking: 0 }, centre, SIGNATURE_RULE_Y - 28);
 }
 
 function drawLogo(page: PDFPage, logo: PDFImage, label: string, centre: number, sans: PDFFont): void {
@@ -206,6 +212,9 @@ export async function certificatePdf(text: CertificateText, artwork: Certificate
   drawSeal(page, text, { sans, sansBold });
   drawLogo(page, venueLogo, "HOSTED AT", 610, sans);
   drawLogo(page, partnerLogo, "SUPPORTED BY", 715, sans);
+
+  const sponsors = `${SPONSORS_LABEL}   ${SPONSORS.join("  \u00b7  ")}`;
+  drawCentred(page, sponsors, { font: sans, size: 7.5, color: MUTED, tracking: 0.3 }, CENTRE, SPONSORS_Y);
 
   const footer: TextStyle = { font: sans, size: 8, color: MUTED, tracking: 0.3 };
   if (text.number !== null) drawAt(page, `Certificate no. ${text.number}`, footer, INNER_RULE + 18, FOOTER_Y);
