@@ -137,6 +137,14 @@ export function nextOnCourt(
   return waiting[0]?.row ?? null;
 }
 
+/**
+ * The courts the Fan Zone lists: those with a camera, and any other court while an umpire
+ * scores a match there live. Courts scored on paper have nothing to follow.
+ */
+export function fanZoneCourts(views: readonly CourtView[], filmed: ReadonlySet<number>): CourtView[] {
+  return views.filter((view) => filmed.has(view.court.number) || view.live !== null);
+}
+
 /** Every court with what is on it now and what follows, in court order. */
 export function courtViews(
   courts: readonly Court[],

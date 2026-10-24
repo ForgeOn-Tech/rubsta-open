@@ -9,7 +9,7 @@ import { listScoringMatches } from "@/db/matches";
 import { getCurrentTournament } from "@/db/queries";
 import { listPublishedDays } from "@/db/schedule";
 import { CATEGORY_LABELS } from "@/db/schema";
-import { courtViews, scoreboard, type CourtView, type FanScoreboard } from "@/lib/fan-live";
+import { courtViews, fanZoneCourts, scoreboard, type CourtView, type FanScoreboard } from "@/lib/fan-live";
 import { fanCourtPath } from "@/lib/fan-chat";
 import { SIDES } from "@/lib/match";
 import { courtTitle, placeLabel, publishedPlaces, type PublishedPlace } from "@/lib/schedule";
@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
 /** How often the court list looks for a new score. */
 const REFRESH_SECONDS = 20;
 
-/** Every court, what is being played on it, and what follows. Open to everyone. */
+/** The filmed courts and any court scored live, what is on now and what follows. Open to everyone. */
 export default async function FanLivePage() {
   const tournament = getCurrentTournament();
   const database = getDb();
@@ -31,7 +31,13 @@ export default async function FanLivePage() {
         new Map(rows.map((row) => [row.match.id, row.match.matchNumber])),
       )
     : new Map<string, PublishedPlace>();
-  const views = courtViews(courts, rows, places);
+  const broadcasts = new Map(
+    courts.map((court) => [court.number, getBroadcast(database, court.tournamentId, court.number)?.status ?? "off"] as const),
+  );
+  const filmed = new Set(
+    courts.filter((court) => court.streamUrl !== null || broadcasts.get(court.number) !== "off").map((court) => court.number),
+  );
+  const views = fanZoneCourts(courtViews(courts, rows, places), filmed);
   const anyLive = views.some((view) => view.live !== null);
 
   return (
@@ -45,19 +51,22 @@ export default async function FanLivePage() {
           {anyLive ? "On court now" : "Courts"}
         </h1>
         <p className="mt-3 text-[13px] text-club-mist/70">
-          Pick a court to watch the score, chat and call the next set.
+          Pick a court to watch the score, chat and call the next set. Courts scored on paper show their
+          results under <Link href="/results" className="underline">Results</Link>.
         </p>
       </div>
 
       {views.length === 0 ? (
         <p className="border-t border-club-mist/20 pt-5 text-[13px] text-club-mist/70" role="status">
-          The courts are not set up yet.
+          No court is being filmed or scored live right now. See the{" "}
+          <Link href="/order-of-play" className="underline">order of play</Link> and{" "}
+          <Link href="/results" className="underline">results</Link>.
         </p>
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2">
           {views.map((view) => (
             <li key={view.court.number}>
-              <p className="mb-2 text-xs text-club-mist/70">Video · {BROADCAST_LABELS[getBroadcast(database, view.court.tournamentId, view.court.number)?.status ?? "off"]}</p>
+              <p className="mb-2 text-xs text-club-mist/70">Video · {BROADCAST_LABELS[broadcasts.get(view.court.number) ?? "off"]}</p>
               <CourtCard view={view} place={view.next === null ? null : (places.get(view.next.match.id) ?? null)} />
             </li>
           ))}

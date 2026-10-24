@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { ScoringMatchRow } from "@/db/matches";
 import type { Court, Match } from "@/db/schema";
-import { courtViews, latestOnCourt, liveOnCourt, nextOnCourt, scoreboard } from "@/lib/fan-live";
+import { courtViews, fanZoneCourts, latestOnCourt, liveOnCourt, nextOnCourt, scoreboard } from "@/lib/fan-live";
 import type { MatchEvent, Side } from "@/lib/match";
 import type { PublishedPlace } from "@/lib/schedule";
 
@@ -160,5 +160,18 @@ describe("latestOnCourt", () => {
   it("is null when nothing has started on the court", () => {
     expect(latestOnCourt([row("not-started", { court: 1 })], 1)).toBeNull();
     expect(latestOnCourt([], 1)).toBeNull();
+  });
+});
+
+describe("fanZoneCourts", () => {
+  const live = row("live", { status: "in_progress", court: 2, startedAt: 1_000 });
+  const views = courtViews([court(1), court(2), court(3), court(4)], [live], new Map());
+
+  it("lists filmed courts and a court scored live, and leaves out courts scored on paper", () => {
+    expect(fanZoneCourts(views, new Set([3])).map((view) => view.court.number)).toEqual([2, 3]);
+  });
+
+  it("lists nothing when no court is filmed or scored live", () => {
+    expect(fanZoneCourts(courtViews([court(1)], [], new Map()), new Set())).toEqual([]);
   });
 });
