@@ -5,6 +5,7 @@ import {
   countPredictions,
   countReactions,
   getOwnPrediction,
+  latestSetCall,
   listCourtMessages,
   listOwnReactions,
 } from "./fan";
@@ -12,7 +13,7 @@ import { listScoringMatches } from "./matches";
 import { listPublishedDays } from "./schedule";
 import { REACTION_KINDS, type ReactionKind } from "./schema";
 import type { FanFeed } from "@/lib/fan-feed";
-import { liveOnCourt, nextOnCourt, scoreboard } from "@/lib/fan-live";
+import { latestOnCourt, liveOnCourt, nextOnCourt, scoreboard } from "@/lib/fan-live";
 import { tally } from "@/lib/fan-predictions";
 import { placeLabel, publishedPlaces, type PublishedPlace } from "@/lib/schedule";
 
@@ -41,6 +42,8 @@ export function fanFeed(
   const liveRow = liveOnCourt(rows, courtNumber);
   const nextRow = nextOnCourt(rows, places, courtNumber);
   const live = liveRow === null ? null : scoreboard(liveRow);
+  const latestRow = latestOnCourt(rows, courtNumber);
+  const call = latestRow === null || userId === null ? null : latestSetCall(database, latestRow.match, userId);
   const nextPlace = nextRow === null ? undefined : places.get(nextRow.match.id);
 
   const broadcast = tournamentId ? getBroadcast(database, tournamentId, courtNumber) : null;
@@ -64,7 +67,14 @@ export function fanFeed(
             tally: tally(countPredictions(database, live.matchId, live.setNumber)),
             own: userId === null ? null : getOwnPrediction(database, live.matchId, live.setNumber, userId),
           },
-    messages: tournamentId === null ? [] : listCourtMessages(database, tournamentId, courtNumber),
+    messages:
+      tournamentId === null
+        ? []
+        : listCourtMessages(database, tournamentId, courtNumber, latestRow?.match.startedAt ?? null),
+    lastCall:
+      call === null || latestRow === null
+        ? null
+        : { ...call, winnerName: scoreboard(latestRow).sides[call.winner].name },
     signedIn: userId !== null,
   };
 }

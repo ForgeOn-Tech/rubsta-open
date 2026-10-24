@@ -106,6 +106,18 @@ export function liveOnCourt(rows: readonly ScoringMatchRow[], courtNumber: numbe
 }
 
 /**
+ * The match a court's chat and set calls belong to: the one started most recently there,
+ * live or finished. It stays until the next match on the court starts.
+ */
+export function latestOnCourt(rows: readonly ScoringMatchRow[], courtNumber: number): ScoringMatchRow | null {
+  return rows.reduce<ScoringMatchRow | null>((latest, row) => {
+    const { court, startedAt } = row.match;
+    if (court !== courtNumber || startedAt === null) return latest;
+    return latest === null || startedAt > (latest.match.startedAt ?? 0) ? row : latest;
+  }, null);
+}
+
+/**
  * The next match due on a court, from the published order of play. A match
  * has no court of its own until an umpire starts it, so this is where "up
  * next" comes from.

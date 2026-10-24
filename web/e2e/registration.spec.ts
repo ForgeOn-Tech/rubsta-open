@@ -451,7 +451,7 @@ test.describe.serial("registration", () => {
     await expect(page.getByText(/\d+ on this page/)).toBeVisible();
     // Watching is free; joining in needs an account.
     await expect(page.getByRole("button", { name: /^Applause/ })).toHaveCount(0);
-    await expect(page.getByRole("region", { name: "Court chat" })).toContainText("to join the chat");
+    await expect(page.getByRole("region", { name: "Match chat" })).toContainText("to join the chat");
 
     await signInAsDemo(page);
     await page.goto("/live/2");
@@ -464,7 +464,7 @@ test.describe.serial("registration", () => {
     await expect(prediction.getByRole("button").first()).toHaveAttribute("aria-pressed", "true");
 
     // Blocked language is refused, and the message that follows it posts.
-    const chat = page.getByRole("region", { name: "Court chat" });
+    const chat = page.getByRole("region", { name: "Match chat" });
     await chat.getByLabel("Message").fill("you bastard");
     await chat.getByRole("button", { name: "Send" }).click();
     await expect(chat.getByRole("alert")).toContainText("not allowed");
@@ -478,7 +478,7 @@ test.describe.serial("registration", () => {
     await row.getByRole("button", { name: "Hide" }).click();
     await expect(row.getByRole("button", { name: "Show" })).toBeVisible();
     await page.goto("/live/2");
-    await expect(page.getByRole("region", { name: "Court chat" })).not.toContainText("What a rally");
+    await expect(page.getByRole("region", { name: "Match chat" })).not.toContainText("What a rally");
 
     // The set is still being played, so nobody has scored a point yet.
     await page.goto("/live/leaderboard");

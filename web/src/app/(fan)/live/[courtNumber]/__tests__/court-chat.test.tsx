@@ -47,6 +47,6 @@ describe("CourtChat", () => {
   it("says when nobody has spoken yet", () => {
     render(<CourtChat {...PROPS} messages={[]} />);
 
-    expect(screen.getByText("No messages yet. Say something.")).toBeInTheDocument();
+    expect(screen.getByText(/No messages for this match yet/)).toBeInTheDocument();
   });
 });

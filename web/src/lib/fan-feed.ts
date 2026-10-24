@@ -1,5 +1,5 @@
 import type { PublicBroadcast } from "./broadcast";
-import type { ChatMessage } from "@/db/fan";
+import type { ChatMessage, SetCall } from "@/db/fan";
 import type { ReactionKind } from "@/db/schema";
 import type { FanScoreboard } from "@/lib/fan-live";
 import type { PredictionTally } from "@/lib/fan-predictions";
@@ -27,7 +27,10 @@ export interface FanFeed {
   reactions: Record<ReactionKind, number>;
   ownReactions: ReactionKind[];
   predictions: FanPredictionFeed | null;
+  /** Chat for the court's current match. */
   messages: ChatMessage[];
+  /** How this fan's latest finished set call went, with the set winner's name. */
+  lastCall: (SetCall & { winnerName: string }) | null;
   signedIn: boolean;
 }
 

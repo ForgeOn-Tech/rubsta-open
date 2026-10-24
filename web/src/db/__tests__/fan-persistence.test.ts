@@ -15,6 +15,7 @@ import {
   fanLeaderboard,
   getOwnPrediction,
   hideMessage,
+  latestSetCall,
   listCourtMessages,
   listMessagesToModerate,
   listOwnReactions,
@@ -101,7 +102,7 @@ describe("court chat", () => {
 
     postFanMessage(database, { ...CHAT, body: "  What a rally  ", now: NOW });
 
-    expect(listCourtMessages(database, TOURNAMENT_ID, COURT)).toEqual([
+    expect(listCourtMessages(database, TOURNAMENT_ID, COURT, null)).toEqual([
       { id: expect.any(String), name: "Rhea Sharma", body: "What a rally", createdAt: NOW },
     ]);
   });
@@ -111,7 +112,7 @@ describe("court chat", () => {
 
     postFanMessage(database, { ...CHAT, userId: ARJUN.userId, body: "Come on", now: NOW });
 
-    expect(listCourtMessages(database, TOURNAMENT_ID, COURT)[0].name).toBe("Arjun Kumar");
+    expect(listCourtMessages(database, TOURNAMENT_ID, COURT, null)[0].name).toBe("Arjun Kumar");
   });
 
   it("refuses a second message before the wait has passed, and allows it after", () => {
@@ -123,7 +124,7 @@ describe("court chat", () => {
     );
     postFanMessage(database, { ...CHAT, body: "Second", now: NOW + FAN_MESSAGE_INTERVAL_MS });
 
-    expect(listCourtMessages(database, TOURNAMENT_ID, COURT).map((message) => message.body)).toEqual([
+    expect(listCourtMessages(database, TOURNAMENT_ID, COURT, null).map((message) => message.body)).toEqual([
       "First",
       "Second",
     ]);
@@ -141,17 +142,17 @@ describe("court chat", () => {
 
     unmuteFan(database, RHEA.userId);
     postFanMessage(database, { ...CHAT, body: "Hello", now: NOW });
-    expect(listCourtMessages(database, TOURNAMENT_ID, COURT)).toHaveLength(1);
+    expect(listCourtMessages(database, TOURNAMENT_ID, COURT, null)).toHaveLength(1);
   });
 
   it("hides a message from the chat but keeps it for admins, and can put it back", () => {
     const database = setup([]);
     postFanMessage(database, { ...CHAT, body: "Out of order", now: NOW });
-    const [message] = listCourtMessages(database, TOURNAMENT_ID, COURT);
+    const [message] = listCourtMessages(database, TOURNAMENT_ID, COURT, null);
 
     hideMessage(database, message.id, "Admin@Example.com");
 
-    expect(listCourtMessages(database, TOURNAMENT_ID, COURT)).toEqual([]);
+    expect(listCourtMessages(database, TOURNAMENT_ID, COURT, null)).toEqual([]);
     expect(listMessagesToModerate(database, TOURNAMENT_ID, 10)).toEqual([
       {
         id: message.id,
@@ -167,7 +168,18 @@ describe("court chat", () => {
     ]);
 
     showMessage(database, message.id);
-    expect(listCourtMessages(database, TOURNAMENT_ID, COURT)).toHaveLength(1);
+    expect(listCourtMessages(database, TOURNAMENT_ID, COURT, null)).toHaveLength(1);
+  });
+
+  it("shows only the messages since the given time, so each match starts with an empty chat", () => {
+    const database = setup([]);
+    postFanMessage(database, { ...CHAT, body: "Last match", now: NOW });
+    postFanMessage(database, { ...CHAT, body: "This match", now: NOW + FAN_MESSAGE_INTERVAL_MS });
+
+    expect(
+      listCourtMessages(database, TOURNAMENT_ID, COURT, NOW + 1).map((message) => message.body),
+    ).toEqual(["This match"]);
+    expect(listCourtMessages(database, TOURNAMENT_ID, COURT, null)).toHaveLength(2);
   });
 
   it("drops a fan's messages when their account goes", () => {
@@ -176,7 +188,7 @@ describe("court chat", () => {
 
     database.delete(schema.users).where(eq(schema.users.id, RHEA.userId)).run();
 
-    expect(listCourtMessages(database, TOURNAMENT_ID, COURT)).toEqual([]);
+    expect(listCourtMessages(database, TOURNAMENT_ID, COURT, null)).toEqual([]);
   });
 });
 
@@ -205,7 +217,7 @@ describe("a sign-in that outlived its account", () => {
     expect(() => postFanMessage(database, { ...CHAT, userId: gone, body: "Hello", now: NOW })).toThrow(expired);
     expect(() => addReaction(database, MATCH_ID, gone, "clap")).toThrow(expired);
     expect(() => savePrediction(database, { matchId: MATCH_ID, setNumber: 1, userId: gone, side: "top" })).toThrow(expired);
-    expect(listCourtMessages(database, TOURNAMENT_ID, COURT)).toEqual([]);
+    expect(listCourtMessages(database, TOURNAMENT_ID, COURT, null)).toEqual([]);
   });
 });
 
@@ -266,6 +278,39 @@ describe("predictions", () => {
       .run();
 
     expect(fanLeaderboard(database, TOURNAMENT_ID)).toEqual([]);
+  });
+});
+
+describe("latestSetCall", () => {
+  function matchOf(database: Db) {
+    const match = database.select().from(schema.matches).where(eq(schema.matches.id, MATCH_ID)).get();
+    if (match === undefined) throw new Error("The test match is missing.");
+    return match;
+  }
+
+  it("reports the fan's pick against the winner once the set is over", () => {
+    // Arrange: Rhea picks the top player, Arjun the bottom, and the top player takes the set.
+    const database = setup(gamesWonBy("top", 2));
+    savePrediction(database, { matchId: MATCH_ID, setNumber: 1, userId: RHEA.userId, side: "top" });
+    savePrediction(database, { matchId: MATCH_ID, setNumber: 1, userId: ARJUN.userId, side: "bottom" });
+    database.update(schema.matches).set({ events: [...gamesWonBy("top", 6)] }).where(eq(schema.matches.id, MATCH_ID)).run();
+
+    // Act and assert
+    expect(latestSetCall(database, matchOf(database), RHEA.userId)).toEqual({
+      matchId: MATCH_ID,
+      setNumber: 1,
+      own: "top",
+      winner: "top",
+    });
+    expect(latestSetCall(database, matchOf(database), ARJUN.userId)?.own).toBe("bottom");
+  });
+
+  it("is null while the set is still being played, or when the fan made no pick", () => {
+    const database = setup(gamesWonBy("top", 2));
+    savePrediction(database, { matchId: MATCH_ID, setNumber: 1, userId: RHEA.userId, side: "top" });
+
+    expect(latestSetCall(database, matchOf(database), RHEA.userId)).toBeNull();
+    expect(latestSetCall(database, matchOf(database), ARJUN.userId)).toBeNull();
   });
 });
 

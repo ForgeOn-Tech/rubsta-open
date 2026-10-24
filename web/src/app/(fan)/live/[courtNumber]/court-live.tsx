@@ -7,6 +7,7 @@ import { CourtStream } from "./court-stream";
 import { CourtChat } from "./court-chat";
 import { PredictionPanel } from "./prediction-panel";
 import { ReactionsRow } from "./reactions-row";
+import { SetCall } from "./set-call";
 import { CATEGORY_LABELS } from "@/db/schema";
 import { FAN_FEED_INTERVAL_MS, fanFeedPath, type FanFeed } from "@/lib/fan-feed";
 import type { FanScoreboard } from "@/lib/fan-live";
@@ -113,6 +114,8 @@ export function CourtLive({
           action={refreshingAfter(reactAction)}
         />
       )}
+
+      {feed.lastCall === null ? null : <SetCall call={feed.lastCall} />}
 
       {feed.live === null || feed.predictions === null ? null : (
         <PredictionPanel

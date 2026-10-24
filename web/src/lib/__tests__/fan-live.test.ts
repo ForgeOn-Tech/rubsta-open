@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { ScoringMatchRow } from "@/db/matches";
 import type { Court, Match } from "@/db/schema";
-import { courtViews, liveOnCourt, nextOnCourt, scoreboard } from "@/lib/fan-live";
+import { courtViews, latestOnCourt, liveOnCourt, nextOnCourt, scoreboard } from "@/lib/fan-live";
 import type { MatchEvent, Side } from "@/lib/match";
 import type { PublishedPlace } from "@/lib/schedule";
 
@@ -140,5 +140,24 @@ describe("liveOnCourt and nextOnCourt", () => {
       [1, "live", "third"],
       [2, null, "other"],
     ]);
+  });
+});
+
+describe("latestOnCourt", () => {
+  it("picks the match started most recently on the court, live or finished", () => {
+    // Arrange
+    const finished = row("finished", { status: "completed", court: 1, startedAt: 1_000 });
+    const live = row("live", { status: "in_progress", court: 1, startedAt: 2_000 });
+    const elsewhere = row("elsewhere", { status: "in_progress", court: 2, startedAt: 3_000 });
+    const notStarted = row("not-started", { court: 1 });
+
+    // Act and assert
+    expect(latestOnCourt([finished, live, elsewhere, notStarted], 1)?.match.id).toBe("live");
+    expect(latestOnCourt([finished, notStarted], 1)?.match.id).toBe("finished");
+  });
+
+  it("is null when nothing has started on the court", () => {
+    expect(latestOnCourt([row("not-started", { court: 1 })], 1)).toBeNull();
+    expect(latestOnCourt([], 1)).toBeNull();
   });
 });
