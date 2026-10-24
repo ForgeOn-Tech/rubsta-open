@@ -5,8 +5,14 @@ import type { CertificateArtwork } from "@/lib/certificate-pdf";
 
 // Outside public/, so the signature cannot be downloaded from the site. deploy/Dockerfile copies it.
 const ARTWORK_DIR = path.join(process.cwd(), "assets", "certificate");
-const VENUE_LOGO = "nerul-gymkhana.png";
-const PARTNER_LOGO = "sp-cards.png";
+/** The partners in the order they print, each in the same size box. ForgeLabs is set as text. */
+const PARTNER_LOGOS = [
+  { name: "Nerul Gymkhana", file: "nerul-gymkhana.png" },
+  { name: "SP Cards", file: "sp-cards.png" },
+  { name: "Team Leader Logistics", file: "team-leader.png" },
+  { name: "Heath Matthews Physio", file: "heath-matthews-physio.png" },
+  { name: "Heartfull", file: "heartfull.png" },
+];
 /** Optional: certificates print a blank signature line until this file is added. */
 const SIGNATURE = "signature.png";
 
@@ -25,10 +31,9 @@ async function readSignature(): Promise<Uint8Array | null> {
 
 /** Read from disk on every call, so a newly added signature shows without a restart. */
 export async function loadCertificateArtwork(): Promise<CertificateArtwork> {
-  const [venueLogo, partnerLogo, signature] = await Promise.all([
-    readArtwork(VENUE_LOGO),
-    readArtwork(PARTNER_LOGO),
+  const [partnerLogos, signature] = await Promise.all([
+    Promise.all(PARTNER_LOGOS.map(async ({ name, file }) => ({ name, png: await readArtwork(file) }))),
     readSignature(),
   ]);
-  return { venueLogo, partnerLogo, signature };
+  return { partnerLogos, signature };
 }

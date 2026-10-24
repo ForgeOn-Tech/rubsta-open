@@ -43,7 +43,7 @@ describe("certificatePdf", () => {
   it("prints a signature image when one is supplied", async () => {
     const artwork = await loadCertificateArtwork();
     const without = await certificatePdf(TEXT, { ...artwork, signature: null });
-    const withSignature = await certificatePdf(TEXT, { ...artwork, signature: artwork.partnerLogo });
+    const withSignature = await certificatePdf(TEXT, { ...artwork, signature: artwork.partnerLogos[0].png });
 
     expect(withSignature.length).toBeGreaterThan(without.length);
   });
