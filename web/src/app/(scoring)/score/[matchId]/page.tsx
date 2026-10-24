@@ -58,6 +58,7 @@ export default async function ScoreMatchPage({
       }
       initial={snapshotOf(match)}
       completedAt={match.completedAt}
+      manualScore={match.manualScore}
       retireAction={retireMatchAction}
       resetAction={resetMatchAction}
     />

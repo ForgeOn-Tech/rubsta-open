@@ -73,11 +73,18 @@ export interface ScorerProps {
   initial: MatchSnapshot;
   /** When the server recorded the match as finished, else null. */
   completedAt: number | null;
+  /** The final score was typed in after the match, so its points carry no statistics. */
+  manualScore: boolean;
   retireAction: (matchId: string, retiringSide: Side) => Promise<MatchSnapshot>;
   resetAction: (matchId: string) => Promise<MatchSnapshot>;
 }
 
 type MenuChoice = "retire-top" | "retire-bottom" | "reset";
+
+/** Where a scorer types in a paper score or records a walkover. */
+function finalScorePath(matchId: string): string {
+  return `/score/${matchId}/final`;
+}
 
 const STORAGE_PREFIX = "tournament-os:score:";
 const CLOCK_INTERVAL_MS = 15_000;
@@ -178,6 +185,7 @@ function LiveScorer({
   busyPlayers,
   initial,
   completedAt,
+  manualScore,
   retireAction,
   resetAction,
 }: ScorerProps) {
@@ -281,6 +289,7 @@ function LiveScorer({
 
       {record === null && !finished ? (
         ready ? (
+          <>
           <StartForm
             sides={sides}
             court={court}
@@ -293,6 +302,13 @@ function LiveScorer({
               })
             }
           />
+          <p className="mx-5 mb-5 text-[13px] text-muted">
+            Scored on paper, or a player did not turn up?{" "}
+            <Link href={finalScorePath(matchId)} className="font-semibold text-ink underline">
+              Enter the final score or a walkover
+            </Link>
+          </p>
+          </>
         ) : (
           <p className="m-5 card p-4 text-[13px] text-muted" role="status">
             This match is waiting on an earlier result.
@@ -309,7 +325,7 @@ function LiveScorer({
             </div>
           ) : null}
           {finished ? (
-            <Result state={state} record={record} match={match} sides={sides} />
+            <Result state={state} record={record} match={match} sides={sides} matchId={matchId} manualScore={manualScore} />
           ) : finalEvent !== null && shown && match ? (
             <FinalConfirmation match={shown} before={match} finalEvent={finalEvent} sides={sides} dispatch={dispatch} />
           ) : match && record ? (
@@ -745,11 +761,15 @@ function Result({
   record,
   match,
   sides,
+  matchId,
+  manualScore,
 }: {
   state: ScorerState;
   record: ScoreRecord | null;
   match: MatchState | null;
   sides: Record<Side, SideLabel>;
+  matchId: string;
+  manualScore: boolean;
 }) {
   const winner = state.winner ?? match?.winner ?? null;
   if (winner === null) throw new Error("A finished match must have a winner.");
@@ -772,7 +792,12 @@ function Result({
       <Link href="/score" className="btn btn-outline mt-2">
         Back to matches
       </Link>
-      {record === null ? null : (
+      {manualScore || record === null ? (
+        <Link href={finalScorePath(matchId)} className="text-[13px] font-semibold">
+          {manualScore ? "Typed-in score: change or undo it" : "Walkover: undo it"}
+        </Link>
+      ) : null}
+      {manualScore || record === null ? null : (
         <div className="mt-3 border-t border-line pt-3">
           <MatchStatsTable
             rows={statRows(statsOfRecord(record))}
@@ -855,6 +880,9 @@ function MatchMenu({
             {error}
           </p>
         ) : null}
+        <Link href={finalScorePath(matchId)} className="text-[12.5px] font-semibold underline">
+          Enter the final score instead
+        </Link>
       </div>
     </details>
   );

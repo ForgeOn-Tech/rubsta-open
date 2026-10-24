@@ -422,7 +422,7 @@ export default async function AdminOrderOfPlayPage({
                                   }}
                                   action={walkoverAction}
                                 />
-                              ) : row !== null && isWalkover(row.match) ? (
+                              ) : row !== null && (isWalkover(row.match) || (row.match.manualScore && row.match.status === "completed")) ? (
                                 <UndoWalkoverButton matchId={row.match.id} action={undoWalkoverAction} />
                               ) : null}
                               <ScheduleItemEditor

@@ -58,6 +58,7 @@ const MATCH: Match = {
   bottomSlot: { kind: "entry", entryId: "c" },
   events: [],
   decidingSet: "set",
+  manualScore: false,
   format: null,
   firstServer: null,
   status: "scheduled",

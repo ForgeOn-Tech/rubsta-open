@@ -48,7 +48,7 @@ export function WalkoverButton({
   );
 }
 
-/** Undoes a walkover, asked in two steps. Possible until the next match starts. */
+/** Undoes a walkover or typed-in score, asked in two steps. Possible until the next match starts. */
 export function UndoWalkoverButton({ matchId, action }: { matchId: string; action: FormAction }) {
   const [asking, setAsking] = useState(false);
   const [state, formAction, pending] = useActionState(action, INITIAL_ACTION_STATE);
@@ -56,7 +56,7 @@ export function UndoWalkoverButton({ matchId, action }: { matchId: string; actio
   if (!asking) {
     return (
       <button type="button" className={`${SMALL_BUTTON} mt-2`} onClick={() => setAsking(true)}>
-        Undo walkover…
+        Undo result…
       </button>
     );
   }
@@ -65,7 +65,7 @@ export function UndoWalkoverButton({ matchId, action }: { matchId: string; actio
       <input type="hidden" name="matchId" value={matchId} />
       <p className="text-[12px]">The match goes back to be played, and the winner leaves the next round.</p>
       <button type="submit" className={SMALL_BUTTON} disabled={pending}>
-        Undo walkover
+        Undo result
       </button>
       <button type="button" className={SMALL_BUTTON} onClick={() => setAsking(false)} disabled={pending}>
         Cancel

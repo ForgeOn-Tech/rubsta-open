@@ -6,7 +6,7 @@ import { listScorerEmails, requireAdmin } from "@/auth/require";
 import { applyFill, moveItemToSlot, placeMatchAtSlot, previewFill, unscheduleItem, type FillPreview } from "@/db/auto-schedule";
 import { getDb } from "@/db/client";
 import { listCourts } from "@/db/courts";
-import { ScoreRejectedError, undoWalkover, walkoverMatch } from "@/db/matches";
+import { ScoreRejectedError, undoResult, walkoverMatch } from "@/db/matches";
 import { getCurrentTournament } from "@/db/queries";
 import {
   ScheduleRejectedError,
@@ -198,7 +198,7 @@ export async function walkoverAction(_previous: ActionState, formData: FormData)
 export async function undoWalkoverAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
   await requireAdmin();
   try {
-    undoWalkover(getDb(), field(formData, "matchId"));
+    undoResult(getDb(), field(formData, "matchId"));
   } catch (error) {
     if (error instanceof ScoreRejectedError) return failed(error.message);
     throw error;

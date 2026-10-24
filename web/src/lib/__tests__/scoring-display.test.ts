@@ -33,6 +33,7 @@ const BASE: Match = {
   bottomSlot: { kind: "entry", entryId: "b" },
   events: [],
   decidingSet: "set",
+  manualScore: false,
   format: null,
   firstServer: null,
   status: "scheduled",

@@ -53,6 +53,7 @@ function scorerProps(initial: MatchSnapshot, courts: ScorerProps["courts"]): Sco
     busyPlayers: [],
     initial,
     completedAt: null,
+    manualScore: false,
     retireAction: vi.fn(),
     resetAction: vi.fn(),
   };

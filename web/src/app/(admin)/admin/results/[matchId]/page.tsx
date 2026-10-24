@@ -43,7 +43,7 @@ export default async function AdminMatchResultPage({
   const stats = [
     match.status === "in_progress" ? "Live" : match.status === "completed" ? "Final" : "Not started",
     match.court === null ? "No court" : `Court ${match.court}`,
-    ...(match.startedAt !== null && match.completedAt !== null
+    ...(match.startedAt !== null && match.completedAt !== null && !match.manualScore
       ? [`${formatElapsed(match.completedAt - match.startedAt)} played`]
       : []),
     ...(summary === null ? [] : [summary]),
@@ -82,7 +82,11 @@ export default async function AdminMatchResultPage({
         </div>
 
         <section aria-label="Statistics" className="card max-w-xl px-4 py-3">
-          {record === null ? (
+          {match.manualScore ? (
+            <p className="text-[13px] text-muted" role="status">
+              The final score was typed in after the match, so there are no point-by-point statistics.
+            </p>
+          ) : record === null ? (
             <p className="text-[13px] text-muted" role="status">
               {match.status === "completed"
                 ? "W/O: a walkover. No points were played."

@@ -190,6 +190,13 @@
       "when": 1792818290039,
       "tag": "0026_repeat_reactions",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "6",
+      "when": 1792819701934,
+      "tag": "0027_manual_score",
+      "breakpoints": true
     }
   ]
 }

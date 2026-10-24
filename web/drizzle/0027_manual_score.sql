@@ -1,0 +1,1 @@
+ALTER TABLE `matches` ADD `manual_score` integer DEFAULT false NOT NULL;

@@ -20,6 +20,7 @@ import {
 import { buildBracket, buildBracketFromSlots, type BracketRound, type BracketSlot } from "@/lib/draws";
 import { knockoutSlots } from "@/lib/groups";
 import { deriveState, type MatchState, type Side } from "@/lib/match";
+import { PAPER_FIRST_SERVER, finalScoreEvents, type PaperSet } from "@/lib/manual-score";
 import { formatFor } from "@/lib/match-formats";
 import {
   extendsScore,
@@ -429,15 +430,15 @@ function reopenGroup(database: Database, match: Match, groupNumber: number, now:
 }
 
 /**
- * Undoes a walkover recorded by mistake: the match goes back to scheduled, and its winner
+ * Undoes a walkover or typed-in score recorded by mistake: the match goes back to scheduled, and its winner
  * leaves the next match. A group match takes back the places its group sent through.
  * Refused once a match the result reached has started.
  */
-export function undoWalkover(database: Database, matchId: string): Match {
+export function undoResult(database: Database, matchId: string): Match {
   return database.transaction((tx) => {
     const row = loadMatch(tx, matchId);
-    if (!isWalkover(row) || row.winnerEntryId === null) {
-      throw new ScoreRejectedError(`Match ${row.matchNumber} was not won by walkover.`);
+    if (!(isWalkover(row) || (row.manualScore && row.status === "completed")) || row.winnerEntryId === null) {
+      throw new ScoreRejectedError(`Match ${row.matchNumber} was not won by walkover or a typed-in score.`);
     }
     const winnerEntryId = row.winnerEntryId;
     const now = Date.now();
@@ -455,7 +456,7 @@ export function undoWalkover(database: Database, matchId: string): Match {
       if (!next) throw new Error(`No match after match ${row.matchNumber} holds its winner.`);
       if (next.status !== "scheduled") {
         throw new ScoreRejectedError(
-          `Match ${next.matchNumber} has already started, so the walkover in match ${row.matchNumber} stays.`,
+          `Match ${next.matchNumber} has already started, so the result of match ${row.matchNumber} stays.`,
         );
       }
       const waiting: MatchSlot = { kind: "winner", matchNumber: row.matchNumber };
@@ -469,6 +470,11 @@ export function undoWalkover(database: Database, matchId: string): Match {
       .set({
         status: "scheduled",
         winnerEntryId: null,
+        // A typed-in score's made-up points go with it. A walkover has none.
+        events: [],
+        firstServer: null,
+        format: null,
+        manualScore: false,
         startedAt: null,
         completedAt: null,
         version: row.version + 1,
@@ -476,7 +482,53 @@ export function undoWalkover(database: Database, matchId: string): Match {
       })
       .where(eq(matches.id, matchId))
       .run();
+    clearMatchFanData(tx, matchId);
     return loadMatch(tx, matchId);
+  });
+}
+
+/**
+ * Records a final score written down on paper, for a match nobody scored point by point.
+ * The score becomes made-up points that fit it, so the draw, groups and score line work as
+ * usual, and the match is marked so its statistics are not shown. A match an umpire started
+ * is replaced; a finished match must have its result undone first.
+ */
+export function enterFinalScore(database: Database, matchId: string, sets: readonly PaperSet[]): Match {
+  return database.transaction((tx) => {
+    const row = loadMatch(tx, matchId);
+    if (row.status === "completed") {
+      throw new ScoreRejectedError(`Match ${row.matchNumber} already has a result. Undo it before entering another.`);
+    }
+    if (row.topSlot.kind !== "entry" || row.bottomSlot.kind !== "entry") {
+      throw new ScoreRejectedError(`Match ${row.matchNumber} is waiting on an earlier result.`);
+    }
+    const format = row.format ?? formatFor(categoryOf(tx, row), row.roundName);
+    const check = finalScoreEvents(sets, format);
+    if (!check.ok) throw new ScoreRejectedError(check.error);
+    const winner = deriveState(check.events, format, PAPER_FIRST_SERVER).winner === "top" ? row.topSlot : row.bottomSlot;
+
+    const now = Date.now();
+    tx.update(matches)
+      .set({
+        events: check.events,
+        firstServer: PAPER_FIRST_SERVER,
+        format,
+        decidingSet: format.decidingSet,
+        manualScore: true,
+        status: "completed",
+        winnerEntryId: entryIdOf(winner, row.matchNumber),
+        // The court stays as it was, so a hand-entered result never becomes a court's latest match.
+        startedAt: row.startedAt ?? now,
+        completedAt: now,
+        version: row.version + 1,
+        updatedAt: now,
+      })
+      .where(eq(matches.id, matchId))
+      .run();
+
+    const updated = loadMatch(tx, matchId);
+    afterMatchCompleted(tx, updated);
+    return updated;
   });
 }
 
