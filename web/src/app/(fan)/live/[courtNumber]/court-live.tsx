@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { CourtStream } from "./court-stream";
@@ -11,6 +12,7 @@ import { FAN_FEED_INTERVAL_MS, fanFeedPath, type FanFeed } from "@/lib/fan-feed"
 import type { FanScoreboard } from "@/lib/fan-live";
 import type { FormAction } from "@/lib/form-state";
 import { SIDES } from "@/lib/match";
+import { signInPathFor } from "@/lib/sign-in-return";
 
 const VIEWER_KEY = "fan-viewer-id";
 
@@ -70,6 +72,15 @@ export function CourtLive({
 
   return (
     <div className="flex flex-col gap-6">
+      {feed.signedIn ? null : (
+        <p className="border border-club-mist/25 px-4 py-3 text-[13px]">
+          Watching is free.{" "}
+          <Link href={signInPathFor(`/live/${courtNumber}`)} className="underline">
+            Sign up
+          </Link>{" "}
+          to chat, react and predict sets.
+        </p>
+      )}
       <CourtStream broadcast={feed.broadcast} watching={feed.watching} />
       {stale && <p role="status" className="text-sm text-club-mist/70">Score and broadcast updates paused. Reconnecting…</p>}
       {feed.live !== null ? (
@@ -85,6 +96,7 @@ export function CourtLive({
       {feed.live === null ? null : (
         <ReactionsRow
           matchId={feed.live.matchId}
+          courtNumber={courtNumber}
           counts={feed.reactions}
           own={feed.ownReactions}
           signedIn={feed.signedIn}
