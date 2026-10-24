@@ -11,6 +11,7 @@ import { getCurrentTournament } from "@/db/queries";
 import { FAN_LIVE_PATH } from "@/lib/fan-chat";
 import { MAX_COURT } from "@/lib/score-record";
 import { courtDetail, courtTitle } from "@/lib/schedule";
+import { STREAM_SPONSOR_LABEL, todaysStreamSponsor } from "@/lib/stream-sponsor";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,7 @@ export default async function FanCourtPage({
     watching: 0,
   });
   const detail = courtDetail(court);
+  const sponsor = todaysStreamSponsor();
 
   return (
     <div className="flex flex-col gap-6">
@@ -55,6 +57,15 @@ export default async function FanCourtPage({
           {tournament?.name ?? "Rubsta Open"}
           {detail === null ? "" : ` · ${detail}`}
         </p>
+        {sponsor === null ? null : (
+          <div className="mt-4 flex items-center gap-3">
+            <span className="text-[10px] font-medium uppercase tracking-[1.5px] text-club-mist/60">
+              {STREAM_SPONSOR_LABEL}
+            </span>
+            {/* eslint-disable-next-line @next/next/no-img-element -- a small static logo */}
+            <img src={sponsor.logo} alt={sponsor.name} className="h-12 w-auto bg-white p-1.5" />
+          </div>
+        )}
       </div>
 
       <CourtLive
