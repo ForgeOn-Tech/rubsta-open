@@ -9,6 +9,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 
+import type { FeedbackRatings } from "@/lib/feedback";
 import type { MatchEvent, MatchFormat, Side } from "@/lib/match";
 import type { ScheduleEntry } from "@/lib/schedule";
 
@@ -722,3 +723,19 @@ export const certificateEmails = sqliteTable("certificate_emails", {
   lastError: text("last_error"),
   needsReview: integer("needs_review", { mode: "boolean" }).notNull().default(false),
 }, table => [index("certificate_emails_certificate").on(table.userId, table.entryId, table.kind)]);
+
+// One response per signed-in player per tournament. Visitors without an account send
+// with user_id null; their browser keeps the response id in a cookie so a resend updates it.
+export const feedbackResponses = sqliteTable(
+  "feedback_responses",
+  {
+    id: text("id").primaryKey(),
+    tournamentId: text("tournament_id").notNull().references(() => tournaments.id, { onDelete: "cascade" }),
+    userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
+    ratings: text("ratings", { mode: "json" }).$type<FeedbackRatings>().notNull(),
+    comment: text("comment"),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => [uniqueIndex("feedback_responses_tournament_user").on(table.tournamentId, table.userId)],
+);

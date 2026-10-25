@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 const tabs = [
   ["/home", "Home"], ["/register", "Registration"], ["/profile", "Profile"],
   ["/draws", "Draws"], ["/order-of-play", "Order of play"], ["/results", "Results"],
-  ["/live", "Live"], ["/live/leaderboard", "Leaderboard"], ["/challenges", "Challenges"],
+  ["/live", "Live"], ["/live/leaderboard", "Leaderboard"], ["/challenges", "Challenges"], ["/feedback", "Feedback"],
 ] as const;
 
 export function PlayerNav({ signedIn }: { signedIn: boolean }) {
