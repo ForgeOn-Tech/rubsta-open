@@ -7,10 +7,14 @@ import { usePathname } from "next/navigation";
 const tabs = [
   ["/home", "Home"], ["/register", "Registration"], ["/profile", "Profile"],
   ["/draws", "Draws"], ["/order-of-play", "Order of play"], ["/results", "Results"],
-  ["/live", "Live"], ["/live/leaderboard", "Leaderboard"], ["/challenges", "Challenges"],
+  ["/live", "Live"], ["/live/leaderboard", "Leaderboard"], ["/challenges", "Challenges"], ["/feedback", "Feedback"],
 ] as const;
 
-export function PlayerNav({ signedIn }: { signedIn: boolean }) {
+const ACCOUNT_TABS = ["/home", "/register", "/profile"];
+const FEEDBACK_TAB = "/feedback";
+
+/** feedbackOpen comes from the server, so the tab appears at the same moment the form opens. */
+export function PlayerNav({ signedIn, feedbackOpen }: { signedIn: boolean; feedbackOpen: boolean }) {
   const pathname = usePathname();
   const nav = useRef<HTMLElement>(null);
   // Layouts can remount between account and public pages. Reveal the selected
@@ -26,7 +30,7 @@ export function PlayerNav({ signedIn }: { signedIn: boolean }) {
   }, [pathname, signedIn]);
   return <nav ref={nav} aria-label="Tournament" className="overflow-x-auto">
     <div className="flex w-max min-w-full gap-5 text-[11px] font-medium uppercase tracking-[1px]">
-      {tabs.filter(([href]) => signedIn || !["/home", "/register", "/profile"].includes(href)).map(([href, label]) => {
+      {tabs.filter(([href]) => (signedIn || !ACCOUNT_TABS.includes(href)) && (feedbackOpen || href !== FEEDBACK_TAB)).map(([href, label]) => {
         const active = (pathname === href || pathname.startsWith(href + "/"))
           && !(href === "/live" && pathname.startsWith("/live/leaderboard"));
         return <Link key={href} href={href} aria-current={active ? "page" : undefined}

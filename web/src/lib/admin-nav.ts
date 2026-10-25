@@ -22,6 +22,7 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
   { label: "Live streaming", href: "/admin/streaming" },
   { label: "Fan zone", href: "/admin/fan" },
   { label: "Certificates", href: "/admin/certificates" },
+  { label: "Feedback", href: "/admin/feedback" },
   { label: "Sponsors", href: "https://www.rubstaopen.com/#sponsors", fullPage: true },
   { label: "Settings", href: "/admin/settings" },
 ];

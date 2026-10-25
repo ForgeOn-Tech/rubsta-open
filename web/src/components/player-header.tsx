@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { signOutAction } from "@/auth/actions";
+import { isFeedbackOpen } from "@/lib/feedback";
 import { InstallAppButton } from "./install-app-button";
 import { PlayerNav } from "./player-nav";
 
@@ -20,7 +21,7 @@ export function PlayerHeader({ signedIn }: { signedIn: boolean }) {
           </form> : <Link href="/signin" style={{ color: "inherit" }}>Sign in</Link>}
         </div>
       </div>
-      <PlayerNav signedIn={signedIn} />
+      <PlayerNav signedIn={signedIn} feedbackOpen={isFeedbackOpen(new Date().getTime())} />
     </div>
   </header>;
 }
