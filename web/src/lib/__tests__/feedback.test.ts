@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { FEEDBACK_TOPICS, FeedbackError, MAX_COMMENT_LENGTH, parseFeedback, summarizeFeedback } from "@/lib/feedback";
+import { FEEDBACK_OPENS_AT, FEEDBACK_TOPICS, FeedbackError, MAX_COMMENT_LENGTH, isFeedbackOpen, parseFeedback, summarizeFeedback } from "@/lib/feedback";
 
 function fields(values: Record<string, string>) {
   return (name: string) => values[name] ?? null;
@@ -42,5 +42,16 @@ describe("summarizeFeedback", () => {
     const summary = summarizeFeedback([]);
     expect(summary.map((topic) => topic.key)).toEqual(FEEDBACK_TOPICS.map((topic) => topic.key));
     expect(summary.every((topic) => topic.count === 0 && topic.average === null)).toBe(true);
+  });
+});
+
+describe("isFeedbackOpen", () => {
+  it("opens at 6:00 pm IST on 26 October 2026, which is 12:30 UTC", () => {
+    expect(new Date(FEEDBACK_OPENS_AT).toISOString()).toBe("2026-10-26T12:30:00.000Z");
+  });
+
+  it("is closed a moment before the opening time and open from it onwards", () => {
+    expect(isFeedbackOpen(FEEDBACK_OPENS_AT - 1)).toBe(false);
+    expect(isFeedbackOpen(FEEDBACK_OPENS_AT)).toBe(true);
   });
 });

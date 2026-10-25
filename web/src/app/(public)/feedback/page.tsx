@@ -5,6 +5,7 @@ import { auth } from "@/auth/auth";
 import { getDb } from "@/db/client";
 import { findOwnFeedback } from "@/db/feedback";
 import { getCurrentTournament } from "@/db/queries";
+import { FEEDBACK_OPENING_TEXT, isFeedbackOpen } from "@/lib/feedback";
 import { signInPathFor } from "@/lib/sign-in-return";
 
 import { FeedbackForm } from "./feedback-form";
@@ -18,6 +19,11 @@ const FEEDBACK_PATH = "/feedback";
 export default async function FeedbackPage() {
   const tournament = getCurrentTournament();
   if (!tournament) return <p>Feedback is not open yet.</p>;
+  if (!isFeedbackOpen(new Date().getTime())) return <div className="max-w-2xl">
+    <p className="text-xs uppercase tracking-[2px]">Rubsta Open · Feedback</p>
+    <h1 className="mt-4 font-serif text-5xl">How was Rubsta Open?</h1>
+    <p className="mt-4 text-club-muted">Feedback opens on {FEEDBACK_OPENING_TEXT}. Come back then to rate each part of the tournament.</p>
+  </div>;
 
   const session = await auth();
   const userId = session?.user?.id ?? null;

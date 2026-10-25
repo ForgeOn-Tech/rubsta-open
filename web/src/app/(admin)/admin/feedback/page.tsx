@@ -6,7 +6,7 @@ import { AdminPageHeader } from "@/components/admin-page-header";
 import { getDb } from "@/db/client";
 import { listFeedback } from "@/db/feedback";
 import { getCurrentTournament } from "@/db/queries";
-import { MAX_STARS, summarizeFeedback } from "@/lib/feedback";
+import { FEEDBACK_OPENING_TEXT, MAX_STARS, isFeedbackOpen, summarizeFeedback } from "@/lib/feedback";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +30,7 @@ export default async function AdminFeedbackPage() {
 
   return <>
     <AdminPageHeader eyebrow={`${tournament.name} · Feedback`} title="Feedback"
-      stats={[plural(responses.length, "response", "responses"), `Players: ${fromPlayers}`, `Visitors: ${responses.length - fromPlayers}`, plural(comments.length, "comment", "comments")]}>
+      stats={[isFeedbackOpen(new Date().getTime()) ? "Form open" : `Opens ${FEEDBACK_OPENING_TEXT}`, plural(responses.length, "response", "responses"), `Players: ${fromPlayers}`, `Visitors: ${responses.length - fromPlayers}`, plural(comments.length, "comment", "comments")]}>
       <Link href="/feedback" className="btn btn-outline">Open the form</Link>
     </AdminPageHeader>
     <div className="flex flex-col gap-5 p-6">

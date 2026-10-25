@@ -17,6 +17,14 @@ export type FeedbackTopic = (typeof FEEDBACK_TOPICS)[number]["key"];
 /** Only rated topics appear; a topic someone did not use is left out. */
 export type FeedbackRatings = Partial<Record<FeedbackTopic, number>>;
 
+/** The form opens at 6:00 pm IST on Monday 26 October 2026, the day after the tournament. */
+export const FEEDBACK_OPENS_AT = Date.parse("2026-10-26T18:00:00+05:30");
+export const FEEDBACK_OPENING_TEXT = "Monday 26 October at 6:00 pm IST";
+
+export function isFeedbackOpen(now: number): boolean {
+  return now >= FEEDBACK_OPENS_AT;
+}
+
 export const MIN_STARS = 1;
 export const MAX_STARS = 5;
 export const MAX_COMMENT_LENGTH = 1000;

@@ -7,7 +7,7 @@ import { auth } from "@/auth/auth";
 import { getDb } from "@/db/client";
 import { saveFeedback } from "@/db/feedback";
 import { getCurrentTournament } from "@/db/queries";
-import { FeedbackError, type FeedbackInput, parseFeedback } from "@/lib/feedback";
+import { FEEDBACK_OPENING_TEXT, FeedbackError, type FeedbackInput, isFeedbackOpen, parseFeedback } from "@/lib/feedback";
 import type { ActionState } from "@/lib/form-state";
 
 import { VISITOR_COOKIE } from "./visitor-cookie";
@@ -25,6 +25,8 @@ function readFeedback(form: FormData): FeedbackInput {
 export async function sendFeedback(_previous: ActionState, form: FormData): Promise<ActionState> {
   const tournament = getCurrentTournament();
   if (!tournament) return { error: "Feedback is not open yet.", savedAt: null };
+  const now = Date.now();
+  if (!isFeedbackOpen(now)) return { error: `Feedback opens on ${FEEDBACK_OPENING_TEXT}.`, savedAt: null };
 
   let input: FeedbackInput;
   try {
@@ -40,7 +42,7 @@ export async function sendFeedback(_previous: ActionState, form: FormData): Prom
   const sender = userId === null
     ? { visitorResponseId: store.get(VISITOR_COOKIE)?.value ?? null }
     : { userId };
-  const id = saveFeedback(getDb(), tournament.id, sender, input, Date.now());
+  const id = saveFeedback(getDb(), tournament.id, sender, input, now);
   if (userId === null) {
     store.set(VISITOR_COOKIE, id, {
       httpOnly: true,
@@ -51,5 +53,5 @@ export async function sendFeedback(_previous: ActionState, form: FormData): Prom
     });
   }
   revalidatePath("/admin/feedback");
-  return { error: null, savedAt: Date.now() };
+  return { error: null, savedAt: now };
 }
