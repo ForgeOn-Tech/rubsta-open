@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 import "@/auth/types";
+import { SPLASH_SCREENS, splashStartupImages } from "@/lib/splash-screens";
 
 import { APP_THEME_COLOR } from "./manifest";
 
@@ -10,7 +11,12 @@ export const metadata: Metadata = {
   description:
     "Rubsta Open 2026 registration · Powered by ForgeLabs. Tournament OS entry surface.",
   applicationName: "Rubsta Open",
-  appleWebApp: { capable: true, title: "Rubsta Open", statusBarStyle: "default" },
+  appleWebApp: {
+    capable: true,
+    title: "Rubsta Open",
+    statusBarStyle: "default",
+    startupImage: splashStartupImages(SPLASH_SCREENS),
+  },
 };
 
 export const viewport: Viewport = {
