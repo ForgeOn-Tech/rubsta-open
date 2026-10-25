@@ -701,3 +701,17 @@ delivery. Check delivery/bounces in Resend using the provider reference. Check
 Resend logs for the `payment-confirmation/<payment_id>` key before retrying a
 held row; do not clear its frozen request or first-attempt time on an uncertain
 send. No automatic historical backfill or bulk resend is provided.
+
+### OBS score overlay
+
+Each configured court has a public transparent scoreboard at `/overlay/<court number>`.
+In **Admin → Live streaming**, use **Copy scoreboard link** for the camera’s court.
+In OBS add a Browser Source, paste the link, set 1920 × 1080, and place it above
+the camera source. The scoreboard sits at the upper left; move or crop it in OBS.
+It refreshes the umpire’s saved score every two seconds, includes sets, points and
+the serving indicator, and switches automatically when the next match starts on
+that court. Between matches it says “Waiting for play”. A lost connection keeps
+the last score with a reconnecting notice until updates resume. No sign-in is
+required, and the overlay endpoint returns only public score display data.
+
+Verify with `cd web && npx playwright test e2e/overlay.spec.ts e2e/streaming.spec.ts`.
