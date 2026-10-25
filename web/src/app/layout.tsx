@@ -3,15 +3,20 @@ import "./globals.css";
 
 import "@/auth/types";
 
+import { APP_THEME_COLOR } from "./manifest";
+
 export const metadata: Metadata = {
   title: "Rubsta Open · Tournament OS",
   description:
     "Rubsta Open 2026 registration · Powered by ForgeLabs. Tournament OS entry surface.",
+  applicationName: "Rubsta Open",
+  appleWebApp: { capable: true, title: "Rubsta Open", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  themeColor: APP_THEME_COLOR,
 };
 
 export default function RootLayout({
