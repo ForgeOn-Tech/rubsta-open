@@ -1,0 +1,19 @@
+html:has(.obs-overlay), body:has(.obs-overlay) { background: transparent !important; margin: 0; overflow: hidden; }
+.obs-overlay { padding: 24px; font-family: Inter, Arial, sans-serif; color: #f6f5e9; }
+.obs-score { width: 560px; max-width: 100%; background: #102d24; border-left: 4px solid #d7ec71; box-shadow: 0 4px 20px #0003; }
+.obs-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 12px 16px; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; }
+.obs-heading strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.obs-heading > span { flex-shrink: 0; color: #d7ec71; }
+.obs-event { padding: 8px 16px; background: #ffffff0c; font-size: 11px; letter-spacing: .6px; }
+.obs-score table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.obs-score thead th { color: #bccdc4; font-size: 10px; font-weight: 500; padding: 8px 6px 5px; text-align: center; }
+.obs-score thead th:first-child { text-align: left; padding-left: 32px; }
+.obs-score tbody th { text-align: left; padding: 10px 8px; font-size: 20px; font-weight: 500; }
+.obs-score tbody tr + tr { border-top: 1px solid #ffffff1a; }
+.obs-name { display: inline-block; max-width: 300px; vertical-align: middle; overflow-wrap: anywhere; }
+.obs-server { display: inline-block; width: 20px; color: #d7ec71; font-size: 12px; vertical-align: middle; }
+.obs-score td { width: 42px; text-align: center; font-size: 24px; padding: 8px 6px; }
+.obs-score td.obs-point { width: 58px; background: #d7ec71; color: #102d24; font-weight: 700; }
+.obs-situation { padding: 8px 16px; color: #d7ec71; font-size: 12px; border-top: 1px solid #ffffff1a; }
+.obs-waiting { padding: 12px 16px 18px; margin: 0; font-size: 17px; }
+.obs-reconnecting { margin: 0; padding: 8px 16px; background: #66451a; color: #fff0d5; font-size: 12px; }
