@@ -1,0 +1,16 @@
+#winners-gallery { border-bottom: 1px solid var(--line); }
+#winners-gallery .section-heading { display: flex; align-items: end; justify-content: space-between; gap: 32px; }
+#winners-gallery .section-heading > p { max-width: 340px; }
+.tournament-photo-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin-top: 32px; }
+.tournament-photo { min-width: 0; border: 1px solid var(--line); background: #fff8; }
+.tournament-photo-image { display: block; background: #1735250a; }
+.tournament-photo-image img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: contain; }
+.tournament-photo-copy { padding: 20px; }
+.tournament-photo-label { margin: 0 0 10px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+.tournament-photo h3 { margin: 0; font: 28px/1.15 var(--serif); overflow-wrap: anywhere; }
+.tournament-photo-players { font-size: 13px; font-weight: 600; margin: 12px 0 0; }
+.tournament-photo-caption { font-size: 13px; line-height: 1.6; color: var(--muted); margin: 10px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.tournament-gallery-status { color: var(--muted); }
+#winners-gallery .actions { margin-top: 28px; }
+@media(max-width:900px) { .tournament-photo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media(max-width:600px) { .tournament-photo-grid { grid-template-columns: 1fr; } #winners-gallery .section-heading { display: block; } }

@@ -10,6 +10,7 @@ import {
 } from "drizzle-orm/sqlite-core";
 
 import type { FeedbackRatings } from "@/lib/feedback";
+import type { GalleryKind } from "@/lib/gallery";
 import type { MatchEvent, MatchFormat, Side } from "@/lib/match";
 import type { ScheduleEntry } from "@/lib/schedule";
 
@@ -739,3 +740,20 @@ export const feedbackResponses = sqliteTable(
   },
   (table) => [uniqueIndex("feedback_responses_tournament_user").on(table.tournamentId, table.userId)],
 );
+
+/** Admin-curated tournament photos; drafts and their images stay private. */
+export const galleryPhotos = sqliteTable("gallery_photos", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  tournamentId: text("tournament_id").notNull().references(() => tournaments.id),
+  playerId: text("player_id").notNull().references(() => users.id),
+  secondPlayerId: text("second_player_id").references(() => users.id),
+  title: text("title").notNull(),
+  caption: text("caption").notNull().default(""),
+  kind: text("kind").$type<GalleryKind>().notNull().default("gallery"),
+  category: text("category").$type<Category>(),
+  jpeg: text("jpeg").notNull(),
+  publishedAt: integer("published_at"),
+  version: integer("version").notNull().default(1),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+}, table => [index("gallery_tournament_publication").on(table.tournamentId, table.publishedAt)]);

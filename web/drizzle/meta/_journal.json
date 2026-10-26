@@ -211,6 +211,13 @@
       "when": 1792900010667,
       "tag": "0029_feedback",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "6",
+      "when": 1792987669227,
+      "tag": "0030_gallery_photos",
+      "breakpoints": true
     }
   ]
 }
