@@ -141,15 +141,30 @@ const STATEMENT_VERBS: Record<CertificateKind, string> = {
   winner: "won the",
 };
 
+const NAME_WORD = /\p{L}+/gu;
+
+/**
+ * Capitalises each word of a name typed all in lower or upper case: "asha rao" and
+ * "VIKRAM SEN" become "Asha Rao" and "Vikram Sen". Mixed-case words such as
+ * "McDonald" stay as typed.
+ */
+export function titleCaseName(name: string): string {
+  return name.replace(NAME_WORD, (word) =>
+    word === word.toLowerCase() || word === word.toUpperCase()
+      ? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+      : word,
+  );
+}
+
 export function certificateText(details: CertificateDetails): CertificateText {
   // Event names keep their capitals: "U-15 juniors", "Women's 30+".
   const event = CATEGORY_LABELS[details.category];
-  const withPartner = details.partnerName === null ? "" : ` with ${details.partnerName}`;
+  const withPartner = details.partnerName === null ? "" : ` with ${titleCaseName(details.partnerName)}`;
   return {
     kind: details.kind,
     title: CERTIFICATE_TITLES[details.kind],
     lead: "This certifies that",
-    name: details.playerName,
+    name: titleCaseName(details.playerName),
     statement: `${STATEMENT_VERBS[details.kind]} ${event}${withPartner} at ${details.tournamentName}`,
     detail: [details.dates, details.venue].filter((part) => part !== null).join(" · ") || null,
     seal: SEAL_WORDS[details.kind],
