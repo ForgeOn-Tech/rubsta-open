@@ -12,6 +12,7 @@ import {
   certificateLabel,
   certificateText,
   earnedCertificates,
+  titleCaseName,
   type CertificateKind,
 } from "@/lib/certificates";
 import { formatTournamentDates } from "@/lib/format";
@@ -80,7 +81,7 @@ export async function renderPlayerCertificate(
     label: certificateLabel(certificate),
     category: certificate.category,
     kind: certificate.kind,
-    playerName: profile.fullName,
+    playerName: titleCaseName(profile.fullName),
     tournamentName: tournament.name,
   };
 }

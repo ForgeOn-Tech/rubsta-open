@@ -8,6 +8,7 @@ import {
   certificatePath,
   certificateText,
   earnedCertificates,
+  titleCaseName,
   type CertificateDetails,
 } from "@/lib/certificates";
 
@@ -125,6 +126,21 @@ describe("certificate names", () => {
   });
 });
 
+describe("titleCaseName", () => {
+  it("capitalises words typed all in lower or upper case", () => {
+    expect(titleCaseName("asha rao")).toBe("Asha Rao");
+    expect(titleCaseName("VIKRAM SEN")).toBe("Vikram Sen");
+    expect(titleCaseName("Kiran desai")).toBe("Kiran Desai");
+  });
+
+  it("keeps mixed-case words, initials and punctuation", () => {
+    expect(titleCaseName("Ian McDonald")).toBe("Ian McDonald");
+    expect(titleCaseName("R Raghunandan")).toBe("R Raghunandan");
+    expect(titleCaseName("o'brien-SMITH")).toBe("O'Brien-Smith");
+    expect(titleCaseName("")).toBe("");
+  });
+});
+
 describe("certificateText", () => {
   const details: CertificateDetails = {
     kind: "participation",
@@ -165,6 +181,13 @@ describe("certificateText", () => {
       statement: "finished runner-up in the Open singles at Rubsta Open 2026",
       seal: "Runner-up",
       number: "FL-2026-0117-OS-R",
+    });
+  });
+
+  it("title-cases the player and partner names", () => {
+    expect(certificateText({ ...details, playerName: "asha rao", category: "OD", partnerName: "MEERA IYER" })).toMatchObject({
+      name: "Asha Rao",
+      statement: "took part in the Open doubles with Meera Iyer at Rubsta Open 2026",
     });
   });
 
