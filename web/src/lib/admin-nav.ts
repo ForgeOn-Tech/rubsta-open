@@ -16,6 +16,7 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
   { label: "Scoring", href: "/score" },
   { label: "Umpires", href: "/admin/umpires" },
   { label: "Results", href: "/admin/results" },
+  { label: "Winners & gallery", href: "/admin/gallery" },
   { label: "Players", href: "/admin/players" },
   { label: "Avatar permissions", href: "/admin/avatars" },
   { label: "Challenge Kit", href: "/admin/challenges" },

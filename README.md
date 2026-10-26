@@ -715,3 +715,27 @@ the last score with a reconnecting notice until updates resume. No sign-in is
 required, and the overlay endpoint returns only public score display data.
 
 Verify with `cd web && npx playwright test e2e/overlay.spec.ts e2e/streaming.spec.ts`.
+
+### Winners and tournament gallery
+
+`/admin/gallery` lets organisers select a player (and optionally a second player
+for doubles), upload a JPG/PNG/WebP up to 5 MB, add a title/caption, choose an event
+and mark the photo as Winner, Runner-up, Standout player or Gallery. **Save draft**
+keeps it private. **Save & publish** places it on `/gallery`, the homepage’s
+Winners & gallery section and both tagged players’ profile/player-card pages.
+Public shared player cards show these photos only while the player’s existing
+card-sharing link is enabled. Publishing never changes an official match result
+or the player’s private profile photo.
+
+Edit a photo to replace the image, update its text or use **Unpublish & save draft**.
+Public image URLs stop serving unpublished photos, including URLs opened earlier.
+Photos keep their full proportions, are resized to fit within 1600 × 1600, and
+have camera metadata removed. Gallery images live in the persistent SQLite
+database, so existing database backups include them. Conflicting editor saves are
+rejected instead of silently replacing another organiser’s changes.
+
+Migration `0030_gallery_photos` adds one table and one index. Release the Next.js
+app and the static homepage/assets together; the latter fetches `/api/gallery`
+on the same origin. Existing photo/profile records are unchanged. Browser tests:
+`cd web && E2E_TARGET=production npx playwright test e2e/gallery.spec.ts`. Access, validation and
+publication tests: `npm test -- src/app/api/admin/gallery/__tests__/route.test.ts`.

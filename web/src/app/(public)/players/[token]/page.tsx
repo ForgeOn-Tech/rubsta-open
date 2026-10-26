@@ -1,3 +1,4 @@
+import { PlayerGallery } from "@/components/player-gallery";
 import { notFound } from "next/navigation";
 import { getDb } from "@/db/client";
 import { getPlayerCard, sharedCardOwner } from "@/db/player-cards";
@@ -10,5 +11,5 @@ export default async function SharedPlayerCard({ params }: { params: Promise<{ t
   if (!userId) notFound();
   const card = getPlayerCard(getDb(), userId);
   if (!card) notFound();
-  return <div className="mx-auto max-w-3xl"><PlayerRecord card={card} token={token} /></div>;
+  return <div className="mx-auto max-w-3xl"><PlayerRecord card={card} token={token} /><PlayerGallery userId={userId} /></div>;
 }

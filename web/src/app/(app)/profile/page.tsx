@@ -1,3 +1,4 @@
+import { PlayerGallery } from "@/components/player-gallery";
 import { eq } from "drizzle-orm";
 
 import { requireUser } from "@/auth/require";
@@ -62,6 +63,7 @@ export default async function ProfilePage() {
           accessError={profilePhotoAccessError(ageFromDob(profile.dateOfBirth))}
         />
       ) : null}
+      <PlayerGallery userId={user.id} />
     </div>
   );
 }
