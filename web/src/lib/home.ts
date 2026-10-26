@@ -1,4 +1,7 @@
+import { tournamentEnded } from "@/lib/tournament";
+
 export type NextStepKind =
+  | "tournament-ended"
   | "registration-paid"
   | "complete-registration"
   | "create-profile"
@@ -21,6 +24,7 @@ export interface NextStep {
 }
 
 export interface NextStepInput {
+  endsOn?: string | null;
   registrationPaid?: boolean;
   pendingEntryId?: string | null;
   hasProfile: boolean;
@@ -35,6 +39,7 @@ const ADD_CATEGORY: NextStepAction = { label: "Add a category", href: "/register
 
 /** The one action the player home leads with. */
 export function nextStep({
+  endsOn,
   registrationPaid = false,
   pendingEntryId = null,
   hasProfile,
@@ -42,6 +47,9 @@ export function nextStep({
   enteredCount,
   categoryCount,
 }: NextStepInput): NextStep {
+  if (tournamentEnded({ endsOn })) {
+    return { kind: "tournament-ended", title: "Tournament complete", description: "Thank you for being part of Rubsta Open. Explore the results and tournament photos.", action: { label: "View results", href: "/results" } };
+  }
   if (pendingEntryId) {
     return { kind: "complete-registration", title: "Complete your registration", description: "Your categories are selected. Complete one payment for your registration.", action: { label: "Continue to payment", href: `/register/${pendingEntryId}` } };
   }

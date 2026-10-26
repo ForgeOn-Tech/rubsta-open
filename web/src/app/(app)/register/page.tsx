@@ -14,7 +14,7 @@ import { ageFromDob } from "@/lib/age";
 import { CATEGORY_LABELS, entriesOpen } from "@/lib/entries";
 import { formatEntryCloses } from "@/lib/format";
 import { razorpayConfig } from "@/lib/razorpay";
-import { PROVISIONAL_SCHEDULE_NOTE } from "@/lib/tournament";
+import { PROVISIONAL_SCHEDULE_NOTE, tournamentEnded } from "@/lib/tournament";
 import { registrationState, topUpBase } from "@/db/registration";
 import {
   REGISTRATION_OPTIONS,
@@ -44,8 +44,9 @@ export default async function RegisterPage() {
     );
   }
 
+  const ended = tournamentEnded(tournament);
   const registration = registrationState(getDb(), user.id, tournament.id);
-  if (registration.pendingId) redirect(`/register/${registration.pendingId}`);
+  if (!ended && registration.pendingId) redirect(`/register/${registration.pendingId}`);
 
   // Not filtered by tournament: the unique index is on (user, category).
   const myEntries = db
@@ -55,7 +56,7 @@ export default async function RegisterPage() {
     .orderBy(desc(entries.createdAt))
     .all();
 
-  const closed = !entriesOpen(tournament);
+  const closed = ended || !entriesOpen(tournament);
   const fees = getEventFees(getDb(), tournament.id);
   const now = new Date();
   // A single event that completes a combo with a paid event costs only the top-up.
@@ -81,13 +82,13 @@ export default async function RegisterPage() {
       <div>
         <div className="eyebrow">{tournament.name} · Entry</div>
         <h1 className="mt-2 text-[20px] font-semibold tracking-[-0.01em]">
-          Choose your categories
+          {ended ? "Your tournament entries" : "Choose your categories"}
         </h1>
         <p className="mt-1.5 text-[13px] text-muted">
-          Choose your event or combination before paying. One payment covers your
+          {ended ? <>The tournament has ended. <Link href="/results" className="underline">View results</Link> or <Link href="/gallery" className="underline">browse tournament photos</Link>.</> : <>Choose your event or combination before paying. One payment covers your
           selection. You can add a category after paying. If it completes an approved
           combo with an event you paid for, you pay only the difference. Doubles entries
-          need your partner&apos;s name and email.
+          need your partner&apos;s name and email.</>}
         </p>
       </div>
 
@@ -141,7 +142,7 @@ export default async function RegisterPage() {
 
       {closed ? (
         <p className="card p-4 text-[13px] text-muted" role="status">
-          Entries for {tournament.name} closed on {closesLabel}.
+          Registration is closed.
         </p>
       ) : (
         <EntryForm
@@ -155,7 +156,7 @@ export default async function RegisterPage() {
         />
       )}
 
-      {tournament.scheduleConfirmed ? null : (
+      {ended || tournament.scheduleConfirmed ? null : (
         <p className="text-[11px] text-dim">{PROVISIONAL_SCHEDULE_NOTE}</p>
       )}
     </div>

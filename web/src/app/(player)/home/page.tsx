@@ -17,7 +17,6 @@ import { CATEGORIES, entries, profiles, tournaments } from "@/db/schema";
 import { CATEGORY_LABELS, entriesOpen } from "@/lib/entries";
 import {
   formatDate,
-  formatEntryCloses,
   formatTournamentDates,
 } from "@/lib/format";
 import { feeRangeLabel } from "@/lib/fees";
@@ -34,7 +33,7 @@ import {
 } from "@/lib/player-matches";
 import { placeLabel, publishedPlaces, type PublishedPlace } from "@/lib/schedule";
 import { matchSummary, sideLabel } from "@/lib/scoring-display";
-import { PROVISIONAL_SCHEDULE_NOTE } from "@/lib/tournament";
+import { PROVISIONAL_SCHEDULE_NOTE, tournamentEnded } from "@/lib/tournament";
 
 export const dynamic = "force-dynamic";
 
@@ -73,7 +72,9 @@ export default async function HomePage({ searchParams }: {
   const upcoming = nextMatch(tournamentMatches, teamEntryIds, places);
 
   const registration = registrationState(getDb(), user.id, tournament?.id);
+  const ended = tournament ? tournamentEnded(tournament) : false;
   const step = nextStep({
+    endsOn: tournament?.endsOn,
     registrationPaid: registration.paid,
     pendingEntryId: registration.pendingId,
     hasProfile: profile !== null,
@@ -234,7 +235,7 @@ export default async function HomePage({ searchParams }: {
       </section>
 
       <section aria-labelledby="next-match-heading">
-        <SectionHeading id="next-match-heading" eyebrow="02 / Next match" title="Your next match">
+        <SectionHeading id="next-match-heading" eyebrow="02 / Matches" title={ended ? "Your tournament matches" : "Your next match"}>
           <div className="flex flex-wrap gap-3">
             <Link href={PLAYER_DRAWS_PATH} className="pill pill-outline">
               Draws
@@ -246,9 +247,9 @@ export default async function HomePage({ searchParams }: {
             ) : null}
           </div>
         </SectionHeading>
-        {upcoming === null ? (
+        {ended || upcoming === null ? (
           <p className="mt-6 border-t border-club-line pt-5 text-[13px] text-club-muted">
-            No match is waiting for you. Your matches appear here once your draw is published.
+            {ended ? <>The tournament has ended. <Link href="/results" className="underline">View results</Link> or <Link href="/gallery" className="underline">browse tournament photos</Link>.</> : "No match is waiting for you. Your matches appear here once your draw is published."}
           </p>
         ) : (
           <NextMatch row={upcoming} team={teamEntryIds} place={places.get(upcoming.match.id) ?? null} />
@@ -301,8 +302,8 @@ export default async function HomePage({ searchParams }: {
                 },
                 { label: "Where", value: tournament.venue ?? "Venue coming soon" },
                 {
-                  label: "Entries close",
-                  value: `${formatEntryCloses(tournament.entryClosesAt)} IST`,
+                  label: "Status",
+                  value: ended ? "Tournament complete" : entriesOpen(tournament) ? "Entries open" : "Entries closed",
                 },
                 {
                   label: "Entry fee",
@@ -319,7 +320,7 @@ export default async function HomePage({ searchParams }: {
                 </div>
               ))}
             </dl>
-            {tournament.scheduleConfirmed ? null : (
+            {ended || tournament.scheduleConfirmed ? null : (
               <p className="mt-3 text-[12px] text-club-muted">{PROVISIONAL_SCHEDULE_NOTE}</p>
             )}
           </>
@@ -332,14 +333,14 @@ export default async function HomePage({ searchParams }: {
 
       <section aria-label="Challenge Kit" className="border border-club-line bg-club-paper p-6">
         <h2 className="font-serif text-3xl">Challenge Kit</h2>
-        <p className="mt-3 text-club-muted">Try serve speed, accuracy and reaction challenges at the venue. See how your best attempt ranks.</p>
+        <p className="mt-3 text-club-muted">Explore the serve speed, accuracy and reaction challenge leaderboard.</p>
         <Link href="/challenges" className="pill pill-outline mt-4">View challenge leaderboard →</Link>
       </section>
 
       <section aria-labelledby="coming-heading">
         <SectionHeading
           id="coming-heading"
-          eyebrow="05 / Coming soon"
+          eyebrow="05 / Tournament features"
           title="More of the tournament"
         />
         <ul className="mt-6 grid gap-8 md:grid-cols-3">
