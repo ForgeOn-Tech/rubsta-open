@@ -5,7 +5,7 @@ import { useLayoutEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 
 const tabs = [
-  ["/home", "Home"], ["/register", "Registration"], ["/profile", "Profile"],
+  ["/home", "Home"], ["/register", "Your entries"], ["/profile", "Profile"],
   ["/draws", "Draws"], ["/order-of-play", "Order of play"], ["/results", "Results"],
   ["/live", "Live"], ["/live/leaderboard", "Leaderboard"], ["/challenges", "Challenges"], ["/feedback", "Feedback"],
 ] as const;

@@ -14,6 +14,7 @@ import { db, getDb } from "@/db/client";
 import { getEventFees } from "@/db/fees";
 import { entries, tournaments } from "@/db/schema";
 import { CATEGORY_LABELS, entryReference, isDoubles } from "@/lib/entries";
+import { tournamentEnded } from "@/lib/tournament";
 import { awaitsPayment } from "@/lib/entry-status";
 import { eventFeeLabel } from "@/lib/fees";
 import { formatDate, formatFee } from "@/lib/format";
@@ -64,7 +65,8 @@ export default async function EntryConfirmationPage({
   const partnerStatus = entry.partnerStatus;
   const feeCents = getEventFees(getDb(), tournament.id)[entry.category];
   const feeLabel = eventFeeLabel(feeCents, tournament.currency, isDoubles(entry.category));
-  const awaitingPayment = awaitsPayment({
+  const ended = tournamentEnded(tournament);
+  const awaitingPayment = !ended && awaitsPayment({
     paymentsOn: razorpayConfig(process.env) !== null,
     feeCents,
     status: entry.status,
@@ -77,7 +79,7 @@ export default async function EntryConfirmationPage({
     ? `Completes your ${CATEGORY_LABELS[toppedUp.category]} + ${CATEGORY_LABELS[entry.category]} combo. ${formatFee(checkout.amountPaidCents, tournament.currency)} already paid.`
     : `${checkout?.entries.map(item => CATEGORY_LABELS[item.category]).join(" + ")}.`;
 
-  const changeSelectionForm = selectionChangeBlock(getDb(), entry) === null ? (
+  const changeSelectionForm = !ended && selectionChangeBlock(getDb(), entry) === null ? (
     <form action={changeSelection.bind(null, entry.id)}>
       <button type="submit" className="btn btn-outline w-full">
         Change selection
@@ -142,7 +144,7 @@ export default async function EntryConfirmationPage({
         </p>
       </div>
 
-      {entry.status === "paid" ? <p className="card p-4 text-[13px] text-muted" role="status">
+      {!ended && entry.status === "paid" ? <p className="card p-4 text-[13px] text-muted" role="status">
         To change a paid category, email tech@forgelabs.in before entries close.
       </p> : null}
 
